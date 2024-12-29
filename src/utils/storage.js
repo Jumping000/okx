@@ -29,7 +29,7 @@ export const storage = {
   getApiConfig() {
     return {
       apiKey: decrypt(localStorage.getItem(STORAGE_KEYS.API_KEY)),
-      apiSecret: decrypt(localStorage.getItem(STORAGE_KEYS.API_SECRET)),
+      secretKey: decrypt(localStorage.getItem(STORAGE_KEYS.API_SECRET)),
       passphrase: decrypt(localStorage.getItem(STORAGE_KEYS.PASSPHRASE)),
     };
   },
