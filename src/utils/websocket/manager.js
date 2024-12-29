@@ -5,7 +5,7 @@ class WebSocketManager {
   constructor() {
     this.connections = new Map();
     this.initialized = false;
-    this.overviewStore = useOverviewStore();
+    this._store = null;
 
     // 监听网络状态变化
     window.addEventListener("online", () => this.updateOverviewConnection());
@@ -13,15 +13,33 @@ class WebSocketManager {
   }
 
   /**
+   * 获取 store 实例
+   * @private
+   */
+  get store() {
+    if (!this._store) {
+      try {
+        this._store = useOverviewStore();
+      } catch (error) {
+        console.warn("Store not ready yet");
+        return null;
+      }
+    }
+    return this._store;
+  }
+
+  /**
    * 更新连接状态到 overview store
    * @private
    */
   updateOverviewConnection() {
+    if (!this.store) return;
+
     const publicWs = this.connections.get("public");
     const privateWs = this.connections.get("private");
     const businessWs = this.connections.get("business");
 
-    this.overviewStore.$patch({
+    this.store.$patch({
       connection: {
         network: navigator.onLine,
         publicChannel: publicWs?.isConnected() || false,

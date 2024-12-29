@@ -58,7 +58,7 @@
 </template>
 
 <script>
-import { defineComponent, ref, watch } from 'vue'
+import { defineComponent, ref, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
     DownOutlined,
@@ -69,6 +69,7 @@ import {
     WalletOutlined
 } from '@ant-design/icons-vue'
 import { storage } from '@/utils/storage'
+import { useCurrencyStore } from '@/store/currency'
 
 const PATH_TO_KEY = {
     '/dashboard/overview': 'dashboard',
@@ -96,6 +97,7 @@ export default defineComponent({
         const router = useRouter()
         const route = useRoute()
         const selectedKeys = ref([PATH_TO_KEY[route.path] || 'dashboard'])
+        const currencyStore = useCurrencyStore()
 
         const menuItems = [
             {
@@ -130,7 +132,13 @@ export default defineComponent({
             storage.clearApiConfig()
             router.push('/')
         }
+        onMounted(async () => {
 
+            // 获取币种列表
+
+            await currencyStore.fetchCurrencies()
+
+        })
         return {
             selectedKeys,
             menuItems,
