@@ -1,9 +1,14 @@
 import { defineStore } from "pinia";
-import { getAssetCurrencies } from "@/api/module/Basics";
+import { getAccountInstruments } from "@/api/module/Basics";
 
 export const useCurrencyStore = defineStore("currency", {
   state: () => ({
-    currencies: [],
+    currencies: {
+      // 合约
+      SWAP: [],
+      // 现货
+      SPOT: [],
+    },
     loading: false,
     error: null,
     lastUpdateTime: null,
@@ -30,12 +35,35 @@ export const useCurrencyStore = defineStore("currency", {
       this.error = null;
 
       try {
-        const response = await getAssetCurrencies();
-        if (response.code === "0") {
-          this.currencies = response.data;
+        // const response = await getAssetCurrencies();
+        // 合约
+        const HY = await getAccountInstruments({
+          instType: "SWAP",
+        });
+        // 现货
+        const BB = await getAccountInstruments({
+          instType: "SPOT",
+        });
+        // 循环 HY\BB instId 要 包含USDT
+
+        if (HY.code === "0" && BB.code === "0") {
+          this.currencies = {
+            SWAP: [],
+            SPOT: [],
+          };
+          HY.data.forEach((item) => {
+            if (item.instId.includes("USDT")) {
+              this.currencies.SWAP.push(item);
+            }
+          });
+          BB.data.forEach((item) => {
+            if (item.instId.includes("USDT")) {
+              this.currencies.SPOT.push(item);
+            }
+          });
           this.lastUpdateTime = new Date().toISOString();
         } else {
-          throw new Error(response.msg || "获取币种列表失败");
+          throw new Error(HY.msg || BB.msg || "获取币种列表失败");
         }
       } catch (error) {
         console.error("获取币种列表失败:", error);
