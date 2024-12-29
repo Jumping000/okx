@@ -3,13 +3,20 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "dev": "vue-cli-service serve --mode development",
+    "serve": "vue-cli-service serve --mode development",
+    "build": "vue-cli-service build --mode production",
+    "build:dev": "vue-cli-service build --mode development",
+    "lint": "vue-cli-service lint",
+    "preview": "pnpm build && pnpm serve dist"
   },
   "dependencies": {
+    "ant-design-vue": "^3.2.0",
+    "axios": "^1.6.0",
     "core-js": "^3.8.3",
-    "vue": "^3.2.13"
+    "pinia": "^2.1.0",
+    "vue": "^3.2.13",
+    "vue-router": "^4.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.12.16",
@@ -17,8 +24,11 @@
     "@vue/cli-plugin-babel": "~5.0.0",
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
+    "autoprefixer": "^10.4.20",
     "eslint": "^7.32.0",
-    "eslint-plugin-vue": "^8.0.3"
+    "eslint-plugin-vue": "^8.0.3",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
   },
   "eslintConfig": {
     "root": true,

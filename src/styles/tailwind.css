@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-500 text-dark-100;
+  }
+}
+
+@layer components {
+  .nav-item {
+    @apply flex flex-col items-center py-3 cursor-pointer transition-colors text-dark-200 relative hover:text-white hover:bg-white/[0.04];
+  }
+
+  .nav-item.active {
+    @apply text-primary;
+  }
+
+  .nav-item.active::after {
+    @apply content-[''] absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 bg-primary rounded-r;
+  }
+}
