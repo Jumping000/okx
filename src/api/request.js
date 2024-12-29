@@ -18,21 +18,22 @@ request.interceptors.request.use(
     const needAuth = !config.headers?.noAuth;
     if (needAuth) {
       try {
-        // 构建请求路径（包含查询参数）
-        const requestPath =
-          config.url +
-          (config.params
-            ? "?" + new URLSearchParams(config.params).toString()
-            : "");
+        // 构建完整的请求路径（包含查询参数）
+        let requestPath = config.url;
+        if (config.params) {
+          const query = new URLSearchParams(config.params).toString();
+          requestPath = `${requestPath}${query ? "?" + query : ""}`;
+        }
+
+        // 获取请求体（仅 POST 等方法需要）
+        const body = ["POST", "PUT", "PATCH"].includes(
+          config.method?.toUpperCase()
+        )
+          ? JSON.stringify(config.data || "")
+          : "";
 
         // 获取认证头
-        const authHeaders = getAuthHeaders(
-          config.method,
-          requestPath,
-          ["POST", "PUT", "PATCH"].includes(config.method?.toUpperCase())
-            ? JSON.stringify(config.data || "")
-            : ""
-        );
+        const authHeaders = getAuthHeaders(config.method, requestPath, body);
 
         // 合并认证头
         config.headers = {
