@@ -185,13 +185,32 @@
                         <a-input-search v-model:value="spotSearch" placeholder="搜索币种" class="w-32" size="small" />
                     </div>
                     <div class="currency-list-container">
-                        <div class="currency-grid">
-                            <div v-for="item in filteredSpotCurrencies" :key="item.instId" class="currency-item"
-                                :title="item.instId">
-                                <span class="currency-symbol">{{ item.instId.replace('-USDT', '') }}</span>
-                                <span class="currency-pair text-dark-200">/ USDT</span>
+                        <!-- 加载状态 -->
+                        <template v-if="currencyStore.loading">
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <a-spin />
+                                <span class="mt-2 text-sm text-dark-200">加载中...</span>
                             </div>
-                        </div>
+                        </template>
+                        <!-- 空数据状态 -->
+                        <template v-else-if="!filteredSpotCurrencies.length">
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <inbox-outlined class="text-2xl text-dark-300" />
+                                <span class="mt-2 text-sm text-dark-200">
+                                    {{ spotSearch ? '未找到匹配的币种' : '暂无币种数据' }}
+                                </span>
+                            </div>
+                        </template>
+                        <!-- 数据列表 -->
+                        <template v-else>
+                            <div class="currency-grid">
+                                <div v-for="item in filteredSpotCurrencies" :key="item.instId" class="currency-item"
+                                    :title="item.instId">
+                                    <span class="currency-symbol">{{ item.instId.replace('-USDT', '') }}</span>
+                                    <span class="currency-pair text-dark-200">/ USDT</span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
 
@@ -206,13 +225,32 @@
                         <a-input-search v-model:value="swapSearch" placeholder="搜索币种" class="w-32" size="small" />
                     </div>
                     <div class="currency-list-container">
-                        <div class="currency-grid">
-                            <div v-for="item in filteredSwapCurrencies" :key="item.instId" class="currency-item"
-                                :title="item.instId">
-                                <span class="currency-symbol">{{ item.instId.replace('-USDT-SWAP', '') }}</span>
-                                <span class="currency-pair text-dark-200">永续</span>
+                        <!-- 加载状态 -->
+                        <template v-if="currencyStore.loading">
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <a-spin />
+                                <span class="mt-2 text-sm text-dark-200">加载中...</span>
                             </div>
-                        </div>
+                        </template>
+                        <!-- 空数据状态 -->
+                        <template v-else-if="!filteredSwapCurrencies.length">
+                            <div class="flex flex-col items-center justify-center h-full">
+                                <inbox-outlined class="text-2xl text-dark-300" />
+                                <span class="mt-2 text-sm text-dark-200">
+                                    {{ swapSearch ? '未找到匹配的币种' : '暂无币种数据' }}
+                                </span>
+                            </div>
+                        </template>
+                        <!-- 数据列表 -->
+                        <template v-else>
+                            <div class="currency-grid">
+                                <div v-for="item in filteredSwapCurrencies" :key="item.instId" class="currency-item"
+                                    :title="item.instId">
+                                    <span class="currency-symbol">{{ item.instId.replace('-USDT-SWAP', '') }}</span>
+                                    <span class="currency-pair text-dark-200">永续</span>
+                                </div>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>
@@ -228,7 +266,8 @@ import {
     WifiOutlined,
     CloudOutlined,
     ApiOutlined,
-    SyncOutlined
+    SyncOutlined,
+    InboxOutlined
 } from '@ant-design/icons-vue'
 import { useOverviewStore } from '@/store/overview'
 import { useCurrencyStore } from '@/store/currency'
@@ -241,6 +280,7 @@ export default defineComponent({
         CloudOutlined,
         ApiOutlined,
         SyncOutlined,
+        InboxOutlined
     },
     setup() {
         const store = useOverviewStore()
@@ -434,7 +474,7 @@ export default defineComponent({
 
 /* 币种列表容器样式 */
 .currency-list-container {
-    @apply h-[300px] overflow-y-auto px-4 py-2;
+    @apply h-[300px] overflow-y-auto px-4 py-2 relative;
 
     /* 自定义滚动条 */
     &::-webkit-scrollbar {
@@ -456,6 +496,68 @@ export default defineComponent({
     /* Firefox 滚动条样式 */
     scrollbar-width: thin;
     scrollbar-color: theme('colors.dark.300') theme('colors.dark.400');
+}
+
+/* 加载和空状态容器 */
+.flex.flex-col.items-center.justify-center.h-full {
+    @apply animate-fade-in;
+}
+
+/* 加载动画 */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fade-in 0.3s ease-out;
+}
+
+/* 搜索框样式 */
+:deep(.ant-input-search) {
+    .ant-input {
+        @apply bg-dark-500 border-dark-300 text-dark-100;
+
+        &::placeholder {
+            @apply text-dark-200;
+        }
+
+        &:hover,
+        &:focus {
+            @apply border-primary;
+        }
+    }
+
+    .ant-input-search-button {
+        @apply bg-dark-300 border-dark-300 text-dark-100 transition-colors;
+
+        &:hover {
+            @apply bg-dark-200 border-dark-200;
+        }
+    }
+}
+
+/* 空状态图标动画 */
+.text-2xl.text-dark-300 {
+    @apply transition-transform;
+
+    &:hover {
+        @apply transform scale-110;
+    }
+}
+
+/* 加载状态自定义 */
+:deep(.ant-spin) {
+    .ant-spin-dot-item {
+        @apply bg-primary;
+    }
 }
 
 /* 币种网格布局 */
@@ -482,16 +584,5 @@ export default defineComponent({
 
 .currency-pair {
     @apply text-xs text-dark-200;
-}
-
-/* 搜索框样式 */
-:deep(.ant-input-search) {
-    .ant-input {
-        @apply bg-dark-500 border-dark-300 text-dark-100;
-    }
-
-    .ant-input-search-button {
-        @apply bg-dark-300 border-dark-300 text-dark-100;
-    }
 }
 </style>
