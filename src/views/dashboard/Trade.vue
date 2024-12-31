@@ -234,14 +234,56 @@
                                     </div>
 
                                     <!-- 交易按钮 -->
-                                    <div class="grid grid-cols-2 gap-4">
-                                        <a-button type="primary" class="h-10"
-                                            style="background-color: #00b96b; border-color: #00b96b;">
-                                            {{ orderType === 'stopLimit' ? '止盈' : '买入' }}{{ tradeType === 'SWAP' ? '做多' : '' }}
-                                        </a-button>
-                                        <a-button type="primary" danger class="h-10">
-                                            {{ orderType === 'stopLimit' ? '止损' : '卖出' }}{{ tradeType === 'SWAP' ? '做空' : '' }}
-                                        </a-button>
+                                    <div class="space-y-4">
+                                        <!-- 现货交易按钮 -->
+                                        <template v-if="tradeType === 'SPOT'">
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <a-button type="primary" class="h-10"
+                                                    style="background-color: #00b96b; border-color: #00b96b;">
+                                                    {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
+                                                </a-button>
+                                                <a-button type="primary" danger class="h-10">
+                                                    {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
+                                                </a-button>
+                                            </div>
+                                        </template>
+
+                                        <!-- 合约交易按钮 -->
+                                        <template v-else>
+                                            <!-- 交易方向选择 -->
+                                            <div class="space-y-4">
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <!-- 开仓/平仓选择 -->
+                                                    <a-radio-group v-model:value="positionType" button-style="solid"
+                                                        class="w-full">
+                                                        <a-radio-button value="open"
+                                                            class="w-1/2 text-center">开仓</a-radio-button>
+                                                        <a-radio-button value="close"
+                                                            class="w-1/2 text-center">平仓</a-radio-button>
+                                                    </a-radio-group>
+                                                    <!-- 多空方向选择 -->
+                                                    <a-radio-group v-model:value="direction" button-style="solid"
+                                                        class="w-full">
+                                                        <a-radio-button value="long" class="w-1/2 text-center">
+                                                            <span
+                                                                :class="{ 'text-primary': direction === 'long' }">多</span>
+                                                        </a-radio-button>
+                                                        <a-radio-button value="short" class="w-1/2 text-center">
+                                                            <span
+                                                                :class="{ 'text-red-500': direction === 'short' }">空</span>
+                                                        </a-radio-button>
+                                                    </a-radio-group>
+                                                </div>
+
+                                                <!-- 交易按钮 -->
+                                                <a-button type="primary" class="w-full h-10" :style="{
+                                                    backgroundColor: direction === 'long' ? '#00b96b' : '#ff4d4f',
+                                                    borderColor: direction === 'long' ? '#00b96b' : '#ff4d4f'
+                                                }">
+                                                    {{ positionType === 'open' ? '开仓' : '平仓' }}{{ direction === 'long' ? '做多' : '做空' }}
+                                                </a-button>
+                                            </div>
+                                        </template>
                                     </div>
                                 </div>
                             </div>
@@ -379,6 +421,10 @@ export default defineComponent({
             }
         }
 
+        // 合约交易方向
+        const positionType = ref('open') // open-开仓, close-平仓
+        const direction = ref('long') // long-做多, short-做空
+
         // 处理交易类型变化
         const handleTradeTypeChange = async () => {
             console.log('交易类型切换为:', tradeType.value)
@@ -400,6 +446,8 @@ export default defineComponent({
                 leverage.value = 20
                 longLeverage.value = 20
                 shortLeverage.value = 20
+                positionType.value = 'open'
+                direction.value = 'long'
             }
 
             // 选择默认币种
@@ -436,7 +484,9 @@ export default defineComponent({
             shortLeverage,
             leverageOptions,
             handleTradeTypeChange,
-            handleCurrencyChange
+            handleCurrencyChange,
+            positionType,
+            direction
         }
     }
 })
@@ -446,6 +496,7 @@ export default defineComponent({
 .trade {
     display: flex;
     flex-direction: column;
+    min-width: 1200px;
 }
 
 .trade-header {
@@ -456,6 +507,12 @@ export default defineComponent({
 .trade-scroll-container {
     flex: 1;
     overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* 内容区最小宽度 */
+.trade-content {
+    min-width: 1200px;
 }
 
 /* 自定义滚动条样式 */
