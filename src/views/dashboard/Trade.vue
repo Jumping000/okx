@@ -139,6 +139,63 @@
                                                 </a-radio-group>
                                             </div>
                                         </div>
+
+                                        <!-- 触发方式选择 -->
+                                        <div class="space-y-2">
+                                            <div class="text-sm text-dark-200">触发类型</div>
+                                            <div class="flex gap-2">
+                                                <a-radio-group v-model:value="triggerType" button-style="solid"
+                                                    class="w-full">
+                                                    <a-radio-button value="mark"
+                                                        class="w-1/3 text-center text-xs">标记价格</a-radio-button>
+                                                    <a-radio-button value="new"
+                                                        class="w-1/3 text-center text-xs">最新价格</a-radio-button>
+                                                    <a-radio-button value="index"
+                                                        class="w-1/3 text-center text-xs">指数价格</a-radio-button>
+                                                </a-radio-group>
+                                            </div>
+                                        </div>
+
+                                        <!-- 止盈止损价格输入 -->
+                                        <template v-if="stopType === 'single'">
+                                            <div>
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <span class="text-sm text-dark-200">触发价格</span>
+                                                    <span class="text-sm text-dark-200">USDT</span>
+                                                </div>
+                                                <a-input-number v-model:value="triggerPrice" class="w-full trade-input"
+                                                    :min="0" placeholder="请输入触发价格" />
+                                                <div class="mt-1">
+                                                    <span class="text-xs text-dark-200">触发后以市价委托</span>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                        <template v-else>
+                                            <!-- 双向止盈止损价格输入 -->
+                                            <div>
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <span class="text-sm text-dark-200">止盈触发价格</span>
+                                                    <span class="text-sm text-dark-200">USDT</span>
+                                                </div>
+                                                <a-input-number v-model:value="takeProfitPrice"
+                                                    class="w-full trade-input" :min="0" placeholder="请输入止盈触发价格" />
+                                                <div class="mt-1">
+                                                    <span class="text-xs text-dark-200">触发后以市价委托</span>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="flex justify-between items-center mb-1">
+                                                    <span class="text-sm text-dark-200">止损触发价格</span>
+                                                    <span class="text-sm text-dark-200">USDT</span>
+                                                </div>
+                                                <a-input-number v-model:value="stopLossPrice" class="w-full trade-input"
+                                                    :min="0" placeholder="请输入止损触发价格" />
+                                                <div class="mt-1">
+                                                    <span class="text-xs text-dark-200">触发后以市价委托</span>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </template>
 
                                     <!-- 价格和数量输入 -->
@@ -152,26 +209,6 @@
                                                 </div>
                                                 <a-input-number v-model:value="price" class="w-full trade-input"
                                                     :min="0" placeholder="请输入价格" />
-                                            </div>
-                                        </template>
-
-                                        <!-- 止盈止损价格输入 -->
-                                        <template v-if="orderType === 'stopLimit'">
-                                            <div>
-                                                <div class="flex justify-between items-center mb-1">
-                                                    <span class="text-sm text-dark-200">触发价格</span>
-                                                    <span class="text-sm text-dark-200">USDT</span>
-                                                </div>
-                                                <a-input-number v-model:value="triggerPrice" class="w-full trade-input"
-                                                    :min="0" placeholder="请输入触发价格" />
-                                            </div>
-                                            <div>
-                                                <div class="flex justify-between items-center mb-1">
-                                                    <span class="text-sm text-dark-200">委托价格</span>
-                                                    <span class="text-sm text-dark-200">USDT</span>
-                                                </div>
-                                                <a-input-number v-model:value="orderPrice" class="w-full trade-input"
-                                                    :min="0" placeholder="请输入委托价格" />
                                             </div>
                                         </template>
 
@@ -279,8 +316,14 @@ export default defineComponent({
 
         // 止盈止损数据
         const stopType = ref('single') // single-单向止盈止损，double-双向止盈止损
+        const triggerType = ref('mark') // mark-标记价格，new-最新价格，index-指数价格
+
+        // 单向止盈止损
         const triggerPrice = ref(0) // 触发价格
-        const orderPrice = ref(0) // 委托价格
+
+        // 双向止盈止损
+        const takeProfitPrice = ref(0) // 止盈触发价格
+        const stopLossPrice = ref(0) // 止损触发价格
 
         // 合约专属数据
         const marginMode = ref('cross') // cross-全仓, isolated-逐仓
@@ -332,8 +375,10 @@ export default defineComponent({
 
             // 重置止盈止损数据
             stopType.value = 'single'
+            triggerType.value = 'mark'
             triggerPrice.value = 0
-            orderPrice.value = 0
+            takeProfitPrice.value = 0
+            stopLossPrice.value = 0
 
             // 重置合约专属数据
             if (tradeType.value === 'SWAP') {
@@ -365,8 +410,10 @@ export default defineComponent({
             price,
             amount,
             stopType,
+            triggerType,
             triggerPrice,
-            orderPrice,
+            takeProfitPrice,
+            stopLossPrice,
             marginMode,
             leverage,
             handleTradeTypeChange,
@@ -440,10 +487,33 @@ export default defineComponent({
 
 /* Radio按钮组样式 */
 :deep(.ant-radio-button-wrapper) {
-    @apply bg-dark-400 border-dark-300 text-dark-200 !important;
+    @apply bg-dark-400 border-dark-300 text-dark-200 transition-all !important;
+    height: 32px;
+    line-height: 30px;
+
+    &:hover {
+        @apply bg-dark-300 !important;
+    }
 
     &.ant-radio-button-wrapper-checked {
-        @apply bg-dark-300 text-primary border-primary !important;
+        @apply bg-dark-300 text-primary border-primary shadow-none !important;
+
+        &::before {
+            @apply bg-primary !important;
+        }
+
+        &:hover {
+            @apply bg-dark-300 text-primary !important;
+        }
+    }
+}
+
+/* 特殊处理触发类型的Radio按钮 */
+:deep(.ant-radio-group .ant-radio-button-wrapper) {
+    &.text-xs {
+        height: 28px;
+        line-height: 26px;
+        padding: 0 4px;
     }
 }
 
