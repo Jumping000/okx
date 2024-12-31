@@ -9,7 +9,6 @@ const WS_CONFIG = {
   [WebSocketType.PUBLIC]: {
     url: process.env.VUE_APP_OKX_WS_PUBLIC_URL,
     options: {
-      heartbeatInterval: 30000,
       reconnectInterval: 3000,
       reconnectMaxTimes: 3,
     },
@@ -17,7 +16,6 @@ const WS_CONFIG = {
   [WebSocketType.PRIVATE]: {
     url: process.env.VUE_APP_OKX_WS_PRIVATE_URL,
     options: {
-      heartbeatInterval: 20000,
       reconnectInterval: 2000,
       reconnectMaxTimes: 5,
     },
@@ -25,7 +23,6 @@ const WS_CONFIG = {
   [WebSocketType.BUSINESS]: {
     url: process.env.VUE_APP_OKX_WS_BUSINESS_URL,
     options: {
-      heartbeatInterval: 30000,
       reconnectInterval: 3000,
       reconnectMaxTimes: 3,
     },
