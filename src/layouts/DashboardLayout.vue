@@ -120,7 +120,9 @@ export default defineComponent({
         watch(
             () => route.path,
             (path) => {
+                console.log(path)
                 selectedKeys.value = [PATH_TO_KEY[path] || 'dashboard']
+                console.log(selectedKeys.value);
             }
         )
 
