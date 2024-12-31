@@ -381,7 +381,6 @@ class WebSocketClient {
             },
           ],
         };
-
         // 设置登录响应处理器
         const loginResponseHandler = (event) => {
           try {

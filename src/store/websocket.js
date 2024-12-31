@@ -45,6 +45,11 @@ export const useWebSocketStore = defineStore("websocket", {
       [WebSocketType.PRIVATE]: new Map(),
       [WebSocketType.BUSINESS]: new Map(),
     },
+    // 存储登录状态
+    loginStates: {
+      [WebSocketType.PRIVATE]: false,
+      [WebSocketType.BUSINESS]: false,
+    },
   }),
 
   getters: {
@@ -58,6 +63,9 @@ export const useWebSocketStore = defineStore("websocket", {
     // 获取指定类型的所有订阅
     getSubscriptions: (state) => (type) =>
       Array.from(state.subscriptions[type].keys()),
+
+    // 获取指定类型的登录状态
+    isLoggedIn: (state) => (type) => state.loginStates[type] || false,
   },
 
   actions: {
@@ -222,6 +230,56 @@ export const useWebSocketStore = defineStore("websocket", {
         throw new Error(`${type} WebSocket 未初始化`);
       }
       return ws.send(data);
+    },
+
+    /**
+     * 执行WebSocket登录
+     * @param {Object} options 登录选项
+     * @param {string} options.type 连接类型
+     * @param {string} options.apiKey API密钥
+     * @param {string} options.secretKey 密钥
+     * @param {string} options.passphrase 密码短语
+     * @returns {Promise<boolean>} 登录是否成功
+     */
+    async login({ type, apiKey, secretKey, passphrase }) {
+      if (type === WebSocketType.PUBLIC) {
+        throw new Error("公共频道无需登录");
+      }
+
+      const ws = this.connections[type];
+      if (!ws) {
+        throw new Error(`${type} WebSocket 未初始化`);
+      }
+
+      try {
+        const success = await ws.login({ apiKey, secretKey, passphrase });
+        this.loginStates[type] = success;
+        return success;
+      } catch (error) {
+        this.loginStates[type] = false;
+        throw error;
+      }
+    },
+
+    /**
+     * 登出指定类型的连接
+     * @param {string} type 连接类型
+     */
+    logout(type) {
+      if (type === WebSocketType.PUBLIC) return;
+
+      this.loginStates[type] = false;
+      // 断开连接，这样重连时需要重新登录
+      this.disconnect(type);
+    },
+
+    /**
+     * 登出所有需要认证的连接
+     */
+    logoutAll() {
+      [WebSocketType.PRIVATE, WebSocketType.BUSINESS].forEach((type) => {
+        this.logout(type);
+      });
     },
   },
 });
