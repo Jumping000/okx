@@ -1,22 +1,5 @@
-import { defineStore } from "pinia";
+import { createPinia } from "pinia";
 
-export const useMainStore = defineStore("main", {
-  state: () => ({
-    count: 0,
-    user: null,
-  }),
+const pinia = createPinia();
 
-  getters: {
-    doubleCount: (state) => state.count * 2,
-    isLoggedIn: (state) => !!state.user,
-  },
-
-  actions: {
-    increment() {
-      this.count++;
-    },
-    setUser(user) {
-      this.user = user;
-    },
-  },
-});
+export default pinia;
