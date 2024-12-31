@@ -117,17 +117,12 @@
                                     <!-- 交易类型选择 -->
                                     <div class="space-y-2">
                                         <div class="text-sm text-dark-200">交易类型</div>
-                                        <div class="flex gap-2">
-                                            <a-radio-group v-model:value="orderType" button-style="solid"
-                                                class="flex-1">
-                                                <a-radio-button value="limit"
-                                                    class="flex-1 text-center">限价</a-radio-button>
-                                                <a-radio-button value="market"
-                                                    class="flex-1 text-center">市价</a-radio-button>
-                                                <a-radio-button value="stopLimit"
-                                                    class="flex-1 text-center">止盈止损</a-radio-button>
-                                            </a-radio-group>
-                                        </div>
+                                        <a-radio-group v-model:value="orderType" button-style="solid" class="w-full">
+                                            <a-radio-button value="limit" class="w-1/3 text-center">限价</a-radio-button>
+                                            <a-radio-button value="market" class="w-1/3 text-center">市价</a-radio-button>
+                                            <a-radio-button value="stopLimit"
+                                                class="w-1/3 text-center">止盈止损</a-radio-button>
+                                        </a-radio-group>
                                     </div>
 
                                     <!-- 止盈止损类型选择 -->
@@ -515,14 +510,18 @@ export default defineComponent({
     height: 32px;
     line-height: 30px;
     position: relative;
+    margin-right: -1px;
+    /* 修复重叠边框 */
 
     &:not(:first-child)::before {
         content: '';
         @apply absolute left-0 top-0 bottom-0 w-[1px] bg-dark-300 opacity-50 transition-all;
+        z-index: 1;
     }
 
     &:hover {
         @apply bg-dark-300 !important;
+        z-index: 2;
 
         &::before {
             @apply opacity-0;
@@ -530,15 +529,18 @@ export default defineComponent({
     }
 
     &.ant-radio-button-wrapper-checked {
-        @apply bg-dark-300 text-primary border-primary shadow-none !important;
-        z-index: 1;
+        @apply bg-dark-300 text-primary shadow-none !important;
+        z-index: 3;
+        border: 1px solid var(--ant-primary-color) !important;
 
         &::before {
             @apply opacity-0;
         }
 
         &::after {
-            @apply border-primary opacity-100 !important;
+            content: '';
+            @apply absolute inset-[-1px] border border-primary rounded !important;
+            z-index: 1;
         }
 
         &+.ant-radio-button-wrapper::before {
@@ -549,14 +551,25 @@ export default defineComponent({
             @apply bg-dark-300 text-primary !important;
         }
     }
+
+    /* 修复最后一个按钮的右边框 */
+    &:last-child {
+        margin-right: 0;
+    }
 }
 
 /* 特殊处理触发类型的Radio按钮 */
-:deep(.ant-radio-group .ant-radio-button-wrapper) {
-    &.text-xs {
-        height: 28px;
-        line-height: 26px;
-        padding: 0 4px;
+:deep(.ant-radio-group) {
+    @apply flex;
+
+    .ant-radio-button-wrapper {
+        @apply flex-1 justify-center;
+
+        &.text-xs {
+            height: 28px;
+            line-height: 26px;
+            padding: 0 4px;
+        }
     }
 }
 
