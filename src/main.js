@@ -1,8 +1,8 @@
 import { createApp } from "vue";
-import { createPinia } from "pinia";
 import Antd from "ant-design-vue";
 import App from "./App.vue";
 import router from "./router";
+import pinia from "./store";
 import "ant-design-vue/dist/antd.css";
 import "./styles/tailwind.css";
 
@@ -11,7 +11,7 @@ document.title = process.env.VUE_APP_TITLE;
 
 const app = createApp(App);
 
-app.use(createPinia());
+app.use(pinia);
 app.use(router);
 app.use(Antd);
 
