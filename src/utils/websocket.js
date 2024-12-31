@@ -1,3 +1,5 @@
+import CryptoJS from "crypto-js";
+
 /**
  * WebSocket 连接状态枚举
  */
@@ -55,6 +57,8 @@ class WebSocketClient {
     this.manualClosed = false;
     // 连接类型
     this.type = options.type || WebSocketType.PUBLIC;
+    // 登录状态
+    this.isLoggedIn = false;
   }
 
   /**
@@ -324,6 +328,95 @@ class WebSocketClient {
    */
   getState() {
     return this.ws ? this.ws.readyState : WebSocketState.CLOSED;
+  }
+
+  /**
+   * 生成登录签名
+   * @param {string} timestamp - 时间戳
+   * @param {string} secretKey - 密钥
+   * @returns {string} 生成的签名
+   * @private
+   */
+  _generateLoginSign(timestamp, secretKey) {
+    const method = "GET";
+    const requestPath = "/users/self/verify";
+    const message = timestamp + method + requestPath;
+
+    const hmac = CryptoJS.HmacSHA256(message, secretKey);
+    return CryptoJS.enc.Base64.stringify(hmac);
+  }
+
+  /**
+   * 执行WebSocket登录
+   * @param {Object} credentials - 登录凭证
+   * @param {string} credentials.apiKey - API密钥
+   * @param {string} credentials.secretKey - 密钥
+   * @param {string} credentials.passphrase - 密码短语
+   * @returns {Promise<boolean>} 登录是否成功
+   * @throws {Error} 登录失败时抛出错误
+   */
+  async login({ apiKey, secretKey, passphrase }) {
+    if (!apiKey || !secretKey || !passphrase) {
+      throw new Error("缺少登录凭证参数");
+    }
+
+    if (!this.ws || this.ws.readyState !== WebSocketState.OPEN) {
+      throw new Error("WebSocket 未连接");
+    }
+
+    return new Promise((resolve, reject) => {
+      try {
+        // 生成登录消息
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+        const sign = this._generateLoginSign(timestamp, secretKey);
+
+        const loginMessage = {
+          op: "login",
+          args: [
+            {
+              apiKey,
+              passphrase,
+              timestamp,
+              sign,
+            },
+          ],
+        };
+
+        // 设置登录响应处理器
+        const loginResponseHandler = (event) => {
+          try {
+            const response = JSON.parse(event.data);
+
+            // 移除临时消息处理器
+            this.ws.removeEventListener("message", loginResponseHandler);
+
+            if (response.event === "login" && response.code === "0") {
+              this.isLoggedIn = true;
+              resolve(true);
+            } else {
+              this.isLoggedIn = false;
+              reject(new Error(`登录失败: ${JSON.stringify(response)}`));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+
+        // 添加临时消息处理器
+        this.ws.addEventListener("message", loginResponseHandler);
+
+        // 发送登录消息
+        this.send(loginMessage);
+
+        // 设置登录超时
+        setTimeout(() => {
+          this.ws.removeEventListener("message", loginResponseHandler);
+          reject(new Error("登录超时"));
+        }, 10000); // 10秒超时
+      } catch (error) {
+        reject(error);
+      }
+    });
   }
 }
 
