@@ -26,7 +26,7 @@
         <div class="trade-scroll-container">
             <div class="trade-content grid grid-cols-12 gap-4 p-4">
                 <!-- 左侧主区域：K线和交易区 -->
-                <div class="col-span-9 grid grid-cols-4 gap-4">
+                <div class="col-span-9 grid grid-cols-5 gap-4">
                     <!-- K线和行情区域 -->
                     <div class="col-span-3 space-y-4">
                         <!-- K线图区域 -->
@@ -40,7 +40,7 @@
                                     <span class="text-sm text-dark-200">刷新频率: 1s</span>
                                 </div>
                             </div>
-                            <div class="h-[560px] p-4">
+                            <div class="h-[480px] p-4">
                                 <div
                                     class="h-full flex items-center justify-center border border-dashed border-dark-300 rounded">
                                     <span class="text-dark-200">K线图区域</span>
@@ -72,7 +72,7 @@
                     </div>
 
                     <!-- 交易操作区 -->
-                    <div class="col-span-1">
+                    <div class="col-span-2">
                         <div class="bg-dark-400 rounded-lg border border-dark-300 h-full">
                             <div class="p-4">
                                 <div class="flex flex-col gap-4">
@@ -94,17 +94,22 @@
                                         <div class="space-y-2">
                                             <div class="flex justify-between items-center">
                                                 <span class="text-sm text-dark-200">杠杆倍数</span>
-                                                <a-select v-model:value="leverage" style="width: 120px"
-                                                    class="leverage-select" :options="[
-                                                        { value: 1, label: '1X' },
-                                                        { value: 2, label: '2X' },
-                                                        { value: 3, label: '3X' },
-                                                        { value: 5, label: '5X' },
-                                                        { value: 10, label: '10X' },
-                                                        { value: 20, label: '20X' },
-                                                        { value: 50, label: '50X' },
-                                                        { value: 100, label: '100X' },
-                                                    ]" />
+                                                <template v-if="marginMode === 'isolated'">
+                                                    <!-- 逐仓模式：买卖方向可以设置不同杠杆 -->
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-xs text-dark-200">买入</span>
+                                                        <a-select v-model:value="longLeverage" style="width: 80px"
+                                                            class="leverage-select" :options="leverageOptions" />
+                                                        <span class="text-xs text-dark-200">卖出</span>
+                                                        <a-select v-model:value="shortLeverage" style="width: 80px"
+                                                            class="leverage-select" :options="leverageOptions" />
+                                                    </div>
+                                                </template>
+                                                <template v-else>
+                                                    <!-- 全仓模式：统一杠杆 -->
+                                                    <a-select v-model:value="leverage" style="width: 120px"
+                                                        class="leverage-select" :options="leverageOptions" />
+                                                </template>
                                             </div>
                                         </div>
                                     </template>
@@ -327,7 +332,21 @@ export default defineComponent({
 
         // 合约专属数据
         const marginMode = ref('cross') // cross-全仓, isolated-逐仓
-        const leverage = ref(20) // 杠杆倍数
+        const leverage = ref(20) // 全仓杠杆倍数
+        const longLeverage = ref(20) // 逐仓做多杠杆倍数
+        const shortLeverage = ref(20) // 逐仓做空杠杆倍数
+
+        // 杠杆倍数选项
+        const leverageOptions = [
+            { value: 1, label: '1X' },
+            { value: 2, label: '2X' },
+            { value: 3, label: '3X' },
+            { value: 5, label: '5X' },
+            { value: 10, label: '10X' },
+            { value: 20, label: '20X' },
+            { value: 50, label: '50X' },
+            { value: 100, label: '100X' },
+        ]
 
         // 获取当前交易类型下的所有币种
         const currentCurrencies = computed(() => {
@@ -384,6 +403,8 @@ export default defineComponent({
             if (tradeType.value === 'SWAP') {
                 marginMode.value = 'cross'
                 leverage.value = 20
+                longLeverage.value = 20
+                shortLeverage.value = 20
             }
 
             // 选择默认币种
@@ -416,6 +437,9 @@ export default defineComponent({
             stopLossPrice,
             marginMode,
             leverage,
+            longLeverage,
+            shortLeverage,
+            leverageOptions,
             handleTradeTypeChange,
             handleCurrencyChange
         }
@@ -490,16 +514,35 @@ export default defineComponent({
     @apply bg-dark-400 border-dark-300 text-dark-200 transition-all !important;
     height: 32px;
     line-height: 30px;
+    position: relative;
+
+    &:not(:first-child)::before {
+        content: '';
+        @apply absolute left-0 top-0 bottom-0 w-[1px] bg-dark-300 opacity-50 transition-all;
+    }
 
     &:hover {
         @apply bg-dark-300 !important;
+
+        &::before {
+            @apply opacity-0;
+        }
     }
 
     &.ant-radio-button-wrapper-checked {
         @apply bg-dark-300 text-primary border-primary shadow-none !important;
+        z-index: 1;
 
         &::before {
-            @apply bg-primary !important;
+            @apply opacity-0;
+        }
+
+        &::after {
+            @apply border-primary opacity-100 !important;
+        }
+
+        &+.ant-radio-button-wrapper::before {
+            @apply opacity-0;
         }
 
         &:hover {
