@@ -120,9 +120,7 @@ export default defineComponent({
         watch(
             () => route.path,
             (path) => {
-                console.log(path)
                 selectedKeys.value = [PATH_TO_KEY[path] || 'dashboard']
-                console.log(selectedKeys.value);
             }
         )
 
@@ -154,7 +152,7 @@ export default defineComponent({
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-    transition: opacity 0.15s ease;
+    transition: opacity 0.2s ease;
 }
 
 .fade-enter-from,

@@ -59,7 +59,11 @@ router.beforeEach(async (to, from, next) => {
   // 检查是否已配置
   const hasConfig = storage.hasApiConfig();
 
-  console.log(hasConfig);
+  // 如果未配置且访问的是设置页面，自动跳转到首页
+  if (!hasConfig && to.name !== "ExchangeSetup") {
+    next({ name: "ExchangeSetup" });
+    return;
+  }
 
   // 其他情况正常访问
   next();

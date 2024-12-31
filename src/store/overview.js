@@ -13,9 +13,9 @@ export const useOverviewStore = defineStore("overview", {
     // 通信状态
     connection: {
       network: true,
-      publicChannel: true,
-      privateChannel: true,
-      businessChannel: true,
+      publicChannel: false,
+      privateChannel: false,
+      businessChannel: false,
     },
 
     // 最近交易
