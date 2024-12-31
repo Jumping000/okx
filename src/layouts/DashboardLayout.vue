@@ -48,7 +48,7 @@
             <!-- 右侧内容区 -->
             <main class="flex-1 relative min-w-0 bg-dark-500 overflow-hidden">
                 <router-view v-slot="{ Component }">
-                    <transition name="fade" mode="out-in">
+                    <transition name="fade">
                         <component :is="Component" />
                     </transition>
                 </router-view>
