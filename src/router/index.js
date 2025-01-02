@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from "vue-router";
 import { storage } from "@/utils/storage";
 import { useWebSocketStore } from "@/store/websocket";
 import { useCurrencyStore } from "@/store/currency";
+import { useOverviewStore } from "@/store/overview";
 import { WebSocketType } from "@/utils/websocket";
 import { message } from "ant-design-vue";
 
@@ -76,6 +77,7 @@ router.beforeEach(async (to, from, next) => {
     } else if (hasConfig && to.name !== "ExchangeSetup") {
       const wsStore = useWebSocketStore();
       const currencyStore = useCurrencyStore();
+      const overviewStore = useOverviewStore();
       const { apiKey, secretKey, passphrase } = storage.getApiConfig();
 
       try {
@@ -122,7 +124,7 @@ router.beforeEach(async (to, from, next) => {
                     message?.arg?.channel == "account" &&
                     message?.data?.length > 0
                   ) {
-                    console.log("账户数据更新:", message);
+                    // 账户数据更新
                     const accountData = message.data[0];
                     const details = accountData.details || [];
 
@@ -130,11 +132,9 @@ router.beforeEach(async (to, from, next) => {
                     const availableBalance =
                       details.find((item) => item.ccy === "USDT")?.availBal ||
                       "0";
-                    console.log("可用余额(USDT):", availableBalance);
 
                     // 总资产 (USDT)
                     const totalBalance = accountData.totalEq || "0";
-                    console.log("总资产(USDT):", totalBalance);
 
                     // 计算有效持仓数量
                     const validPositions = details.filter((item) => {
@@ -162,28 +162,8 @@ router.beforeEach(async (to, from, next) => {
 
                     // 有效持仓数量
                     const validPositionCount = validPositions.length;
-                    console.log("有效持仓数量:", validPositionCount);
 
-                    // 持仓详情
-                    validPositions.forEach((position) => {
-                      // 获取该币种的现货最小下单量信息
-                      const spotCurrency = currencyStore.currencies.SPOT.find(
-                        (c) => c.instId === `${position.ccy}-USDT`
-                      );
-
-                      console.log("持仓详情:", {
-                        币种: position.ccy,
-                        数量: position.cashBal,
-                        最小下单量: spotCurrency?.minSz || "未知",
-                        估值: `${position.eqUsd} USDT (≈ ${(
-                          parseFloat(position.eqUsd) * 1
-                        ).toFixed(2)} USD)`,
-                        可用: position.availBal,
-                        冻结: position.frozenBal,
-                      });
-                    });
-
-                    // 更新到store中
+                    // 更新到 websocket store 中
                     wsStore.$patch({
                       accountData: {
                         balance: {
@@ -194,6 +174,15 @@ router.beforeEach(async (to, from, next) => {
                           validPositions,
                         },
                         lastUpdateTime: new Date().getTime(),
+                      },
+                    });
+
+                    // 更新到 overview store 中
+                    overviewStore.$patch({
+                      assets: {
+                        total: totalBalance,
+                        available: availableBalance,
+                        positionCount: validPositionCount,
                       },
                     });
                   }
