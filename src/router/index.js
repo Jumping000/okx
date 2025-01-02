@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { storage } from "@/utils/storage";
 import { useWebSocketStore } from "@/store/websocket";
+import { useCurrencyStore } from "@/store/currency";
 import { WebSocketType } from "@/utils/websocket";
 import { message } from "ant-design-vue";
 
@@ -70,19 +71,25 @@ router.beforeEach(async (to, from, next) => {
       return;
     }
     if (!hasConfig && to.name !== "ExchangeSetup") {
-      // 如果未配置且访问的是设置页面，自动跳转到首页
       next({ name: "ExchangeSetup" });
       return;
     } else if (hasConfig && to.name !== "ExchangeSetup") {
-      // 如果已配置且不是设置页面，则确保 WebSocket 已登录
       const wsStore = useWebSocketStore();
+      const currencyStore = useCurrencyStore();
       const { apiKey, secretKey, passphrase } = storage.getApiConfig();
-      try {
-        // 检查私有频道和业务频道的连接和登录状态
-        const channels = [WebSocketType.PRIVATE, WebSocketType.BUSINESS];
 
+      try {
+        // 确保已获取币种信息
+        if (
+          !currencyStore.currencies.SPOT.length ||
+          !currencyStore.currencies.SWAP.length
+        ) {
+          await currencyStore.fetchCurrencies();
+        }
+
+        // WebSocket登录逻辑...
+        const channels = [WebSocketType.PRIVATE, WebSocketType.BUSINESS];
         for (const type of channels) {
-          // 如果未连接，先连接
           if (!wsStore.isConnected(type)) {
             await new Promise((resolve) => {
               const interval = setInterval(() => {
@@ -94,9 +101,7 @@ router.beforeEach(async (to, from, next) => {
             });
           }
 
-          // 如果未登录，进行登录
           if (!wsStore.isLoggedIn(type)) {
-            // 延迟 两秒登录
             await new Promise((resolve) => setTimeout(resolve, 1000));
             await wsStore.login({
               type,
@@ -110,7 +115,6 @@ router.beforeEach(async (to, from, next) => {
         // 登录成功后，订阅账户数据
         if (wsStore.isLoggedIn(WebSocketType.PRIVATE)) {
           try {
-            // 如果没有账户数据，则订阅
             if (!wsStore.getAccountData) {
               await wsStore.subscribeAccount({
                 onData: (message) => {
@@ -139,10 +143,21 @@ router.beforeEach(async (to, from, next) => {
 
                       // 检查是否有持仓数量
                       const hasPosition = parseFloat(item.cashBal) > 0;
-                      // 检查是否达到最小下单量 (这里以USDT计价的等值资产)
-                      const positionValue = parseFloat(item.eqUsd) || 0;
-                      const minOrderValue = 5; // 最小下单量，以USDT计价，可以根据实际需求调整
-                      return hasPosition && positionValue >= minOrderValue;
+                      if (!hasPosition) return false;
+
+                      // 获取该币种的现货最小下单量信息
+                      const spotCurrency = currencyStore.currencies.SPOT.find(
+                        (c) => c.instId === `${item.ccy}-USDT`
+                      );
+
+                      // 如果找不到对应的现货交易对，则视为无效持仓
+                      if (!spotCurrency) return false;
+
+                      // 比较持仓数量和最小下单量
+                      const currentSize = parseFloat(item.cashBal);
+                      const minimumSize = parseFloat(spotCurrency.minSz);
+
+                      return currentSize >= minimumSize;
                     });
 
                     // 有效持仓数量
@@ -151,17 +166,20 @@ router.beforeEach(async (to, from, next) => {
 
                     // 持仓详情
                     validPositions.forEach((position) => {
+                      // 获取该币种的现货最小下单量信息
+                      const spotCurrency = currencyStore.currencies.SPOT.find(
+                        (c) => c.instId === `${position.ccy}-USDT`
+                      );
+
                       console.log("持仓详情:", {
                         币种: position.ccy,
                         数量: position.cashBal,
+                        最小下单量: spotCurrency?.minSz || "未知",
                         估值: `${position.eqUsd} USDT (≈ ${(
                           parseFloat(position.eqUsd) * 1
                         ).toFixed(2)} USD)`,
                         可用: position.availBal,
                         冻结: position.frozenBal,
-                        保证金率: position.mgnRatio
-                          ? `${position.mgnRatio}%`
-                          : "不适用",
                       });
                     });
 
@@ -188,16 +206,13 @@ router.beforeEach(async (to, from, next) => {
         }
       } catch (error) {
         console.error("WebSocket 登录失败:", error);
-        // 如果登录失败，跳转到设置页面
         next({ name: "ExchangeSetup" });
         return;
       }
     }
 
-    // 其他情况正常访问
     next();
   } finally {
-    // 隐藏加载效果
     hide();
   }
 });
