@@ -7,7 +7,7 @@ export const useOverviewStore = defineStore("overview", {
     assets: {
       total: "93,245.67",
       available: "32,654.89",
-      positionCount: 5,
+      positionCount: 0,
     },
 
     // 通信状态
