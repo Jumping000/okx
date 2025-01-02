@@ -6,10 +6,16 @@
                 <div class="flex items-center gap-4">
                     <h2 class="text-dark-100">交易</h2>
                     <a-select v-model:value="selectedCurrency" style="width: 180px" :loading="currencyStore.loading"
-                        @change="handleCurrencyChange" class="currency-select">
+                        @change="handleCurrencyChange" show-search :filter-option="filterCurrencyOption"
+                        placeholder="搜索币种" class="currency-select">
                         <a-select-option v-for="currency in currentCurrencies" :key="currency.instId"
                             :value="currency.instId">
-                            {{ currency.instId.replace('-SWAP', '') }}
+                            <div class="flex items-center justify-between">
+                                <span>{{ currency.instId.replace('-SWAP', '').replace('-USDT', '') }}</span>
+                                <span class="text-dark-200 text-xs">
+                                    {{ currency.instId.includes('-SWAP') ? '永续' : '现货' }}
+                                </span>
+                            </div>
                         </a-select-option>
                     </a-select>
                 </div>
@@ -738,6 +744,20 @@ export default defineComponent({
             await selectDefaultCurrency()
         })
 
+        // 币种搜索过滤函数
+        const filterCurrencyOption = (input, option) => {
+            // 转换为小写进行比较
+            const searchText = input.toLowerCase()
+            const currencyId = option.value.toLowerCase()
+
+            // 移除 -SWAP 和 -USDT 后进行搜索
+            const simplifiedId = currencyId
+                .replace('-swap', '')
+                .replace('-usdt', '')
+
+            return simplifiedId.includes(searchText)
+        }
+
         return {
             currencyStore,
             tradeType,
@@ -770,6 +790,7 @@ export default defineComponent({
             formatPrice,
             formatVolume,
             theme: 'dark',
+            filterCurrencyOption,
         }
     }
 })
@@ -848,7 +869,7 @@ export default defineComponent({
     scrollbar-color: var(--border-color) var(--bg-color);
 }
 
-/* 币种选择器样式 */
+/* 币种选择器样式优化 */
 :deep(.currency-select) {
     .ant-select-selector {
         background-color: var(--bg-color) !important;
@@ -860,8 +881,17 @@ export default defineComponent({
         color: var(--text-secondary) !important;
     }
 
-    .ant-select-selection-item {
+    .ant-select-selection-search-input {
+        background-color: var(--bg-color) !important;
         color: var(--text-color) !important;
+
+        &::placeholder {
+            color: var(--text-secondary) !important;
+        }
+    }
+
+    .ant-select-selection-placeholder {
+        color: var(--text-secondary) !important;
     }
 
     .ant-select-dropdown {
@@ -869,6 +899,7 @@ export default defineComponent({
         border: 1px solid var(--border-color) !important;
 
         .ant-select-item {
+            padding: 8px 12px !important;
             color: var(--text-color) !important;
 
             &:hover {
@@ -879,6 +910,10 @@ export default defineComponent({
                 background-color: var(--bg-hover) !important;
                 color: var(--primary-color) !important;
             }
+        }
+
+        .ant-select-item-empty {
+            color: var(--text-secondary) !important;
         }
     }
 }
