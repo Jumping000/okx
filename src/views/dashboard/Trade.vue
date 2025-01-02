@@ -480,49 +480,113 @@ export default defineComponent({
 
         // 取消订阅K线数据
         const unsubscribeCandleData = () => {
-            if (!selectedCurrency.value) return
+            const currentInstId = selectedCurrency.value
+            if (!currentInstId) return
 
             try {
                 wsStore.unsubscribeCandleData({
-                    instId: selectedCurrency.value,
+                    instId: currentInstId,
                     candlePeriod: selectedPeriod.value,
                 })
-                console.log(`已取消订阅 ${selectedCurrency.value} 的K线数据`)
+                console.log(`已取消订阅 ${currentInstId} 的K线数据`)
             } catch (error) {
-                console.error(`取消订阅 ${selectedCurrency.value} K线失败:`, error)
+                console.error(`取消订阅 ${currentInstId} K线失败:`, error)
             }
         }
 
         // 处理K线周期变化
         const handlePeriodChange = async (period) => {
-            // 先取消当前订阅
-            unsubscribeCandleData()
-            // 清空当前数据
-            candleData.value = []
-            // 重新订阅新周期的数据
-            selectedPeriod.value = period
-            await subscribeCandleData()
+            const currentInstId = selectedCurrency.value
+            if (!currentInstId) return
+
+            try {
+                // 先取消当前订阅
+                unsubscribeCandleData()
+                // 清空当前数据
+                candleData.value = []
+                // 更新周期
+                selectedPeriod.value = period
+                // 重新订阅新周期的数据
+                await subscribeCandleData()
+            } catch (error) {
+                console.error(`切换K线周期失败:`, error)
+            }
         }
 
         // 监听币种变化
         watch(selectedCurrency, async (newInstId, oldInstId) => {
-            if (oldInstId) {
-                // 取消订阅旧币种的行情和K线数据
-                unsubscribeMarket(oldInstId)
-                unsubscribeCandleData()
-            }
-            if (newInstId) {
-                // 订阅新币种的行情和K线数据
-                subscribeMarket(newInstId)
-                await subscribeCandleData()
+            if (!newInstId && !oldInstId) return
+
+            try {
+                // 1. 如果存在旧的订阅，先取消所有旧的订阅
+                if (oldInstId) {
+                    console.log(`开始取消 ${oldInstId} 的所有订阅...`)
+
+                    // 取消行情订阅
+                    wsStore.unsubscribeMarket({
+                        instId: oldInstId,
+                        channelType: MarketChannelType.TICKERS,
+                    })
+
+                    // 取消K线订阅
+                    wsStore.unsubscribeCandleData({
+                        instId: oldInstId,
+                        candlePeriod: selectedPeriod.value,
+                    })
+
+                    // 清空数据
+                    candleData.value = []
+                    console.log(`已完成取消 ${oldInstId} 的所有订阅`)
+                }
+
+                // 2. 如果有新的币种，建立新的订阅
+                if (newInstId) {
+                    console.log(`开始订阅 ${newInstId} 的所有数据...`)
+
+                    // 订阅新的行情数据
+                    await wsStore.subscribeMarket({
+                        instId: newInstId,
+                        channelType: MarketChannelType.TICKERS,
+                        onData: handleTickerUpdate,
+                    })
+
+                    // 订阅新的K线数据
+                    await wsStore.subscribeCandleData({
+                        instId: newInstId,
+                        candlePeriod: selectedPeriod.value,
+                        onData: handleCandleUpdate,
+                    })
+
+                    console.log(`已完成订阅 ${newInstId} 的所有数据`)
+                }
+            } catch (error) {
+                console.error(`切换币种失败:`, error)
             }
         })
 
         // 组件卸载时清理订阅
         onUnmounted(() => {
-            if (selectedCurrency.value) {
-                unsubscribeMarket(selectedCurrency.value)
-                unsubscribeCandleData()
+            const currentInstId = selectedCurrency.value
+            if (!currentInstId) return
+
+            try {
+                console.log(`组件卸载：开始清理所有订阅...`)
+
+                // 取消行情订阅
+                wsStore.unsubscribeMarket({
+                    instId: currentInstId,
+                    channelType: MarketChannelType.TICKERS,
+                })
+
+                // 取消K线订阅
+                wsStore.unsubscribeCandleData({
+                    instId: currentInstId,
+                    candlePeriod: selectedPeriod.value,
+                })
+
+                console.log(`组件卸载：已清理所有订阅`)
+            } catch (error) {
+                console.error('组件卸载：清理订阅失败:', error)
             }
         })
 
@@ -633,38 +697,6 @@ export default defineComponent({
             }
         }
 
-        // 订阅行情
-        const subscribeMarket = async (instId) => {
-            if (!instId) return
-            try {
-                // 订阅Ticker数据
-                await wsStore.subscribeMarket({
-                    instId,
-                    channelType: MarketChannelType.TICKERS,
-                    onData: handleTickerUpdate,
-                })
-
-                console.log(`已订阅 ${instId} 的行情数据`)
-            } catch (error) {
-                console.error(`订阅 ${instId} 行情失败:`, error)
-            }
-        }
-
-        // 取消订阅行情
-        const unsubscribeMarket = (instId) => {
-            if (!instId) return
-
-            try {
-                wsStore.unsubscribeMarket({
-                    instId,
-                    channelType: MarketChannelType.TICKERS,
-                })
-                console.log(`已取消订阅 ${instId} 的行情数据`)
-            } catch (error) {
-                console.error(`取消订阅 ${instId} 行情失败:`, error)
-            }
-        }
-
         // 处理交易类型变化
         const handleTradeTypeChange = async () => {
             console.log('交易类型切换为:', tradeType.value)
@@ -695,8 +727,9 @@ export default defineComponent({
         }
 
         // 处理币种选择变化
-        const handleCurrencyChange = (value) => {
+        const handleCurrencyChange = async (value) => {
             console.log('选择的币种:', value)
+            // 更新选中的币种
             selectedCurrency.value = value
         }
 
