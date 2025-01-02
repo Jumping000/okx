@@ -96,9 +96,10 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style>
+/* 注意：这里移除了 scoped，因为需要样式作用于全局 */
 /* 深色主题样式 */
-:deep([data-theme="dark"]) .preference-modal {
+body[data-theme="dark"] .ant-modal.preference-modal {
     .ant-modal-content {
         background-color: var(--card-bg);
     }
@@ -117,12 +118,16 @@ export default defineComponent({
     }
 
     .ant-radio-wrapper {
+        color: var(--text-color);
+    }
+
+    .ant-modal-close {
         color: var(--text-color);
     }
 }
 
 /* 浅色主题样式 */
-:deep([data-theme="light"]) .preference-modal {
+body[data-theme="light"] .ant-modal.preference-modal {
     .ant-modal-content {
         background-color: var(--card-bg);
     }
@@ -143,26 +148,32 @@ export default defineComponent({
     .ant-radio-wrapper {
         color: var(--text-color);
     }
+
+    .ant-modal-close {
+        color: var(--text-color);
+    }
 }
 
 /* 通用样式 */
-:deep(.ant-radio-wrapper) {
-    &:hover {
-        .ant-radio-inner {
-            border-color: var(--primary-color);
+.ant-modal.preference-modal {
+    .ant-radio-wrapper {
+        &:hover {
+            .ant-radio-inner {
+                border-color: var(--primary-color);
+            }
+        }
+
+        &.ant-radio-wrapper-checked {
+            color: var(--primary-color);
         }
     }
 
-    &.ant-radio-wrapper-checked {
-        color: var(--primary-color);
-    }
-}
+    .ant-radio-checked .ant-radio-inner {
+        border-color: var(--primary-color);
 
-:deep(.ant-radio-checked) .ant-radio-inner {
-    border-color: var(--primary-color);
-
-    &::after {
-        background-color: var(--primary-color);
+        &::after {
+            background-color: var(--primary-color);
+        }
     }
 }
 </style>

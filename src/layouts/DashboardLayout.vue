@@ -172,20 +172,20 @@ export default defineComponent({
 
 /* 浅色主题样式 */
 :deep([data-theme="light"] .user-dropdown-menu) {
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-color);
+    border: 1px solid var(--border-color);
 
     .ant-menu-item {
         .menu-item-content {
 
             .anticon,
             span {
-                color: rgba(0, 0, 0, 0.85);
+                color: var(--text-color);
             }
         }
 
         &:hover {
-            background-color: #f5f5f5;
+            background-color: var(--bg-hover);
 
             .menu-item-content {
 
@@ -198,26 +198,26 @@ export default defineComponent({
     }
 
     .ant-menu-item-divider {
-        background-color: #e5e7eb;
+        background-color: var(--border-color);
     }
 }
 
 /* 深色主题样式 */
 :deep([data-theme="dark"] .user-dropdown-menu) {
-    background: #1a1d1e;
-    border: 1px solid #2a2d2e;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
 
     .ant-menu-item {
         .menu-item-content {
 
             .anticon,
             span {
-                color: #ffffff;
+                color: var(--text-color);
             }
         }
 
         &:hover {
-            background-color: #2a2d2e;
+            background-color: var(--bg-hover);
 
             .menu-item-content {
 
@@ -230,7 +230,7 @@ export default defineComponent({
     }
 
     .ant-menu-item-divider {
-        background-color: #2a2d2e;
+        background-color: var(--border-color);
     }
 }
 
