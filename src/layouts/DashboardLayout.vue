@@ -204,7 +204,7 @@ export default defineComponent({
 
 /* 深色主题样式 */
 :deep([data-theme="dark"] .user-dropdown-menu) {
-    background: #1f1f1f;
+    background: #1a1d1e;
     border: 1px solid #2a2d2e;
 
     .ant-menu-item {
@@ -212,12 +212,12 @@ export default defineComponent({
 
             .anticon,
             span {
-                color: rgba(255, 255, 255, 0.85);
+                color: #ffffff;
             }
         }
 
         &:hover {
-            background-color: rgba(255, 255, 255, 0.08);
+            background-color: #2a2d2e;
 
             .menu-item-content {
 

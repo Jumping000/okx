@@ -1,9 +1,9 @@
 <template>
-    <a-modal v-model:visible="visible" title="偏好设置" :footer="null" @cancel="handleCancel">
+    <a-modal v-model:visible="visible" title="偏好设置" :footer="null" @cancel="handleCancel" class="preference-modal">
         <div class="space-y-6">
             <!-- 主题设置 -->
             <div class="setting-section">
-                <h3 class="text-base font-medium mb-3">主题设置</h3>
+                <h3 class="text-base font-medium mb-3 section-title">主题设置</h3>
                 <a-radio-group v-model:value="settings.theme" class="w-full">
                     <a-radio value="dark" class="block mb-2">深色模式</a-radio>
                     <a-radio value="light" class="block">浅色模式</a-radio>
@@ -95,3 +95,74 @@ export default defineComponent({
     }
 })
 </script>
+
+<style scoped>
+/* 深色主题样式 */
+:deep([data-theme="dark"]) .preference-modal {
+    .ant-modal-content {
+        background-color: var(--card-bg);
+    }
+
+    .ant-modal-header {
+        background-color: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .ant-modal-title {
+        color: var(--text-color);
+    }
+
+    .section-title {
+        color: var(--text-color);
+    }
+
+    .ant-radio-wrapper {
+        color: var(--text-color);
+    }
+}
+
+/* 浅色主题样式 */
+:deep([data-theme="light"]) .preference-modal {
+    .ant-modal-content {
+        background-color: var(--card-bg);
+    }
+
+    .ant-modal-header {
+        background-color: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .ant-modal-title {
+        color: var(--text-color);
+    }
+
+    .section-title {
+        color: var(--text-color);
+    }
+
+    .ant-radio-wrapper {
+        color: var(--text-color);
+    }
+}
+
+/* 通用样式 */
+:deep(.ant-radio-wrapper) {
+    &:hover {
+        .ant-radio-inner {
+            border-color: var(--primary-color);
+        }
+    }
+
+    &.ant-radio-wrapper-checked {
+        color: var(--primary-color);
+    }
+}
+
+:deep(.ant-radio-checked) .ant-radio-inner {
+    border-color: var(--primary-color);
+
+    &::after {
+        background-color: var(--primary-color);
+    }
+}
+</style>

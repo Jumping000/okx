@@ -20,8 +20,8 @@
 
                 <a-form-item>
                     <a-space>
-                        <a-button type="primary" html-type="submit">保存配置</a-button>
-                        <a-button @click="clearConfig">清除配置</a-button>
+                        <a-button type="primary" html-type="submit" :loading="loading">保存配置</a-button>
+                        <a-button @click="clearConfig" :disabled="loading">清除配置</a-button>
                     </a-space>
                 </a-form-item>
             </a-form>
@@ -46,6 +46,7 @@ export default defineComponent({
     setup() {
         const router = useRouter()
         const hasConfig = ref(false)
+        const loading = ref(false)
         const formState = reactive({
             apiKey: '',
             secretKey: '',
@@ -64,7 +65,8 @@ export default defineComponent({
         }
 
         // 保存配置
-        const onFinish = (values) => {
+        const onFinish = async (values) => {
+            loading.value = true
             try {
                 storage.setApiConfig(
                     values.apiKey,
@@ -77,6 +79,8 @@ export default defineComponent({
                 router.push('/dashboard')
             } catch (error) {
                 message.error('配置保存失败')
+            } finally {
+                loading.value = false
             }
         }
 
@@ -98,7 +102,8 @@ export default defineComponent({
             formState,
             hasConfig,
             onFinish,
-            clearConfig
+            clearConfig,
+            loading
         }
     }
 })
@@ -110,7 +115,7 @@ export default defineComponent({
     display: flex;
     justify-content: center;
     align-items: center;
-    background-color: #f0f2f5;
+    background-color: var(--bg-color);
     padding: 20px;
 }
 
@@ -118,11 +123,45 @@ export default defineComponent({
     width: 100%;
     max-width: 500px;
     border-radius: 8px;
+    background-color: var(--card-bg);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 :deep(.ant-card-head) {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--card-bg);
+}
+
+:deep(.ant-card-head-title) {
+    color: var(--text-color);
+}
+
+:deep(.ant-form-item-label > label) {
+    color: var(--text-color);
+}
+
+:deep(.ant-input-affix-wrapper) {
+    background-color: var(--input-bg);
+    border-color: var(--input-border);
+}
+
+:deep(.ant-input-affix-wrapper:hover) {
+    border-color: var(--primary-color);
+}
+
+:deep(.ant-input-affix-wrapper-focused),
+:deep(.ant-input-affix-wrapper:focus) {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 181, 107, 0.2);
+}
+
+:deep(.ant-input) {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+:deep(.ant-input-password-icon) {
+    color: var(--text-secondary);
 }
 
 :deep(.ant-form-item-label) {
