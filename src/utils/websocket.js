@@ -20,6 +20,13 @@ export const WebSocketType = {
 };
 
 /**
+ * 账户频道类型枚举
+ */
+export const AccountChannelType = {
+  ACCOUNT: "account", // 账户频道
+};
+
+/**
  * 行情频道类型枚举
  */
 export const MarketChannelType = {

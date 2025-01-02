@@ -38,14 +38,34 @@
                         <!-- K线图区域 -->
                         <div class="bg-dark-400 rounded-lg border border-dark-300">
                             <div class="flex items-center justify-between px-4 py-3 border-b border-dark-300">
-                                <div class="flex items-center gap-2">
-                                    <span class="text-xl font-medium text-dark-100">{{ selectedCurrency }}</span>
-                                    <span class="text-sm text-dark-200">实时行情</span>
+                                <div class="flex items-center gap-3">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-xl font-medium text-dark-100">
+                                            {{ selectedCurrency.replace('-SWAP', '').replace('-USDT', '') }}
+                                        </span>
+                                        <span class="text-sm px-2 py-0.5 rounded bg-dark-300 text-dark-200">
+                                            {{ selectedCurrency.includes('-SWAP') ? '永续' : '现货' }}
+                                        </span>
+                                    </div>
+                                    <div class="flex items-center gap-2 ml-2">
+                                        <span class="text-2xl font-semibold" :class="{
+                                            'text-primary': Number(marketData.priceChangePercent) >= 0,
+                                            'text-red-500': Number(marketData.priceChangePercent) < 0
+                                        }">
+                                            ${{ marketData.lastPrice }}
+                                        </span>
+                                        <span class="text-sm px-2 py-0.5 rounded" :class="{
+                                            'bg-primary/10 text-primary': Number(marketData.priceChangePercent) >= 0,
+                                            'bg-red-500/10 text-red-500': Number(marketData.priceChangePercent) < 0
+                                        }">
+                                            {{ Number(marketData.priceChangePercent) >= 0 ? '+' : '' }}{{ marketData.priceChangePercent }}%
+                                        </span>
+                                    </div>
                                 </div>
                                 <div class="flex items-center gap-4">
                                     <!-- K线周期选择 -->
                                     <a-select v-model:value="selectedPeriod" style="width: 120px"
-                                        @change="handlePeriodChange">
+                                        @change="handlePeriodChange" class="period-select">
                                         <a-select-option v-for="period in candlePeriods" :key="period.value"
                                             :value="period.value">
                                             {{ period.label }}
@@ -53,44 +73,40 @@
                                     </a-select>
                                 </div>
                             </div>
-                            <div class="h-[480px] p-4">
-                                <div v-if="candleData.length" class="h-full">
-                                    <!-- 这里可以添加你的K线图表组件 -->
-                                    <div class="h-full flex flex-col">
-                                        <div class="text-dark-100 mb-2">
-                                            <div class="grid grid-cols-5 gap-4">
-                                                <div>
-                                                    <div class="text-xs text-dark-200">开盘</div>
-                                                    <div class="font-medium">{{ formatPrice(latestCandle?.open) }}</div>
-                                                </div>
-                                                <div>
-                                                    <div class="text-xs text-dark-200">最高</div>
-                                                    <div class="font-medium">{{ formatPrice(latestCandle?.high) }}</div>
-                                                </div>
-                                                <div>
-                                                    <div class="text-xs text-dark-200">最低</div>
-                                                    <div class="font-medium">{{ formatPrice(latestCandle?.low) }}</div>
-                                                </div>
-                                                <div>
-                                                    <div class="text-xs text-dark-200">收盘</div>
-                                                    <div class="font-medium">{{ formatPrice(latestCandle?.close) }}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <div class="text-xs text-dark-200">成交量</div>
-                                                    <div class="font-medium">{{ formatVolume(latestCandle?.volume) }}
-                                                    </div>
-                                                </div>
-                                            </div>
+                            <div class="chart-container">
+                                <div class="market-info grid grid-cols-5 gap-4 px-4 py-3">
+                                    <div class="market-info-item">
+                                        <div class="text-xs text-dark-200">24h开盘</div>
+                                        <div class="font-medium">{{ formatPrice(latestCandle?.open) }}</div>
+                                    </div>
+                                    <div class="market-info-item">
+                                        <div class="text-xs text-dark-200">24h最高</div>
+                                        <div class="font-medium text-primary">{{ formatPrice(latestCandle?.high) }}
                                         </div>
-                                        <div class="flex-1 border border-dashed border-dark-300 rounded">
+                                    </div>
+                                    <div class="market-info-item">
+                                        <div class="text-xs text-dark-200">24h最低</div>
+                                        <div class="font-medium text-red-500">{{ formatPrice(latestCandle?.low) }}</div>
+                                    </div>
+                                    <div class="market-info-item">
+                                        <div class="text-xs text-dark-200">24h收盘</div>
+                                        <div class="font-medium">{{ formatPrice(latestCandle?.close) }}</div>
+                                    </div>
+                                    <div class="market-info-item">
+                                        <div class="text-xs text-dark-200">24h成交量</div>
+                                        <div class="font-medium">{{ formatVolume(latestCandle?.volume) }}</div>
+                                    </div>
+                                </div>
+                                <div class="h-[480px] px-4 pb-4">
+                                    <div v-if="candleData.length" class="h-full">
+                                        <div class="h-full rounded border border-dark-300 overflow-hidden">
                                             <KlineChart :data="candleData" :theme="theme" :inst-id="selectedCurrency"
                                                 :period="selectedPeriod" />
                                         </div>
                                     </div>
-                                </div>
-                                <div v-else class="h-full flex items-center justify-center">
-                                    <a-spin />
+                                    <div v-else class="h-full flex items-center justify-center">
+                                        <a-spin />
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1081,5 +1097,74 @@ export default defineComponent({
 /* 移除滑块相关样式 */
 :deep(.ant-slider) {
     display: none;
+}
+
+/* K线周期选择器样式 */
+:deep(.period-select) {
+    .ant-select-selector {
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+        height: 32px !important;
+
+        .ant-select-selection-item {
+            line-height: 30px !important;
+            color: var(--text-color) !important;
+        }
+    }
+
+    .ant-select-arrow {
+        color: var(--text-secondary) !important;
+    }
+
+    .ant-select-dropdown {
+        background-color: var(--bg-color) !important;
+        border: 1px solid var(--border-color) !important;
+
+        .ant-select-item {
+            color: var(--text-color) !important;
+            padding: 6px 12px !important;
+
+            &:hover {
+                background-color: var(--bg-hover) !important;
+            }
+
+            &.ant-select-item-option-selected {
+                background-color: var(--bg-hover) !important;
+                color: var(--primary-color) !important;
+            }
+        }
+    }
+}
+
+/* 图表容器样式 */
+.chart-container {
+    .market-info {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .market-info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+}
+
+/* 加载状态样式 */
+:deep(.ant-spin) {
+    .ant-spin-dot-item {
+        background-color: var(--primary-color) !important;
+    }
+}
+
+/* 涨跌色块样式 */
+.price-change {
+    &.positive {
+        @apply bg-primary/10 text-primary;
+    }
+
+    &.negative {
+        @apply bg-red-500/10 text-red-500;
+    }
 }
 </style>

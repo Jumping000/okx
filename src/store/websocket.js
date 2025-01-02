@@ -4,6 +4,7 @@ import WebSocketClient, {
   WebSocketType,
   MarketChannelType,
   MarketOperationType,
+  AccountChannelType,
 } from "@/utils/websocket";
 
 // WebSocket 配置
@@ -85,6 +86,11 @@ export const useWebSocketStore = defineStore("websocket", {
       books: new Map(),
       candles: new Map(),
     },
+    // 账户数据缓存
+    accountData: {
+      balance: null, // 账户余额信息
+      lastUpdateTime: null, // 最后更新时间
+    },
   }),
 
   getters: {
@@ -117,6 +123,12 @@ export const useWebSocketStore = defineStore("websocket", {
     // 获取指定币种的行情数据更新时间
     getMarketDataUpdateTime: (state) => (channelType, instId) =>
       state.marketDataUpdateTime[channelType].get(instId),
+
+    // 获取账户数据
+    getAccountData: (state) => state.accountData.balance,
+
+    // 获取账户数据最后更新时间
+    getAccountDataUpdateTime: (state) => state.accountData.lastUpdateTime,
   },
 
   actions: {
@@ -769,6 +781,105 @@ export const useWebSocketStore = defineStore("websocket", {
           this.marketDataUpdateTime.candles.delete(instId);
         }
       );
+    },
+
+    /**
+     * 订阅账户数据
+     * @param {Object} options 订阅选项
+     * @param {Function} options.onData 数据回调函数
+     * @returns {Promise<void>}
+     */
+    async subscribeAccount({ onData }) {
+      // 确保连接已建立且已登录
+      if (!this.isConnected(WebSocketType.PRIVATE)) {
+        await this.connect(WebSocketType.PRIVATE);
+      }
+
+      if (!this.isLoggedIn(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未登录，请先登录");
+      }
+
+      const subscriptionKey = AccountChannelType.ACCOUNT;
+
+      // 构建订阅消息
+      const subscribeMessage = {
+        op: MarketOperationType.SUBSCRIBE,
+        args: [
+          {
+            channel: AccountChannelType.ACCOUNT,
+          },
+        ],
+      };
+
+      // 创建消息处理函数
+      const messageHandler = (message) => {
+        if (message.data && message.data[0]) {
+          // 更新账户数据缓存
+          this.accountData.balance = message.data[0];
+          this.accountData.lastUpdateTime = new Date().getTime();
+
+          // 调用回调函数
+          if (onData) {
+            onData(message);
+          }
+        }
+      };
+
+      // 添加消息处理函数
+      this.connections[WebSocketType.PRIVATE].addMessageHandler(
+        subscriptionKey,
+        messageHandler
+      );
+
+      // 发送订阅消息
+      this.send({
+        type: WebSocketType.PRIVATE,
+        data: subscribeMessage,
+      });
+
+      console.log("已订阅账户数据");
+    },
+
+    /**
+     * 取消订阅账户数据
+     */
+    unsubscribeAccount() {
+      const subscriptionKey = AccountChannelType.ACCOUNT;
+
+      // 构建取消订阅消息
+      const unsubscribeMessage = {
+        op: MarketOperationType.UNSUBSCRIBE,
+        args: [
+          {
+            channel: AccountChannelType.ACCOUNT,
+          },
+        ],
+      };
+
+      // 发送取消订阅消息
+      this.send({
+        type: WebSocketType.PRIVATE,
+        data: unsubscribeMessage,
+      });
+
+      // 移除消息处理函数
+      this.connections[WebSocketType.PRIVATE].removeMessageHandler(
+        subscriptionKey
+      );
+
+      // 清除账户数据缓存
+      this.accountData.balance = null;
+      this.accountData.lastUpdateTime = null;
+
+      console.log("已取消订阅账户数据");
+    },
+
+    /**
+     * 清除账户数据缓存
+     */
+    clearAccountData() {
+      this.accountData.balance = null;
+      this.accountData.lastUpdateTime = null;
     },
   },
 });
