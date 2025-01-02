@@ -922,11 +922,6 @@ export const useWebSocketStore = defineStore("websocket", {
 
       const subscriptionKey = AccountChannelType.POSITIONS;
 
-      // 如果已经订阅，则直接返回
-      if (this.subscriptions[WebSocketType.PRIVATE]?.has(subscriptionKey)) {
-        return;
-      }
-
       // 构建订阅消息
       const message = {
         op: "subscribe",
@@ -941,44 +936,47 @@ export const useWebSocketStore = defineStore("websocket", {
         ],
       };
 
-      // 注册消息处理函数
-      this.messageHandlers[WebSocketType.PRIVATE].set(
-        subscriptionKey,
-        (message) => {
-          // 处理订阅成功消息
-          if (
-            message.event === "subscribe" &&
-            message.arg?.channel === AccountChannelType.POSITIONS
-          ) {
-            console.log("永续合约持仓订阅成功");
-            return;
-          }
+      // 创建消息处理函数
+      const messageHandler = (message) => {
+        // 处理订阅成功消息
+        if (
+          message.event === "subscribe" &&
+          message.arg?.channel === AccountChannelType.POSITIONS
+        ) {
+          console.log("永续合约持仓订阅成功");
+          return;
+        }
 
-          // 处理持仓数据更新
-          if (
-            message?.arg?.channel === AccountChannelType.POSITIONS &&
-            message?.arg?.instType === "SWAP" &&
-            Array.isArray(message?.data)
-          ) {
-            // 更新持仓数据
-            this.positionsData = {
-              SWAP: message.data,
-              lastUpdateTime: new Date().getTime(),
-            };
+        // 处理持仓数据更新
+        if (
+          message?.arg?.channel === AccountChannelType.POSITIONS &&
+          message?.arg?.instType === "SWAP" &&
+          Array.isArray(message?.data)
+        ) {
+          // 更新持仓数据
+          this.positionsData = {
+            SWAP: message.data,
+            lastUpdateTime: new Date().getTime(),
+          };
 
-            // 调用回调函数
-            if (typeof onData === "function") {
-              onData(message);
-            }
+          // 调用回调函数
+          if (typeof onData === "function") {
+            onData(message);
           }
         }
+      };
+
+      // 添加消息处理函数
+      this.connections[WebSocketType.PRIVATE].addMessageHandler(
+        subscriptionKey,
+        messageHandler
       );
 
-      // 添加到订阅列表
-      this.subscriptions[WebSocketType.PRIVATE].add(subscriptionKey);
-
       // 发送订阅消息
-      this.send(WebSocketType.PRIVATE, message);
+      this.send({
+        type: WebSocketType.PRIVATE,
+        data: message,
+      });
     },
 
     /**
@@ -990,11 +988,6 @@ export const useWebSocketStore = defineStore("websocket", {
       }
 
       const subscriptionKey = AccountChannelType.POSITIONS;
-
-      // 如果未订阅，则直接返回
-      if (!this.subscriptions[WebSocketType.PRIVATE]?.has(subscriptionKey)) {
-        return;
-      }
 
       // 构建取消订阅消息
       const message = {
@@ -1008,13 +1001,15 @@ export const useWebSocketStore = defineStore("websocket", {
       };
 
       // 发送取消订阅消息
-      this.send(WebSocketType.PRIVATE, message);
-
-      // 从订阅列表中移除
-      this.subscriptions[WebSocketType.PRIVATE].delete(subscriptionKey);
+      this.send({
+        type: WebSocketType.PRIVATE,
+        data: message,
+      });
 
       // 移除消息处理函数
-      this.messageHandlers[WebSocketType.PRIVATE].delete(subscriptionKey);
+      this.connections[WebSocketType.PRIVATE].removeMessageHandler(
+        subscriptionKey
+      );
 
       // 清空持仓数据
       this.clearPositionsData();

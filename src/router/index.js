@@ -195,6 +195,7 @@ router.beforeEach(async (to, from, next) => {
             if (!wsStore.getPositionsData?.length) {
               await wsStore.subscribePositions({
                 onData: (message) => {
+                  console.log(message);
                   if (
                     message?.arg?.channel === "positions" &&
                     message?.arg?.instType === "SWAP" &&

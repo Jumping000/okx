@@ -313,7 +313,8 @@ class WebSocketClient {
       if (message.event === "subscribe") {
         const { channel } = message.arg;
         const subscriptionKey =
-          channel === AccountChannelType.ACCOUNT
+          channel === AccountChannelType.ACCOUNT ||
+          channel === AccountChannelType.POSITIONS
             ? channel
             : `${channel}_${message.arg.instId}`;
         const handler = this.messageHandlers.get(subscriptionKey);
@@ -340,7 +341,8 @@ class WebSocketClient {
       if (message.arg) {
         const { channel } = message.arg;
         const subscriptionKey =
-          channel === AccountChannelType.ACCOUNT
+          channel === AccountChannelType.ACCOUNT ||
+          channel === AccountChannelType.POSITIONS
             ? channel
             : `${channel}_${message.arg.instId}`;
         const handler = this.messageHandlers.get(subscriptionKey);
@@ -524,6 +526,27 @@ class WebSocketClient {
   removeMessageHandler(key) {
     this.messageHandlers.delete(key);
     console.log(`移除消息处理函数: ${key}`, this.messageHandlers);
+  }
+
+  /**
+   * 生成订阅的唯一标识
+   * @param {string} channelType 频道类型
+   * @param {string} instId 产品ID
+   * @returns {string} 订阅的唯一标识
+   */
+  _getSubscriptionKey(channelType, instId) {
+    // 如果是账户频道，直接返回频道类型
+    if (
+      channelType === AccountChannelType.ACCOUNT ||
+      channelType === AccountChannelType.POSITIONS
+    ) {
+      return channelType;
+    }
+    // 如果是K线数据，需要特殊处理
+    if (channelType.startsWith("candle")) {
+      return `${channelType}_${instId}`;
+    }
+    return `${channelType}_${instId}`;
   }
 }
 
