@@ -954,14 +954,43 @@ export const useWebSocketStore = defineStore("websocket", {
           Array.isArray(message?.data)
         ) {
           // 更新持仓数据
+          const newPositions = message.data;
+          const currentPositions = [...this.positionsData.SWAP];
+
+          // 遍历新的持仓数据
+          newPositions.forEach((newPosition) => {
+            const existingIndex = currentPositions.findIndex(
+              (pos) => pos.posId === newPosition.posId
+            );
+
+            if (existingIndex !== -1) {
+              // 如果是清仓操作（pos为0），则删除该持仓
+              if (newPosition.pos === "0") {
+                console.log(`持仓已清空，删除持仓记录: ${newPosition.instId}`);
+                currentPositions.splice(existingIndex, 1);
+              } else {
+                // 更新已存在的持仓
+                currentPositions[existingIndex] = newPosition;
+              }
+            } else if (newPosition.pos !== "0") {
+              // 只有不是清仓的新持仓才添加
+              currentPositions.push(newPosition);
+            }
+          });
+
+          // 更新状态
           this.positionsData = {
-            SWAP: message.data,
+            SWAP: currentPositions,
             lastUpdateTime: new Date().getTime(),
+            count: currentPositions.length, // 添加仓位数量统计
           };
 
           // 调用回调函数
           if (typeof onData === "function") {
-            onData(message);
+            onData({
+              ...message,
+              positionsCount: currentPositions.length,
+            });
           }
         }
       };
