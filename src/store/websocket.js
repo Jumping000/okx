@@ -34,6 +34,10 @@ const WS_CONFIG = {
 
 // 生成订阅的唯一标识
 const getSubscriptionKey = (channelType, instId) => {
+  // 如果是账户频道，直接返回频道类型
+  if (channelType === AccountChannelType.ACCOUNT) {
+    return channelType;
+  }
   // 如果是K线数据，需要特殊处理
   if (channelType.startsWith("candle")) {
     return `${channelType}_${instId}`;
@@ -813,7 +817,19 @@ export const useWebSocketStore = defineStore("websocket", {
 
       // 创建消息处理函数
       const messageHandler = (message) => {
-        if (message.data && message.data[0]) {
+        // 检查消息格式
+        if (
+          message.event === "subscribe" &&
+          message.arg?.channel === AccountChannelType.ACCOUNT
+        ) {
+          console.log("账户频道订阅成功");
+          return;
+        }
+
+        if (
+          message.arg?.channel === AccountChannelType.ACCOUNT &&
+          message.data?.[0]
+        ) {
           // 更新账户数据缓存
           this.accountData.balance = message.data[0];
           this.accountData.lastUpdateTime = new Date().getTime();

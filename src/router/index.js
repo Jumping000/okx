@@ -106,6 +106,22 @@ router.beforeEach(async (to, from, next) => {
             });
           }
         }
+
+        // 登录成功后，订阅账户数据
+        if (wsStore.isLoggedIn(WebSocketType.PRIVATE)) {
+          try {
+            // 如果没有账户数据，则订阅
+            if (!wsStore.getAccountData) {
+              await wsStore.subscribeAccount({
+                onData: (message) => {
+                  console.log("账户数据更新:", message);
+                },
+              });
+            }
+          } catch (error) {
+            console.error("订阅账户数据失败:", error);
+          }
+        }
       } catch (error) {
         console.error("WebSocket 登录失败:", error);
         // 如果登录失败，跳转到设置页面

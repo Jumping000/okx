@@ -310,8 +310,15 @@ class WebSocketClient {
 
       // 处理订阅响应
       if (message.event === "subscribe") {
-        const { channel, instId } = message.arg;
-        console.log(`订阅成功: ${channel} - ${instId}`);
+        const { channel } = message.arg;
+        const subscriptionKey =
+          channel === AccountChannelType.ACCOUNT
+            ? channel
+            : `${channel}_${message.arg.instId}`;
+        const handler = this.messageHandlers.get(subscriptionKey);
+        if (handler) {
+          handler(message);
+        }
         return;
       }
 
@@ -330,11 +337,11 @@ class WebSocketClient {
 
       // 处理数据更新消息
       if (message.arg) {
-        const { channel, instId } = message.arg;
-        const subscriptionKey = `${channel}_${instId}`;
-        // console.log("查找处理函数的key:", subscriptionKey);
-        // console.log("当前所有处理函数:", this.messageHandlers);
-
+        const { channel } = message.arg;
+        const subscriptionKey =
+          channel === AccountChannelType.ACCOUNT
+            ? channel
+            : `${channel}_${message.arg.instId}`;
         const handler = this.messageHandlers.get(subscriptionKey);
         if (handler) {
           try {
