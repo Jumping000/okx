@@ -114,7 +114,22 @@ router.beforeEach(async (to, from, next) => {
             if (!wsStore.getAccountData) {
               await wsStore.subscribeAccount({
                 onData: (message) => {
-                  console.log("账户数据更新:", message);
+                  if (
+                    message?.arg?.channel == "account" &&
+                    message?.data?.length > 0
+                  ) {
+                    console.log("账户数据更新:", message);
+                    //   可用余额
+                    const availableBalance =
+                      message.data[0].details[0].availBal;
+                    console.log("可用余额:", availableBalance);
+                    //   总资产
+                    const totalBalance = message.data[0].totalEq;
+                    console.log("总资产:", totalBalance);
+                    //   持仓数量
+                    const positionCount = message.data[0].details.length;
+                    console.log("持仓数量:", positionCount);
+                  }
                 },
               });
             }
