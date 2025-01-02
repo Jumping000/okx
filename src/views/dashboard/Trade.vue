@@ -78,7 +78,7 @@
                                             </div>
                                         </div>
                                         <div class="flex-1 border border-dashed border-dark-300 rounded">
-                                            <span class="text-dark-200">K线图表区域</span>
+                                            <KlineChart :data="candleData" :theme="theme" />
                                         </div>
                                     </div>
                                 </div>
@@ -390,6 +390,7 @@ import { defineComponent, ref, computed, onMounted, onUnmounted, watch } from 'v
 import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
 import { MarketChannelType } from '@/utils/websocket'
+import KlineChart from '@/components/KlineChart.vue'
 
 // K线周期选项
 const CANDLE_PERIODS = [
@@ -409,6 +410,9 @@ const CANDLE_PERIODS = [
 
 export default defineComponent({
     name: 'TradePage',
+    components: {
+        KlineChart
+    },
     setup() {
         const currencyStore = useCurrencyStore()
         const wsStore = useWebSocketStore()
@@ -727,6 +731,7 @@ export default defineComponent({
             handlePeriodChange,
             formatPrice,
             formatVolume,
+            theme: 'dark',
         }
     }
 })
