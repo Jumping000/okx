@@ -27,6 +27,32 @@ export const MarketChannelType = {
   TRADES: "trades", // 交易频道
   BOOKS: "books", // 深度频道
   CANDLES: "candle1m", // K线频道，默认1分钟
+  // K线周期
+  CANDLE_1S: "candle1s",
+  CANDLE_1M: "candle1m",
+  CANDLE_3M: "candle3m",
+  CANDLE_5M: "candle5m",
+  CANDLE_15M: "candle15m",
+  CANDLE_30M: "candle30m",
+  CANDLE_1H: "candle1H",
+  CANDLE_2H: "candle2H",
+  CANDLE_4H: "candle4H",
+  CANDLE_6H: "candle6H",
+  CANDLE_12H: "candle12H",
+  CANDLE_1D: "candle1D",
+  CANDLE_2D: "candle2D",
+  CANDLE_3D: "candle3D",
+  CANDLE_5D: "candle5D",
+  CANDLE_1W: "candle1W",
+  CANDLE_1M_UTC: "candle1Mutc",
+  CANDLE_3M_UTC: "candle3Mutc",
+  CANDLE_1W_UTC: "candle1Wutc",
+  CANDLE_1D_UTC: "candle1Dutc",
+  CANDLE_2D_UTC: "candle2Dutc",
+  CANDLE_3D_UTC: "candle3Dutc",
+  CANDLE_5D_UTC: "candle5Dutc",
+  CANDLE_12H_UTC: "candle12Hutc",
+  CANDLE_6H_UTC: "candle6Hutc",
 };
 
 /**

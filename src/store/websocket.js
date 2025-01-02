@@ -514,5 +514,233 @@ export const useWebSocketStore = defineStore("websocket", {
         this.marketDataUpdateTime[channelType].clear();
       });
     },
+
+    /**
+     * 订阅K线数据
+     * @param {Object} options 订阅选项
+     * @param {string} options.instId 产品ID
+     * @param {string} options.candlePeriod K线周期
+     * @param {Function} options.onData 数据回调函数
+     * @returns {Promise<void>}
+     */
+    async subscribeCandleData({
+      instId,
+      candlePeriod = MarketChannelType.CANDLE_1M,
+      onData,
+    }) {
+      if (!instId) {
+        throw new Error("缺少必要的订阅参数");
+      }
+
+      // 确保连接已建立
+      if (!this.isConnected(WebSocketType.BUSINESS)) {
+        await this.connect(WebSocketType.BUSINESS);
+      }
+
+      const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+
+      // 构建订阅消息
+      const subscribeMessage = {
+        op: MarketOperationType.SUBSCRIBE,
+        args: [
+          {
+            channel: candlePeriod,
+            instId: instId,
+          },
+        ],
+      };
+
+      // 创建消息处理函数
+      const messageHandler = (message) => {
+        // 更新K线数据缓存
+        if (message.data) {
+          // K线数据格式转换
+          const candleData = message.data.map((item) => ({
+            timestamp: item[0], // 开始时间，Unix时间戳的毫秒数格式，如 1597026383085
+            open: item[1], // 开盘价格
+            high: item[2], // 最高价格
+            low: item[3], // 最低价格
+            close: item[4], // 收盘价格
+            volume: item[5], // 交易量，以张为单位
+            volCcy: item[6], // 交易量，以币为单位
+            volCcyQuote: item[7], // 交易量，以计价货币为单位
+            confirm: item[8], // K线状态
+          }));
+
+          this.marketData.candles.set(instId, candleData);
+          this.marketDataUpdateTime.candles.set(instId, new Date().getTime());
+        }
+
+        // 调用回调函数
+        if (onData) {
+          onData(message);
+        }
+      };
+
+      // 添加消息处理函数
+      this.connections[WebSocketType.BUSINESS].addMessageHandler(
+        subscriptionKey,
+        messageHandler
+      );
+
+      // 发送订阅消息
+      this.send({
+        type: WebSocketType.BUSINESS,
+        data: subscribeMessage,
+      });
+    },
+
+    /**
+     * 取消订阅K线数据
+     * @param {Object} options 取消订阅选项
+     * @param {string} options.instId 产品ID
+     * @param {string} options.candlePeriod K线周期
+     */
+    unsubscribeCandleData({
+      instId,
+      candlePeriod = MarketChannelType.CANDLE_1M,
+    }) {
+      if (!instId) {
+        throw new Error("缺少必要的取消订阅参数");
+      }
+
+      const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+
+      // 构建取消订阅消息
+      const unsubscribeMessage = {
+        op: MarketOperationType.UNSUBSCRIBE,
+        args: [
+          {
+            channel: candlePeriod,
+            instId: instId,
+          },
+        ],
+      };
+
+      // 发送取消订阅消息
+      this.send({
+        type: WebSocketType.BUSINESS,
+        data: unsubscribeMessage,
+      });
+
+      // 移除消息处理函数
+      this.connections[WebSocketType.BUSINESS].removeMessageHandler(
+        subscriptionKey
+      );
+
+      // 清除K线数据缓存
+      this.marketData.candles.delete(instId);
+      this.marketDataUpdateTime.candles.delete(instId);
+    },
+
+    /**
+     * 批量订阅K线数据
+     * @param {Array<Object>} subscriptions 订阅配置数组
+     * @returns {Promise<void>}
+     */
+    async batchSubscribeCandleData(subscriptions) {
+      if (!Array.isArray(subscriptions) || subscriptions.length === 0) {
+        throw new Error("订阅配置不能为空");
+      }
+
+      // 确保连接已建立
+      if (!this.isConnected(WebSocketType.BUSINESS)) {
+        await this.connect(WebSocketType.BUSINESS);
+      }
+
+      // 构建批量订阅消息
+      const subscribeMessage = {
+        op: MarketOperationType.SUBSCRIBE,
+        args: subscriptions.map(
+          ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => ({
+            channel: candlePeriod,
+            instId: instId,
+          })
+        ),
+      };
+
+      // 为每个订阅创建处理函数
+      subscriptions.forEach(
+        ({ instId, candlePeriod = MarketChannelType.CANDLE_1M, onData }) => {
+          const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+          const messageHandler = (message) => {
+            if (message.data) {
+              // K线数据格式转换
+              const candleData = message.data.map((item) => ({
+                timestamp: item[0],
+                open: item[1],
+                high: item[2],
+                low: item[3],
+                close: item[4],
+                volume: item[5],
+                volCcy: item[6],
+                volCcyQuote: item[7],
+                confirm: item[8],
+              }));
+
+              this.marketData.candles.set(instId, candleData);
+              this.marketDataUpdateTime.candles.set(
+                instId,
+                new Date().getTime()
+              );
+            }
+
+            if (onData) {
+              onData(message);
+            }
+          };
+
+          this.connections[WebSocketType.BUSINESS].addMessageHandler(
+            subscriptionKey,
+            messageHandler
+          );
+        }
+      );
+
+      // 发送批量订阅消息
+      this.send({
+        type: WebSocketType.BUSINESS,
+        data: subscribeMessage,
+      });
+    },
+
+    /**
+     * 批量取消订阅K线数据
+     * @param {Array<Object>} subscriptions 要取消的订阅配置数组
+     */
+    batchUnsubscribeCandleData(subscriptions) {
+      if (!Array.isArray(subscriptions) || subscriptions.length === 0) {
+        throw new Error("取消订阅配置不能为空");
+      }
+
+      // 构建批量取消订阅消息
+      const unsubscribeMessage = {
+        op: MarketOperationType.UNSUBSCRIBE,
+        args: subscriptions.map(
+          ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => ({
+            channel: candlePeriod,
+            instId: instId,
+          })
+        ),
+      };
+
+      // 发送批量取消订阅消息
+      this.send({
+        type: WebSocketType.BUSINESS,
+        data: unsubscribeMessage,
+      });
+
+      // 清理每个订阅
+      subscriptions.forEach(
+        ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => {
+          const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+          this.connections[WebSocketType.BUSINESS].removeMessageHandler(
+            subscriptionKey
+          );
+          this.marketData.candles.delete(instId);
+          this.marketDataUpdateTime.candles.delete(instId);
+        }
+      );
+    },
   },
 });

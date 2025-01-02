@@ -37,13 +37,53 @@
                                     <span class="text-sm text-dark-200">实时行情</span>
                                 </div>
                                 <div class="flex items-center gap-4">
-                                    <span class="text-sm text-dark-200">刷新频率: 1s</span>
+                                    <!-- K线周期选择 -->
+                                    <a-select v-model:value="selectedPeriod" style="width: 120px"
+                                        @change="handlePeriodChange">
+                                        <a-select-option v-for="period in candlePeriods" :key="period.value"
+                                            :value="period.value">
+                                            {{ period.label }}
+                                        </a-select-option>
+                                    </a-select>
                                 </div>
                             </div>
                             <div class="h-[480px] p-4">
-                                <div
-                                    class="h-full flex items-center justify-center border border-dashed border-dark-300 rounded">
-                                    <span class="text-dark-200">K线图区域</span>
+                                <div v-if="candleData.length" class="h-full">
+                                    <!-- 这里可以添加你的K线图表组件 -->
+                                    <div class="h-full flex flex-col">
+                                        <div class="text-dark-100 mb-2">
+                                            <div class="grid grid-cols-5 gap-4">
+                                                <div>
+                                                    <div class="text-xs text-dark-200">开盘</div>
+                                                    <div class="font-medium">{{ formatPrice(latestCandle?.open) }}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-dark-200">最高</div>
+                                                    <div class="font-medium">{{ formatPrice(latestCandle?.high) }}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-dark-200">最低</div>
+                                                    <div class="font-medium">{{ formatPrice(latestCandle?.low) }}</div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-dark-200">收盘</div>
+                                                    <div class="font-medium">{{ formatPrice(latestCandle?.close) }}
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <div class="text-xs text-dark-200">成交量</div>
+                                                    <div class="font-medium">{{ formatVolume(latestCandle?.volume) }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 border border-dashed border-dark-300 rounded">
+                                            <span class="text-dark-200">K线图表区域</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-else class="h-full flex items-center justify-center">
+                                    <a-spin />
                                 </div>
                             </div>
                         </div>
@@ -351,6 +391,22 @@ import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
 import { MarketChannelType } from '@/utils/websocket'
 
+// K线周期选项
+const CANDLE_PERIODS = [
+    { label: '1分钟', value: MarketChannelType.CANDLE_1M },
+    { label: '3分钟', value: MarketChannelType.CANDLE_3M },
+    { label: '5分钟', value: MarketChannelType.CANDLE_5M },
+    { label: '15分钟', value: MarketChannelType.CANDLE_15M },
+    { label: '30分钟', value: MarketChannelType.CANDLE_30M },
+    { label: '1小时', value: MarketChannelType.CANDLE_1H },
+    { label: '2小时', value: MarketChannelType.CANDLE_2H },
+    { label: '4小时', value: MarketChannelType.CANDLE_4H },
+    { label: '6小时', value: MarketChannelType.CANDLE_6H },
+    { label: '12小时', value: MarketChannelType.CANDLE_12H },
+    { label: '1天', value: MarketChannelType.CANDLE_1D },
+    { label: '1周', value: MarketChannelType.CANDLE_1W },
+]
+
 export default defineComponent({
     name: 'TradePage',
     setup() {
@@ -359,6 +415,107 @@ export default defineComponent({
         const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
         const selectedCurrency = ref('')
         const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
+
+        // K线相关数据
+        const selectedPeriod = ref(MarketChannelType.CANDLE_1M)
+        const candleData = ref([])
+        const candlePeriods = CANDLE_PERIODS
+
+        // 获取最新的K线数据
+        const latestCandle = computed(() => {
+            return candleData.value[0] || null
+        })
+
+        // 格式化价格
+        const formatPrice = (price) => {
+            return price ? Number(price).toFixed(2) : '0.00'
+        }
+
+        // 格式化成交量
+        const formatVolume = (volume) => {
+            return volume ? Number(volume).toFixed(4) : '0.0000'
+        }
+
+        // 处理K线数据更新
+        const handleCandleUpdate = (message) => {
+            if (!message.data || !Array.isArray(message.data)) return
+            // 更新K线数据
+            candleData.value = message.data.map(item => ({
+                timestamp: item[0],
+                open: item[1],
+                high: item[2],
+                low: item[3],
+                close: item[4],
+                volume: item[5],
+                volCcy: item[6],
+                volCcyQuote: item[7],
+                confirm: item[8],
+            }))
+        }
+
+        // 订阅K线数据
+        const subscribeCandleData = async () => {
+            if (!selectedCurrency.value) return
+
+            try {
+                await wsStore.subscribeCandleData({
+                    instId: selectedCurrency.value,
+                    candlePeriod: selectedPeriod.value,
+                    onData: handleCandleUpdate,
+                })
+                console.log(`已订阅 ${selectedCurrency.value} 的K线数据`)
+            } catch (error) {
+                console.error(`订阅 ${selectedCurrency.value} K线失败:`, error)
+            }
+        }
+
+        // 取消订阅K线数据
+        const unsubscribeCandleData = () => {
+            if (!selectedCurrency.value) return
+
+            try {
+                wsStore.unsubscribeCandleData({
+                    instId: selectedCurrency.value,
+                    candlePeriod: selectedPeriod.value,
+                })
+                console.log(`已取消订阅 ${selectedCurrency.value} 的K线数据`)
+            } catch (error) {
+                console.error(`取消订阅 ${selectedCurrency.value} K线失败:`, error)
+            }
+        }
+
+        // 处理K线周期变化
+        const handlePeriodChange = async (period) => {
+            // 先取消当前订阅
+            unsubscribeCandleData()
+            // 清空当前数据
+            candleData.value = []
+            // 重新订阅新周期的数据
+            selectedPeriod.value = period
+            await subscribeCandleData()
+        }
+
+        // 监听币种变化
+        watch(selectedCurrency, async (newInstId, oldInstId) => {
+            if (oldInstId) {
+                // 取消订阅旧币种的行情和K线数据
+                unsubscribeMarket(oldInstId)
+                unsubscribeCandleData()
+            }
+            if (newInstId) {
+                // 订阅新币种的行情和K线数据
+                subscribeMarket(newInstId)
+                await subscribeCandleData()
+            }
+        })
+
+        // 组件卸载时清理订阅
+        onUnmounted(() => {
+            if (selectedCurrency.value) {
+                unsubscribeMarket(selectedCurrency.value)
+                unsubscribeCandleData()
+            }
+        })
 
         // 交易表单数据
         const price = ref(0) // 价格
@@ -445,7 +602,6 @@ export default defineComponent({
 
         // 处理行情数据更新
         const handleTickerUpdate = (message) => {
-            console.log(message);
             if (!message.data || !Array.isArray(message.data) || !message.data[0]) return;
 
             const ticker = message.data[0];
@@ -500,16 +656,6 @@ export default defineComponent({
             }
         }
 
-        // 监听币种变化
-        watch(selectedCurrency, (newInstId, oldInstId) => {
-            if (oldInstId) {
-                unsubscribeMarket(oldInstId)
-            }
-            if (newInstId) {
-                subscribeMarket(newInstId)
-            }
-        })
-
         // 处理交易类型变化
         const handleTradeTypeChange = async () => {
             console.log('交易类型切换为:', tradeType.value)
@@ -545,13 +691,6 @@ export default defineComponent({
             selectedCurrency.value = value
         }
 
-        // 组件卸载时清理订阅
-        onUnmounted(() => {
-            if (selectedCurrency.value) {
-                unsubscribeMarket(selectedCurrency.value)
-            }
-        })
-
         // 初始化数据
         onMounted(async () => {
             await selectDefaultCurrency()
@@ -581,6 +720,13 @@ export default defineComponent({
             direction,
             // 导出行情数据
             marketData,
+            selectedPeriod,
+            candlePeriods,
+            candleData,
+            latestCandle,
+            handlePeriodChange,
+            formatPrice,
+            formatVolume,
         }
     }
 })
