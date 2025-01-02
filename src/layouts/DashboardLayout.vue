@@ -18,15 +18,18 @@
                         <down-outlined />
                     </a>
                     <template #overlay>
-                        <a-menu class="bg-dark-400 border border-dark-300">
-                            <a-menu-item key="settings">
-                                <setting-outlined />
-                                <span>偏好设置</span>
+                        <a-menu class="user-dropdown-menu">
+                            <a-menu-item key="settings" @click="openSettings">
+                                <div class="menu-item-content">
+                                    <setting-outlined />
+                                    <span>偏好设置</span>
+                                </div>
                             </a-menu-item>
-                            <a-menu-divider />
                             <a-menu-item key="logout" @click="handleLogout">
-                                <logout-outlined />
-                                <span>退出登录</span>
+                                <div class="menu-item-content">
+                                    <logout-outlined />
+                                    <span>退出登录</span>
+                                </div>
                             </a-menu-item>
                         </a-menu>
                     </template>
@@ -54,6 +57,9 @@
                 </router-view>
             </main>
         </div>
+
+        <!-- 偏好设置组件 -->
+        <preference-settings ref="preferencesRef" />
     </div>
 </template>
 
@@ -70,6 +76,7 @@ import {
 } from '@ant-design/icons-vue'
 import { storage } from '@/utils/storage'
 import { useCurrencyStore } from '@/store/currency'
+import PreferenceSettings from '@/components/PreferenceSettings.vue'
 
 const PATH_TO_KEY = {
     '/dashboard/overview': 'dashboard',
@@ -91,13 +98,15 @@ export default defineComponent({
         LogoutOutlined,
         DashboardOutlined,
         FundOutlined,
-        WalletOutlined
+        WalletOutlined,
+        PreferenceSettings
     },
     setup() {
         const router = useRouter()
         const route = useRoute()
         const selectedKeys = ref([PATH_TO_KEY[route.path] || 'dashboard'])
         const currencyStore = useCurrencyStore()
+        const preferencesRef = ref(null)
 
         const menuItems = [
             {
@@ -132,6 +141,11 @@ export default defineComponent({
             storage.clearApiConfig()
             router.push('/')
         }
+
+        const openSettings = () => {
+            preferencesRef.value?.showModal()
+        }
+
         onMounted(async () => {
 
             // 获取币种列表
@@ -143,13 +157,107 @@ export default defineComponent({
             selectedKeys,
             menuItems,
             handleMenuClick,
-            handleLogout
+            handleLogout,
+            preferencesRef,
+            openSettings
         }
     }
 })
 </script>
 
 <style scoped>
+.user-dropdown-menu {
+    min-width: 140px;
+}
+
+/* 浅色主题样式 */
+:deep([data-theme="light"] .user-dropdown-menu) {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+
+    .ant-menu-item {
+        .menu-item-content {
+
+            .anticon,
+            span {
+                color: rgba(0, 0, 0, 0.85);
+            }
+        }
+
+        &:hover {
+            background-color: #f5f5f5;
+
+            .menu-item-content {
+
+                .anticon,
+                span {
+                    color: var(--primary-color);
+                }
+            }
+        }
+    }
+
+    .ant-menu-item-divider {
+        background-color: #e5e7eb;
+    }
+}
+
+/* 深色主题样式 */
+:deep([data-theme="dark"] .user-dropdown-menu) {
+    background: #1f1f1f;
+    border: 1px solid #2a2d2e;
+
+    .ant-menu-item {
+        .menu-item-content {
+
+            .anticon,
+            span {
+                color: rgba(255, 255, 255, 0.85);
+            }
+        }
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.08);
+
+            .menu-item-content {
+
+                .anticon,
+                span {
+                    color: var(--primary-color);
+                }
+            }
+        }
+    }
+
+    .ant-menu-item-divider {
+        background-color: #2a2d2e;
+    }
+}
+
+.user-dropdown-menu :deep(.ant-menu-item) {
+    @apply p-0;
+    height: 32px;
+    line-height: 32px;
+    margin: 0;
+}
+
+.menu-item-content {
+    @apply flex items-center gap-2 px-3;
+    height: 100%;
+}
+
+.menu-item-content .anticon {
+    @apply text-base;
+}
+
+.menu-item-content span {
+    @apply text-sm;
+}
+
+:deep(.ant-menu-item-divider) {
+    margin: 4px 0;
+}
+
 .fade-enter-active,
 .fade-leave-active {
     transition: opacity 0.2s ease;
@@ -158,9 +266,5 @@ export default defineComponent({
 .fade-enter-from,
 .fade-leave-to {
     opacity: 0;
-}
-
-:deep(.ant-dropdown-menu-item) {
-    @apply text-dark-100 hover:bg-white/[0.04] !important;
 }
 </style>

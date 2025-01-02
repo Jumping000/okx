@@ -18,6 +18,32 @@ const decrypt = (value) => {
 };
 
 export const storage = {
+  // 通用存储方法
+  set(key, value) {
+    try {
+      const serializedValue = JSON.stringify(value);
+      localStorage.setItem(key, serializedValue);
+    } catch (error) {
+      console.error("Error saving to localStorage:", error);
+    }
+  },
+
+  // 通用获取方法
+  get(key) {
+    try {
+      const serializedValue = localStorage.getItem(key);
+      return serializedValue ? JSON.parse(serializedValue) : null;
+    } catch (error) {
+      console.error("Error reading from localStorage:", error);
+      return null;
+    }
+  },
+
+  // 通用删除方法
+  remove(key) {
+    localStorage.removeItem(key);
+  },
+
   // 设置 API 配置
   setApiConfig(apiKey, apiSecret, passphrase) {
     localStorage.setItem(STORAGE_KEYS.API_KEY, encrypt(apiKey));

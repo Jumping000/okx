@@ -16,7 +16,7 @@
                     <div class="p-4">
                         <div class="flex flex-col gap-1 mb-4">
                             <span class="text-sm text-dark-200">总资产 (USDT)</span>
-                            <span class="text-2xl text-white font-mono">{{ assets.total }}</span>
+                            <span class="text-2xl font-mono total-assets">{{ assets.total }}</span>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="flex flex-col gap-1">
@@ -324,11 +324,20 @@ export default defineComponent({
 
         // 获取当前时间段的统计数据
         const stats = computed(() => {
-            return statistics.value[currentPeriod.value]
+            const defaultStats = {
+                tradeCount: 0,
+                tradeVolume: 0,
+                pnl: 0,
+                winRate: 0,
+                avgHoldTime: 0,
+                fees: 0
+            }
+            return statistics.value?.[currentPeriod.value] || defaultStats
         })
 
         // 时间段切换
-        const handlePeriodChange = (period) => {
+        const handlePeriodChange = (e) => {
+            const period = e.target.value
             currentPeriod.value = period
             // 这里可以添加其他逻辑，比如获取新时间段的数据
         }
@@ -388,7 +397,15 @@ export default defineComponent({
 
 <style scoped>
 :deep(.ant-btn-link) {
-    @apply text-dark-200 hover:text-white !important;
+    color: var(--text-secondary) !important;
+
+    &:hover {
+        color: var(--primary-color) !important;
+    }
+
+    &:active {
+        color: color-mix(in srgb, var(--primary-color) 80%, black) !important;
+    }
 }
 
 :deep(.ant-radio-button-wrapper) {
@@ -447,10 +464,16 @@ export default defineComponent({
 
 .refresh-btn {
     @apply w-8 h-8 flex items-center justify-center !important;
+
+    &:hover .anticon {
+        color: var(--primary-color) !important;
+    }
 }
 
 :deep(.refresh-btn .anticon) {
     @apply text-base;
+    color: var(--text-secondary);
+    transition: color 0.3s ease;
 }
 
 /* 自定义滚动条样式 */
@@ -460,14 +483,15 @@ export default defineComponent({
     }
 
     &::-webkit-scrollbar-track {
-        @apply bg-dark-500;
+        background-color: var(--bg-color);
     }
 
     &::-webkit-scrollbar-thumb {
-        @apply bg-dark-300 rounded-full;
+        background-color: var(--border-color);
+        @apply rounded-full;
 
         &:hover {
-            @apply bg-dark-200;
+            background-color: var(--text-secondary);
         }
     }
 }
@@ -482,20 +506,22 @@ export default defineComponent({
     }
 
     &::-webkit-scrollbar-track {
-        @apply bg-dark-400 rounded-full;
+        background-color: var(--card-bg);
+        @apply rounded-full;
     }
 
     &::-webkit-scrollbar-thumb {
-        @apply bg-dark-300 rounded-full;
+        background-color: var(--border-color);
+        @apply rounded-full;
 
         &:hover {
-            @apply bg-dark-200;
+            background-color: var(--text-secondary);
         }
     }
 
     /* Firefox 滚动条样式 */
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.dark.300') theme('colors.dark.400');
+    scrollbar-color: var(--border-color) var(--card-bg);
 }
 
 /* 加载和空状态容器 */
@@ -567,22 +593,61 @@ export default defineComponent({
 
 /* 币种项样式 */
 .currency-item {
-    @apply flex items-center gap-1.5 px-3 py-2 rounded-md bg-dark-500 hover:bg-dark-300 transition-all cursor-pointer;
+    @apply flex items-center gap-1.5 px-3 py-2 rounded-md transition-all cursor-pointer;
+    background-color: var(--currency-item-bg);
 
     &:hover {
         @apply shadow-lg shadow-black/20 transform scale-[1.02];
+        background-color: var(--currency-item-hover);
 
         .currency-symbol {
-            @apply text-primary;
+            color: var(--primary-color);
         }
     }
 }
 
 .currency-symbol {
-    @apply text-sm font-medium text-dark-100 transition-colors;
+    @apply text-sm font-medium transition-colors;
+    color: var(--text-color);
 }
 
 .currency-pair {
-    @apply text-xs text-dark-200;
+    @apply text-xs;
+    color: var(--text-secondary);
+}
+
+/* 搜索框样式 */
+:deep(.ant-input-search) {
+    .ant-input {
+        background-color: var(--input-bg) !important;
+        border-color: var(--input-border) !important;
+        color: var(--input-text) !important;
+
+        &::placeholder {
+            color: var(--input-placeholder) !important;
+        }
+
+        &:hover,
+        &:focus {
+            border-color: var(--primary-color) !important;
+        }
+    }
+
+    .ant-input-search-button {
+        background-color: var(--input-bg) !important;
+        border-color: var(--input-border) !important;
+        color: var(--text-color) !important;
+
+        &:hover {
+            background-color: var(--bg-hover) !important;
+            border-color: var(--primary-color) !important;
+            color: var(--primary-color) !important;
+        }
+    }
+}
+
+/* 总资产数字样式 */
+.total-assets {
+    color: var(--text-color) !important;
 }
 </style>

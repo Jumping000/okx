@@ -1,0 +1,119 @@
+:root {
+  /* 浅色主题变量 */
+  --primary-color: #00b56b;
+  --bg-color: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-hover: #e6e6e6;
+  --text-color: #333333;
+  --text-secondary: #666666;
+  --border-color: #e5e7eb;
+  --hover-color: rgba(0, 0, 0, 0.04);
+  --menu-hover-text: #333333;
+  --menu-hover-bg: #f0f0f0;
+  --card-bg: #ffffff;
+  --currency-item-bg: #f5f5f5;
+  --currency-item-hover: #e6e6e6;
+  --input-bg: #ffffff;
+  --input-border: #d9d9d9;
+  --input-text: #333333;
+  --input-placeholder: #999999;
+}
+
+:root.dark {
+  /* 深色主题变量 */
+  --primary-color: #00b56b;
+  --bg-color: #1a1d1e;
+  --bg-secondary: #1f1f1f;
+  --bg-hover: #2a2d2e;
+  --text-color: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.85);
+  --border-color: #2a2d2e;
+  --hover-color: rgba(255, 255, 255, 0.04);
+  --menu-hover-text: #ffffff;
+  --menu-hover-bg: rgba(255, 255, 255, 0.08);
+  --card-bg: #1f1f1f;
+  --currency-item-bg: #1a1d1e;
+  --currency-item-hover: #2a2d2e;
+  --input-bg: #1a1d1e;
+  --input-border: #2a2d2e;
+  --input-text: #ffffff;
+  --input-placeholder: rgba(255, 255, 255, 0.45);
+}
+
+/* 应用主题变量 */
+body {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.bg-dark-500 {
+  background-color: var(--bg-color);
+}
+
+.bg-dark-400 {
+  background-color: var(--card-bg);
+}
+
+.border-dark-300 {
+  border-color: var(--border-color);
+}
+
+.text-dark-100 {
+  color: var(--text-color);
+}
+
+.text-dark-200 {
+  color: var(--text-secondary);
+}
+
+.text-primary {
+  color: var(--primary-color);
+}
+
+.bg-primary {
+  background-color: var(--primary-color);
+}
+
+.hover\:bg-white\/\[0\.04\]:hover {
+  background-color: var(--hover-color);
+}
+
+/* 导航菜单项样式 */
+.nav-item {
+  @apply flex flex-col items-center py-3 cursor-pointer transition-colors;
+  color: var(--text-secondary);
+}
+
+.nav-item:hover {
+  background-color: var(--menu-hover-bg);
+  color: var(--menu-hover-text);
+}
+
+.nav-item.active {
+  color: var(--primary-color);
+}
+
+/* 搜索框样式 */
+.ant-input-search .ant-input {
+  background-color: var(--input-bg) !important;
+  border-color: var(--input-border) !important;
+  color: var(--input-text) !important;
+}
+
+.ant-input-search .ant-input::placeholder {
+  color: var(--input-placeholder) !important;
+}
+
+/* 币种项样式 */
+.currency-item {
+  background-color: var(--currency-item-bg) !important;
+}
+
+.currency-item:hover {
+  background-color: var(--currency-item-hover) !important;
+}
+
+/* 总资产数字样式 */
+.total-assets {
+  color: var(--text-color) !important;
+}

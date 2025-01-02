@@ -1,0 +1,220 @@
+/* Ant Design Vue 浅色主题 */
+body[data-theme="light"] {
+  /* Button 样式 */
+  --ant-btn-default-bg: #ffffff;
+  --ant-btn-default-border: #d9d9d9;
+  --ant-btn-default-color: rgba(0, 0, 0, 0.85);
+  --ant-btn-primary-bg: var(--primary-color);
+  --ant-btn-primary-color: #ffffff;
+
+  /* Radio 样式 */
+  --ant-radio-color: var(--primary-color);
+  --ant-radio-bg: #ffffff;
+  --ant-radio-border: #d9d9d9;
+
+  /* Input 样式 */
+  --ant-input-bg: #ffffff;
+  --ant-input-border: #d9d9d9;
+  --ant-input-color: rgba(0, 0, 0, 0.85);
+
+  /* Modal 样式 */
+  --ant-modal-bg: #ffffff;
+  --ant-modal-header-bg: #ffffff;
+  --ant-modal-content-bg: #ffffff;
+  --ant-modal-footer-bg: #ffffff;
+  --ant-modal-title-color: rgba(0, 0, 0, 0.85);
+  --ant-modal-close-color: rgba(0, 0, 0, 0.45);
+
+  .ant-menu {
+    background: #ffffff;
+
+    .ant-menu-item {
+      color: rgba(0, 0, 0, 0.85);
+      background: transparent;
+
+      &:hover {
+        background-color: #f5f5f5;
+        color: var(--primary-color);
+      }
+    }
+
+    .ant-menu-item-divider {
+      background-color: #e5e7eb;
+    }
+  }
+
+  .ant-dropdown-menu {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+  }
+}
+
+/* Ant Design Vue 深色主题 */
+body[data-theme="dark"] {
+  /* Button 样式 */
+  --ant-btn-default-bg: #1f1f1f;
+  --ant-btn-default-border: #434343;
+  --ant-btn-default-color: rgba(255, 255, 255, 0.85);
+  --ant-btn-primary-bg: var(--primary-color);
+  --ant-btn-primary-color: #ffffff;
+
+  /* Radio 样式 */
+  --ant-radio-color: var(--primary-color);
+  --ant-radio-bg: transparent;
+  --ant-radio-border: #434343;
+
+  /* Input 样式 */
+  --ant-input-bg: #1f1f1f;
+  --ant-input-border: #434343;
+  --ant-input-color: rgba(255, 255, 255, 0.85);
+
+  /* Modal 样式 */
+  --ant-modal-bg: #1f1f1f;
+  --ant-modal-header-bg: #1f1f1f;
+  --ant-modal-content-bg: #1f1f1f;
+  --ant-modal-footer-bg: #1f1f1f;
+  --ant-modal-title-color: rgba(255, 255, 255, 0.85);
+  --ant-modal-close-color: rgba(255, 255, 255, 0.45);
+
+  .ant-menu {
+    background: #1f1f1f;
+
+    .ant-menu-item {
+      color: rgba(255, 255, 255, 0.85);
+      background: transparent;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        color: var(--primary-color);
+      }
+    }
+
+    .ant-menu-item-divider {
+      background-color: #2a2d2e;
+    }
+  }
+
+  .ant-dropdown-menu {
+    background: #1f1f1f;
+    border: 1px solid #2a2d2e;
+  }
+}
+
+/* Button 样式 */
+.ant-btn {
+  &.ant-btn-default {
+    background-color: var(--ant-btn-default-bg);
+    border-color: var(--ant-btn-default-border);
+    color: var(--ant-btn-default-color);
+
+    &:hover {
+      border-color: var(--primary-color);
+      color: var(--primary-color);
+    }
+  }
+
+  &.ant-btn-primary {
+    background-color: var(--ant-btn-primary-bg);
+    border-color: var(--ant-btn-primary-bg);
+    color: var(--ant-btn-primary-color);
+
+    &:hover {
+      background-color: color-mix(in srgb, var(--primary-color) 80%, white);
+      border-color: color-mix(in srgb, var(--primary-color) 80%, white);
+    }
+  }
+}
+
+/* Radio 样式 */
+.ant-radio-wrapper {
+  color: var(--ant-btn-default-color);
+
+  .ant-radio-inner {
+    background-color: var(--ant-radio-bg);
+    border-color: var(--ant-radio-border);
+  }
+
+  &:hover .ant-radio-inner {
+    border-color: var(--ant-radio-color);
+  }
+}
+
+.ant-radio-checked .ant-radio-inner {
+  border-color: var(--ant-radio-color);
+  &::after {
+    background-color: var(--ant-radio-color);
+  }
+}
+
+/* Modal 样式 */
+.ant-modal {
+  .ant-modal-content {
+    background-color: var(--ant-modal-content-bg);
+    border: 1px solid var(--border-color);
+  }
+
+  .ant-modal-header {
+    background-color: var(--ant-modal-header-bg);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .ant-modal-title {
+    color: var(--ant-modal-title-color);
+  }
+
+  .ant-modal-close {
+    color: var(--ant-modal-close-color);
+    &:hover {
+      color: color-mix(in srgb, var(--ant-modal-close-color) 80%, white);
+    }
+  }
+}
+
+/* Input 样式 */
+.ant-input {
+  background-color: var(--ant-input-bg) !important;
+  border-color: var(--ant-input-border) !important;
+  color: var(--ant-input-color) !important;
+
+  &:hover,
+  &:focus {
+    border-color: var(--primary-color) !important;
+  }
+
+  &::placeholder {
+    color: var(--input-placeholder) !important;
+  }
+}
+
+/* Menu 样式 */
+.ant-menu {
+  border: none;
+  padding: 4px;
+
+  .ant-menu-item {
+    margin: 0;
+    height: 32px;
+    line-height: 32px;
+    transition: all 0.3s;
+    border-radius: 4px;
+  }
+}
+
+/* Dropdown 样式 */
+.ant-dropdown {
+  .ant-dropdown-menu {
+    border-radius: 6px;
+    padding: 4px;
+    box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* 浅色主题下的菜单悬停效果 */
+body[data-theme="light"] .ant-menu .ant-menu-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+/* 深色主题下的菜单悬停效果 */
+body[data-theme="dark"] .ant-menu .ant-menu-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
