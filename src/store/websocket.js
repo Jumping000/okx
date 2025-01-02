@@ -95,6 +95,10 @@ export const useWebSocketStore = defineStore("websocket", {
       balance: null, // 账户余额信息
       lastUpdateTime: null, // 最后更新时间
     },
+    positionsData: {
+      SWAP: [], // 永续合约持仓数据
+      lastUpdateTime: null,
+    },
   }),
 
   getters: {
@@ -133,6 +137,10 @@ export const useWebSocketStore = defineStore("websocket", {
 
     // 获取账户数据最后更新时间
     getAccountDataUpdateTime: (state) => state.accountData.lastUpdateTime,
+
+    // 获取永续合约持仓数据
+    getPositionsData: (state) => state.positionsData.SWAP,
+    getPositionsDataUpdateTime: (state) => state.positionsData.lastUpdateTime,
   },
 
   actions: {
@@ -896,6 +904,130 @@ export const useWebSocketStore = defineStore("websocket", {
     clearAccountData() {
       this.accountData.balance = null;
       this.accountData.lastUpdateTime = null;
+    },
+
+    /**
+     * 订阅持仓数据
+     * @param {Object} options 订阅选项
+     * @param {Function} options.onData 数据回调函数
+     */
+    async subscribePositions({ onData }) {
+      if (!this.isConnected(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未连接");
+      }
+
+      if (!this.isLoggedIn(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未登录");
+      }
+
+      const subscriptionKey = AccountChannelType.POSITIONS;
+
+      // 如果已经订阅，则直接返回
+      if (this.subscriptions[WebSocketType.PRIVATE]?.has(subscriptionKey)) {
+        return;
+      }
+
+      // 构建订阅消息
+      const message = {
+        op: "subscribe",
+        args: [
+          {
+            channel: AccountChannelType.POSITIONS,
+            instType: "SWAP",
+            extraParams: JSON.stringify({
+              updateInterval: "0",
+            }),
+          },
+        ],
+      };
+
+      // 注册消息处理函数
+      this.messageHandlers[WebSocketType.PRIVATE].set(
+        subscriptionKey,
+        (message) => {
+          // 处理订阅成功消息
+          if (
+            message.event === "subscribe" &&
+            message.arg?.channel === AccountChannelType.POSITIONS
+          ) {
+            console.log("永续合约持仓订阅成功");
+            return;
+          }
+
+          // 处理持仓数据更新
+          if (
+            message?.arg?.channel === AccountChannelType.POSITIONS &&
+            message?.arg?.instType === "SWAP" &&
+            Array.isArray(message?.data)
+          ) {
+            // 更新持仓数据
+            this.positionsData = {
+              SWAP: message.data,
+              lastUpdateTime: new Date().getTime(),
+            };
+
+            // 调用回调函数
+            if (typeof onData === "function") {
+              onData(message);
+            }
+          }
+        }
+      );
+
+      // 添加到订阅列表
+      this.subscriptions[WebSocketType.PRIVATE].add(subscriptionKey);
+
+      // 发送订阅消息
+      this.send(WebSocketType.PRIVATE, message);
+    },
+
+    /**
+     * 取消订阅持仓数据
+     */
+    unsubscribePositions() {
+      if (!this.isConnected(WebSocketType.PRIVATE)) {
+        return;
+      }
+
+      const subscriptionKey = AccountChannelType.POSITIONS;
+
+      // 如果未订阅，则直接返回
+      if (!this.subscriptions[WebSocketType.PRIVATE]?.has(subscriptionKey)) {
+        return;
+      }
+
+      // 构建取消订阅消息
+      const message = {
+        op: "unsubscribe",
+        args: [
+          {
+            channel: AccountChannelType.POSITIONS,
+            instType: "SWAP",
+          },
+        ],
+      };
+
+      // 发送取消订阅消息
+      this.send(WebSocketType.PRIVATE, message);
+
+      // 从订阅列表中移除
+      this.subscriptions[WebSocketType.PRIVATE].delete(subscriptionKey);
+
+      // 移除消息处理函数
+      this.messageHandlers[WebSocketType.PRIVATE].delete(subscriptionKey);
+
+      // 清空持仓数据
+      this.clearPositionsData();
+    },
+
+    /**
+     * 清空持仓数据
+     */
+    clearPositionsData() {
+      this.positionsData = {
+        SWAP: [],
+        lastUpdateTime: null,
+      };
     },
   },
 });

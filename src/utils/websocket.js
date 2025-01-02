@@ -24,6 +24,7 @@ export const WebSocketType = {
  */
 export const AccountChannelType = {
   ACCOUNT: "account", // 账户频道
+  POSITIONS: "positions", // 持仓频道
 };
 
 /**

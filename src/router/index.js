@@ -117,6 +117,7 @@ router.beforeEach(async (to, from, next) => {
         // 登录成功后，订阅账户数据
         if (wsStore.isLoggedIn(WebSocketType.PRIVATE)) {
           try {
+            // 订阅账户数据
             if (!wsStore.getAccountData) {
               await wsStore.subscribeAccount({
                 onData: (message) => {
@@ -189,8 +190,31 @@ router.beforeEach(async (to, from, next) => {
                 },
               });
             }
+
+            // 订阅持仓数据
+            if (!wsStore.getPositionsData?.length) {
+              await wsStore.subscribePositions({
+                onData: (message) => {
+                  if (
+                    message?.arg?.channel === "positions" &&
+                    message?.arg?.instType === "SWAP" &&
+                    Array.isArray(message?.data)
+                  ) {
+                    console.log("永续合约持仓数据更新:", message.data);
+
+                    // 更新到 overview store 中
+                    overviewStore.$patch({
+                      positions: {
+                        SWAP: message.data,
+                        lastUpdateTime: new Date().getTime(),
+                      },
+                    });
+                  }
+                },
+              });
+            }
           } catch (error) {
-            console.error("订阅账户数据失败:", error);
+            console.error("订阅数据失败:", error);
           }
         }
       } catch (error) {
