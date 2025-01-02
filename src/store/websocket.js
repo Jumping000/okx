@@ -1,4 +1,5 @@
 import { defineStore } from "pinia";
+import { useOverviewStore } from "@/store/overview";
 import WebSocketClient, {
   WebSocketState,
   WebSocketType,
@@ -164,9 +165,37 @@ export const useWebSocketStore = defineStore("websocket", {
         type,
       });
 
+      const overviewStore = useOverviewStore();
+
       // 监听状态变化
       ws.onStateChange((state) => {
         this.connectionStates[type] = state;
+        const isConnected = state === WebSocketState.OPEN;
+
+        // 更新 overview store 中的连接状态
+        switch (type) {
+          case WebSocketType.PUBLIC:
+            overviewStore.$patch({
+              connection: {
+                publicChannel: isConnected,
+              },
+            });
+            break;
+          case WebSocketType.PRIVATE:
+            overviewStore.$patch({
+              connection: {
+                privateChannel: isConnected,
+              },
+            });
+            break;
+          case WebSocketType.BUSINESS:
+            overviewStore.$patch({
+              connection: {
+                businessChannel: isConnected,
+              },
+            });
+            break;
+        }
 
         // 如果重新连接成功，重新订阅所有频道
         if (state === WebSocketState.OPEN) {
