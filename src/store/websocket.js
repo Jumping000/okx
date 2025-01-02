@@ -2,6 +2,8 @@ import { defineStore } from "pinia";
 import WebSocketClient, {
   WebSocketState,
   WebSocketType,
+  MarketChannelType,
+  MarketOperationType,
 } from "@/utils/websocket";
 
 // WebSocket 配置
@@ -29,6 +31,9 @@ const WS_CONFIG = {
   },
 };
 
+// 生成订阅的唯一标识
+const getSubscriptionKey = (channelType, instId) => `${channelType}_${instId}`;
+
 export const useWebSocketStore = defineStore("websocket", {
   state: () => ({
     // 存储所有 WebSocket 连接实例
@@ -50,6 +55,20 @@ export const useWebSocketStore = defineStore("websocket", {
       [WebSocketType.PRIVATE]: false,
       [WebSocketType.BUSINESS]: false,
     },
+    // 市场数据缓存
+    marketData: {
+      tickers: new Map(), // 产品行情数据
+      trades: new Map(), // 最新成交数据
+      books: new Map(), // 深度数据
+      candles: new Map(), // K线数据
+    },
+    // 市场数据更新时间
+    marketDataUpdateTime: {
+      tickers: new Map(),
+      trades: new Map(),
+      books: new Map(),
+      candles: new Map(),
+    },
   }),
 
   getters: {
@@ -66,6 +85,22 @@ export const useWebSocketStore = defineStore("websocket", {
 
     // 获取指定类型的登录状态
     isLoggedIn: (state) => (type) => state.loginStates[type] || false,
+
+    // 获取指定币种的行情数据
+    getTickerData: (state) => (instId) => state.marketData.tickers.get(instId),
+
+    // 获取指定币种的最新成交数据
+    getTradeData: (state) => (instId) => state.marketData.trades.get(instId),
+
+    // 获取指定币种的深度数据
+    getBookData: (state) => (instId) => state.marketData.books.get(instId),
+
+    // 获取指定币种的K线数据
+    getCandleData: (state) => (instId) => state.marketData.candles.get(instId),
+
+    // 获取指定币种的行情数据更新时间
+    getMarketDataUpdateTime: (state) => (channelType, instId) =>
+      state.marketDataUpdateTime[channelType].get(instId),
   },
 
   actions: {
@@ -279,6 +314,204 @@ export const useWebSocketStore = defineStore("websocket", {
     logoutAll() {
       [WebSocketType.PRIVATE, WebSocketType.BUSINESS].forEach((type) => {
         this.logout(type);
+      });
+    },
+
+    /**
+     * 订阅市场行情
+     * @param {Object} options 订阅选项
+     * @param {string} options.instId 产品ID
+     * @param {string} options.channelType 频道类型
+     * @param {Function} options.onData 数据回调函数
+     * @returns {Promise<void>}
+     */
+    async subscribeMarket({ instId, channelType, onData }) {
+      if (!instId || !channelType) {
+        throw new Error("缺少必要的订阅参数");
+      }
+
+      // 确保连接已建立
+      if (!this.isConnected(WebSocketType.PUBLIC)) {
+        await this.connect(WebSocketType.PUBLIC);
+      }
+
+      const subscriptionKey = getSubscriptionKey(channelType, instId);
+
+      // 构建订阅消息
+      const subscribeMessage = {
+        op: MarketOperationType.SUBSCRIBE,
+        args: [
+          {
+            channel: channelType,
+            instId: instId,
+          },
+        ],
+      };
+
+      // 创建消息处理函数
+      const messageHandler = (message) => {
+        // 更新市场数据缓存
+        if (message.data) {
+          this.marketData[channelType].set(instId, message.data);
+          this.marketDataUpdateTime[channelType].set(
+            instId,
+            new Date().getTime()
+          );
+        }
+
+        // 调用回调函数
+        if (onData) {
+          onData(message);
+        }
+      };
+
+      // 添加消息处理函数
+      this.connections[WebSocketType.PUBLIC].addMessageHandler(
+        subscriptionKey,
+        messageHandler
+      );
+
+      // 发送订阅消息
+      this.send({
+        type: WebSocketType.PUBLIC,
+        data: subscribeMessage,
+      });
+    },
+
+    /**
+     * 取消订阅市场行情
+     * @param {Object} options 取消订阅选项
+     * @param {string} options.instId 产品ID
+     * @param {string} options.channelType 频道类型
+     */
+    unsubscribeMarket({ instId, channelType }) {
+      if (!instId || !channelType) {
+        throw new Error("缺少必要的取消订阅参数");
+      }
+
+      const subscriptionKey = getSubscriptionKey(channelType, instId);
+
+      // 构建取消订阅消息
+      const unsubscribeMessage = {
+        op: MarketOperationType.UNSUBSCRIBE,
+        args: [
+          {
+            channel: channelType,
+            instId: instId,
+          },
+        ],
+      };
+
+      // 发送取消订阅消息
+      this.send({
+        type: WebSocketType.PUBLIC,
+        data: unsubscribeMessage,
+      });
+
+      // 移除消息处理函数
+      this.connections[WebSocketType.PUBLIC].removeMessageHandler(
+        subscriptionKey
+      );
+
+      // 清除市场数据缓存
+      this.marketData[channelType].delete(instId);
+      this.marketDataUpdateTime[channelType].delete(instId);
+    },
+
+    /**
+     * 批量订阅市场行情
+     * @param {Array<Object>} subscriptions 订阅配置数组
+     * @returns {Promise<void>}
+     */
+    async batchSubscribeMarket(subscriptions) {
+      if (!Array.isArray(subscriptions) || subscriptions.length === 0) {
+        throw new Error("订阅配置不能为空");
+      }
+
+      // 确保连接已建立
+      if (!this.isConnected(WebSocketType.PUBLIC)) {
+        await this.connect(WebSocketType.PUBLIC);
+      }
+
+      // 构建批量订阅消息
+      const subscribeMessage = {
+        op: MarketOperationType.SUBSCRIBE,
+        args: subscriptions.map(({ instId, channelType }) => ({
+          channel: channelType,
+          instId: instId,
+        })),
+      };
+
+      // 为每个订阅创建处理函数
+      subscriptions.forEach(({ instId, channelType, onData }) => {
+        const subscriptionKey = getSubscriptionKey(channelType, instId);
+        const messageHandler = (message) => {
+          if (message.data) {
+            this.marketData[channelType].set(instId, message.data);
+            this.marketDataUpdateTime[channelType].set(
+              instId,
+              new Date().getTime()
+            );
+          }
+
+          if (onData) {
+            onData(message.data);
+          }
+        };
+
+        this.subscriptions[WebSocketType.PUBLIC].set(
+          subscriptionKey,
+          messageHandler
+        );
+      });
+
+      // 发送批量订阅消息
+      this.send({
+        type: WebSocketType.PUBLIC,
+        data: subscribeMessage,
+      });
+    },
+
+    /**
+     * 批量取消订阅市场行情
+     * @param {Array<Object>} subscriptions 要取消的订阅配置数组
+     */
+    batchUnsubscribeMarket(subscriptions) {
+      if (!Array.isArray(subscriptions) || subscriptions.length === 0) {
+        throw new Error("取消订阅配置不能为空");
+      }
+
+      // 构建批量取消订阅消息
+      const unsubscribeMessage = {
+        op: MarketOperationType.UNSUBSCRIBE,
+        args: subscriptions.map(({ instId, channelType }) => ({
+          channel: channelType,
+          instId: instId,
+        })),
+      };
+
+      // 发送批量取消订阅消息
+      this.send({
+        type: WebSocketType.PUBLIC,
+        data: unsubscribeMessage,
+      });
+
+      // 清理每个订阅
+      subscriptions.forEach(({ instId, channelType }) => {
+        const subscriptionKey = getSubscriptionKey(channelType, instId);
+        this.subscriptions[WebSocketType.PUBLIC].delete(subscriptionKey);
+        this.marketData[channelType].delete(instId);
+        this.marketDataUpdateTime[channelType].delete(instId);
+      });
+    },
+
+    /**
+     * 清除所有市场数据缓存
+     */
+    clearMarketData() {
+      Object.values(MarketChannelType).forEach((channelType) => {
+        this.marketData[channelType].clear();
+        this.marketDataUpdateTime[channelType].clear();
       });
     },
   },

@@ -53,19 +53,24 @@
                             <div class="grid grid-cols-4 gap-6">
                                 <div>
                                     <div class="text-sm text-dark-200 mb-1">最新价</div>
-                                    <div class="text-xl font-medium text-primary">$0.00</div>
+                                    <div class="text-xl font-medium text-primary">${{ marketData.lastPrice }}</div>
                                 </div>
                                 <div>
                                     <div class="text-sm text-dark-200 mb-1">24h涨跌</div>
-                                    <div class="text-xl font-medium text-red-500">0.00%</div>
+                                    <div class="text-xl font-medium" :class="{
+                                        'text-red-500': Number(marketData.priceChangePercent) < 0,
+                                        'text-primary': Number(marketData.priceChangePercent) >= 0
+                                    }">
+                                        {{ marketData.priceChangePercent }}%
+                                    </div>
                                 </div>
                                 <div>
                                     <div class="text-sm text-dark-200 mb-1">24h高</div>
-                                    <div class="text-xl font-medium text-dark-100">$0.00</div>
+                                    <div class="text-xl font-medium text-dark-100">${{ marketData.high24h }}</div>
                                 </div>
                                 <div>
                                     <div class="text-sm text-dark-200 mb-1">24h低</div>
-                                    <div class="text-xl font-medium text-dark-100">$0.00</div>
+                                    <div class="text-xl font-medium text-dark-100">${{ marketData.low24h }}</div>
                                 </div>
                             </div>
                         </div>
@@ -341,13 +346,16 @@
 </template>
 
 <script>
-import { defineComponent, ref, computed, onMounted } from 'vue'
+import { defineComponent, ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useCurrencyStore } from '@/store/currency'
+import { useWebSocketStore } from '@/store/websocket'
+import { MarketChannelType } from '@/utils/websocket'
 
 export default defineComponent({
     name: 'TradePage',
     setup() {
         const currencyStore = useCurrencyStore()
+        const wsStore = useWebSocketStore()
         const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
         const selectedCurrency = ref('')
         const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
@@ -425,6 +433,83 @@ export default defineComponent({
         const positionType = ref('open') // open-开仓, close-平仓
         const direction = ref('long') // long-做多, short-做空
 
+        // 行情数据
+        const marketData = ref({
+            lastPrice: '0.00',
+            priceChangePercent: '0.00',
+            high24h: '0.00',
+            low24h: '0.00',
+            volume24h: '0.00',
+            timestamp: 0,
+        })
+
+        // 处理行情数据更新
+        const handleTickerUpdate = (message) => {
+            console.log(message);
+            if (!message.data || !Array.isArray(message.data) || !message.data[0]) return;
+
+            const ticker = message.data[0];
+            // OKX API 返回的字段说明：
+            // last: 最新成交价
+            // open24h: 24小时开盘价
+            // high24h: 24小时最高价
+            // low24h: 24小时最低价
+            // vol24h: 24小时成交量
+            // volCcy24h: 24小时成交额
+            marketData.value = {
+                lastPrice: ticker.last || '0.00',
+                priceChangePercent: ticker.open24h ?
+                    (((parseFloat(ticker.last) - parseFloat(ticker.open24h)) / parseFloat(ticker.open24h)) * 100).toFixed(2) :
+                    '0.00',
+                high24h: ticker.high24h || '0.00',
+                low24h: ticker.low24h || '0.00',
+                volume24h: ticker.volCcy24h || '0.00',
+                timestamp: Date.now(),
+            }
+        }
+
+        // 订阅行情
+        const subscribeMarket = async (instId) => {
+            if (!instId) return
+            try {
+                // 订阅Ticker数据
+                await wsStore.subscribeMarket({
+                    instId,
+                    channelType: MarketChannelType.TICKERS,
+                    onData: handleTickerUpdate,
+                })
+
+                console.log(`已订阅 ${instId} 的行情数据`)
+            } catch (error) {
+                console.error(`订阅 ${instId} 行情失败:`, error)
+            }
+        }
+
+        // 取消订阅行情
+        const unsubscribeMarket = (instId) => {
+            if (!instId) return
+
+            try {
+                wsStore.unsubscribeMarket({
+                    instId,
+                    channelType: MarketChannelType.TICKERS,
+                })
+                console.log(`已取消订阅 ${instId} 的行情数据`)
+            } catch (error) {
+                console.error(`取消订阅 ${instId} 行情失败:`, error)
+            }
+        }
+
+        // 监听币种变化
+        watch(selectedCurrency, (newInstId, oldInstId) => {
+            if (oldInstId) {
+                unsubscribeMarket(oldInstId)
+            }
+            if (newInstId) {
+                subscribeMarket(newInstId)
+            }
+        })
+
         // 处理交易类型变化
         const handleTradeTypeChange = async () => {
             console.log('交易类型切换为:', tradeType.value)
@@ -457,8 +542,15 @@ export default defineComponent({
         // 处理币种选择变化
         const handleCurrencyChange = (value) => {
             console.log('选择的币种:', value)
-            // 这里可以添加获取选中币种的行情数据等操作
+            selectedCurrency.value = value
         }
+
+        // 组件卸载时清理订阅
+        onUnmounted(() => {
+            if (selectedCurrency.value) {
+                unsubscribeMarket(selectedCurrency.value)
+            }
+        })
 
         // 初始化数据
         onMounted(async () => {
@@ -486,7 +578,9 @@ export default defineComponent({
             handleTradeTypeChange,
             handleCurrencyChange,
             positionType,
-            direction
+            direction,
+            // 导出行情数据
+            marketData,
         }
     }
 })

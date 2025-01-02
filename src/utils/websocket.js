@@ -20,6 +20,24 @@ export const WebSocketType = {
 };
 
 /**
+ * 行情频道类型枚举
+ */
+export const MarketChannelType = {
+  TICKERS: "tickers", // 产品行情频道
+  TRADES: "trades", // 交易频道
+  BOOKS: "books", // 深度频道
+  CANDLES: "candle1m", // K线频道，默认1分钟
+};
+
+/**
+ * 行情更新操作类型
+ */
+export const MarketOperationType = {
+  SUBSCRIBE: "subscribe", // 订阅
+  UNSUBSCRIBE: "unsubscribe", // 取消订阅
+};
+
+/**
  * WebSocket 管理类
  */
 class WebSocketClient {
@@ -253,17 +271,45 @@ class WebSocketClient {
 
       // 处理其他消息
       const message = JSON.parse(event.data);
+      //   console.log("收到WebSocket消息:", message);
 
-      // 处理订阅消息
-      const channel = message.arg?.channel || message.channel;
-      if (channel && this.messageHandlers.has(channel)) {
-        this.messageHandlers.get(channel).forEach((handler) => {
+      // 处理订阅响应
+      if (message.event === "subscribe") {
+        const { channel, instId } = message.arg;
+        console.log(`订阅成功: ${channel} - ${instId}`);
+        return;
+      }
+
+      // 处理取消订阅响应
+      if (message.event === "unsubscribe") {
+        const { channel, instId } = message.arg;
+        console.log(`取消订阅成功: ${channel} - ${instId}`);
+        return;
+      }
+
+      // 处理错误消息
+      if (message.event === "error") {
+        console.error("WebSocket error:", message.msg);
+        return;
+      }
+
+      // 处理数据更新消息
+      if (message.arg) {
+        const { channel, instId } = message.arg;
+        const subscriptionKey = `${channel}_${instId}`;
+        // console.log("查找处理函数的key:", subscriptionKey);
+        // console.log("当前所有处理函数:", this.messageHandlers);
+
+        const handler = this.messageHandlers.get(subscriptionKey);
+        if (handler) {
           try {
             handler(message);
           } catch (error) {
             console.error(`WebSocket ${this.type} 消息处理错误:`, error);
           }
-        });
+        } else {
+          console.warn(`未找到消息处理函数: ${subscriptionKey}`);
+        }
       }
     } catch (error) {
       console.error(`WebSocket ${this.type} 消息解析错误:`, error);
@@ -416,6 +462,25 @@ class WebSocketClient {
         reject(error);
       }
     });
+  }
+
+  /**
+   * 添加消息处理函数
+   * @param {string} key 订阅的唯一标识
+   * @param {Function} handler 处理函数
+   */
+  addMessageHandler(key, handler) {
+    this.messageHandlers.set(key, handler);
+    console.log(`添加消息处理函数: ${key}`, this.messageHandlers);
+  }
+
+  /**
+   * 移除消息处理函数
+   * @param {string} key 订阅的唯一标识
+   */
+  removeMessageHandler(key) {
+    this.messageHandlers.delete(key);
+    console.log(`移除消息处理函数: ${key}`, this.messageHandlers);
   }
 }
 
