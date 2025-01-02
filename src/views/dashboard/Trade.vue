@@ -497,22 +497,48 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     min-width: 1200px;
+    background-color: var(--bg-color);
 }
 
 .trade-header {
     flex-shrink: 0;
-    background-color: #1a1a1a;
+    background-color: var(--bg-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .trade-scroll-container {
     flex: 1;
     overflow-y: auto;
     overflow-x: auto;
+    background-color: var(--bg-color);
 }
 
 /* 内容区最小宽度 */
 .trade-content {
     min-width: 1200px;
+}
+
+/* 修改模块背景色 */
+:deep(.bg-dark-400) {
+    background-color: var(--bg-color) !important;
+}
+
+:deep(.bg-dark-500) {
+    background-color: var(--bg-color) !important;
+}
+
+/* 修改边框颜色 */
+:deep(.border-dark-300) {
+    border-color: var(--border-color) !important;
+}
+
+/* 修改文字颜色 */
+:deep(.text-dark-100) {
+    color: var(--text-color) !important;
+}
+
+:deep(.text-dark-200) {
+    color: var(--text-secondary) !important;
 }
 
 /* 自定义滚动条样式 */
@@ -521,63 +547,113 @@ export default defineComponent({
 }
 
 .trade-scroll-container::-webkit-scrollbar-track {
-    background: #1a1a1a;
+    background: var(--bg-color);
 }
 
 .trade-scroll-container::-webkit-scrollbar-thumb {
-    background: #333;
+    background: var(--border-color);
     border-radius: 3px;
 }
 
 .trade-scroll-container::-webkit-scrollbar-thumb:hover {
-    background: #444;
+    background: var(--text-secondary);
 }
 
 /* Firefox 滚动条样式 */
 .trade-scroll-container {
     scrollbar-width: thin;
-    scrollbar-color: #333 #1a1a1a;
+    scrollbar-color: var(--border-color) var(--bg-color);
 }
 
 /* 币种选择器样式 */
 :deep(.currency-select) {
     .ant-select-selector {
-        @apply bg-dark-400 border-dark-300 text-dark-100 !important;
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
     }
 
     .ant-select-arrow {
-        @apply text-dark-200;
+        color: var(--text-secondary) !important;
+    }
+
+    .ant-select-selection-item {
+        color: var(--text-color) !important;
+    }
+
+    .ant-select-dropdown {
+        background-color: var(--bg-color) !important;
+        border: 1px solid var(--border-color) !important;
+
+        .ant-select-item {
+            color: var(--text-color) !important;
+
+            &:hover {
+                background-color: var(--bg-hover) !important;
+            }
+
+            &.ant-select-item-option-selected {
+                background-color: var(--bg-hover) !important;
+                color: var(--primary-color) !important;
+            }
+        }
     }
 }
 
 /* 交易输入框样式 */
 :deep(.trade-input) {
     .ant-input-number-input {
-        @apply bg-dark-400 border-dark-300 text-dark-100 !important;
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
+
+        &::placeholder {
+            color: var(--text-secondary) !important;
+        }
     }
 
     .ant-input-number-handler-wrap {
-        @apply bg-dark-300 border-dark-300;
+        background-color: var(--bg-hover) !important;
+        border-color: var(--border-color) !important;
+
+        .ant-input-number-handler {
+            border-color: var(--border-color) !important;
+
+            &:hover {
+
+                .ant-input-number-handler-up-inner,
+                .ant-input-number-handler-down-inner {
+                    color: var(--primary-color) !important;
+                }
+            }
+
+            .ant-input-number-handler-up-inner,
+            .ant-input-number-handler-down-inner {
+                color: var(--text-secondary) !important;
+            }
+        }
     }
 }
 
 /* Radio按钮组样式 */
 :deep(.ant-radio-button-wrapper) {
-    @apply bg-dark-400 border-dark-300 text-dark-200 transition-all !important;
+    background-color: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-secondary) !important;
     height: 32px;
     line-height: 30px;
     position: relative;
     margin-right: -1px;
-    /* 修复重叠边框 */
 
     &:not(:first-child)::before {
         content: '';
-        @apply absolute left-0 top-0 bottom-0 w-[1px] bg-dark-300 opacity-50 transition-all;
+        @apply absolute left-0 top-0 bottom-0 w-[1px] opacity-50 transition-all;
+        background-color: var(--border-color) !important;
         z-index: 1;
     }
 
     &:hover {
-        @apply bg-dark-300 !important;
+        background-color: var(--bg-hover) !important;
         z-index: 2;
 
         &::before {
@@ -586,9 +662,10 @@ export default defineComponent({
     }
 
     &.ant-radio-button-wrapper-checked {
-        @apply bg-dark-300 text-primary shadow-none !important;
+        background-color: var(--bg-hover) !important;
+        color: var(--primary-color) !important;
         z-index: 3;
-        border: 1px solid var(--ant-primary-color) !important;
+        border: 1px solid var(--primary-color) !important;
 
         &::before {
             @apply opacity-0;
@@ -596,7 +673,8 @@ export default defineComponent({
 
         &::after {
             content: '';
-            @apply absolute inset-[-1px] border border-primary rounded !important;
+            @apply absolute inset-[-1px] border rounded !important;
+            border-color: var(--primary-color) !important;
             z-index: 1;
         }
 
@@ -605,7 +683,8 @@ export default defineComponent({
         }
 
         &:hover {
-            @apply bg-dark-300 text-primary !important;
+            background-color: var(--bg-hover) !important;
+            color: var(--primary-color) !important;
         }
     }
 
@@ -653,11 +732,31 @@ export default defineComponent({
 /* 添加杠杆选择器样式 */
 :deep(.leverage-select) {
     .ant-select-selector {
-        @apply bg-dark-400 border-dark-300 text-dark-100 !important;
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-color) !important;
     }
 
     .ant-select-arrow {
-        @apply text-dark-200;
+        color: var(--text-secondary) !important;
+    }
+
+    .ant-select-dropdown {
+        background-color: var(--bg-color) !important;
+        border: 1px solid var(--border-color) !important;
+
+        .ant-select-item {
+            color: var(--text-color) !important;
+
+            &:hover {
+                background-color: var(--bg-hover) !important;
+            }
+
+            &.ant-select-item-option-selected {
+                background-color: var(--bg-hover) !important;
+                color: var(--primary-color) !important;
+            }
+        }
     }
 }
 
