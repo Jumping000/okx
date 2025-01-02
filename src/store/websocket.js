@@ -930,7 +930,7 @@ export const useWebSocketStore = defineStore("websocket", {
             channel: AccountChannelType.POSITIONS,
             instType: "SWAP",
             extraParams: JSON.stringify({
-              updateInterval: "0",
+              updateInterval: "2000",
             }),
           },
         ],
