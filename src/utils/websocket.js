@@ -28,31 +28,33 @@ export const MarketChannelType = {
   BOOKS: "books", // 深度频道
   CANDLES: "candle1m", // K线频道，默认1分钟
   // K线周期
-  CANDLE_1S: "candle1s",
-  CANDLE_1M: "candle1m",
-  CANDLE_3M: "candle3m",
-  CANDLE_5M: "candle5m",
-  CANDLE_15M: "candle15m",
-  CANDLE_30M: "candle30m",
-  CANDLE_1H: "candle1H",
-  CANDLE_2H: "candle2H",
-  CANDLE_4H: "candle4H",
-  CANDLE_6H: "candle6H",
-  CANDLE_12H: "candle12H",
-  CANDLE_1D: "candle1D",
-  CANDLE_2D: "candle2D",
-  CANDLE_3D: "candle3D",
-  CANDLE_5D: "candle5D",
-  CANDLE_1W: "candle1W",
-  CANDLE_1M_UTC: "candle1Mutc",
-  CANDLE_3M_UTC: "candle3Mutc",
-  CANDLE_1W_UTC: "candle1Wutc",
-  CANDLE_1D_UTC: "candle1Dutc",
-  CANDLE_2D_UTC: "candle2Dutc",
-  CANDLE_3D_UTC: "candle3Dutc",
-  CANDLE_5D_UTC: "candle5Dutc",
-  CANDLE_12H_UTC: "candle12Hutc",
-  CANDLE_6H_UTC: "candle6Hutc",
+  CANDLE_1S: "candle1s", // 1秒
+  CANDLE_1M: "candle1m", // 1分钟
+  CANDLE_3M: "candle3m", // 3分钟
+  CANDLE_5M: "candle5m", // 5分钟
+  CANDLE_15M: "candle15m", // 15分钟
+  CANDLE_30M: "candle30m", // 30分钟
+  CANDLE_1H: "candle1H", // 1小时
+  CANDLE_2H: "candle2H", // 2小时
+  CANDLE_4H: "candle4H", // 4小时
+  // 香港时间开盘价k线
+  CANDLE_6H: "candle6H", // 6小时
+  CANDLE_12H: "candle12H", // 12小时
+  CANDLE_1D: "candle1D", // 1天
+  CANDLE_2D: "candle2D", // 2天
+  CANDLE_3D: "candle3D", // 3天
+  CANDLE_1W: "candle1W", // 1周
+  CANDLE_1M_HKT: "candle1M", // 1月
+  CANDLE_3M_HKT: "candle3M", // 3月
+  // UTC时间开盘价k线
+  CANDLE_6H_UTC: "candle6Hutc", // 6小时 UTC
+  CANDLE_12H_UTC: "candle12Hutc", // 12小时 UTC
+  CANDLE_1D_UTC: "candle1Dutc", // 1天 UTC
+  CANDLE_2D_UTC: "candle2Dutc", // 2天 UTC
+  CANDLE_3D_UTC: "candle3Dutc", // 3天 UTC
+  CANDLE_1W_UTC: "candle1Wutc", // 1周 UTC
+  CANDLE_1M_UTC: "candle1Mutc", // 1月 UTC
+  CANDLE_3M_UTC: "candle3Mutc", // 3月 UTC
 };
 
 /**

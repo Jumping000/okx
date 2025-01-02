@@ -32,7 +32,23 @@ const WS_CONFIG = {
 };
 
 // 生成订阅的唯一标识
-const getSubscriptionKey = (channelType, instId) => `${channelType}_${instId}`;
+const getSubscriptionKey = (channelType, instId) => {
+  // 如果是K线数据，需要特殊处理
+  if (channelType.startsWith("candle")) {
+    return `${channelType}_${instId}`;
+  }
+  return `${channelType}_${instId}`;
+};
+
+// 将 WebSocket 频道名称转换为 API 参数
+const convertChannelToBar = (channel) => {
+  // 如果已经是正确的格式，直接返回
+  if (!channel.startsWith("candle")) {
+    return channel;
+  }
+  // 移除 'candle' 前缀
+  return channel.replace("candle", "");
+};
 
 export const useWebSocketStore = defineStore("websocket", {
   state: () => ({
@@ -537,14 +553,16 @@ export const useWebSocketStore = defineStore("websocket", {
         await this.connect(WebSocketType.BUSINESS);
       }
 
-      const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+      // 构建频道名称
+      const channelName = `candle${convertChannelToBar(candlePeriod)}`;
+      const subscriptionKey = getSubscriptionKey(channelName, instId);
 
       // 构建订阅消息
       const subscribeMessage = {
         op: MarketOperationType.SUBSCRIBE,
         args: [
           {
-            channel: candlePeriod,
+            channel: channelName,
             instId: instId,
           },
         ],
@@ -556,15 +574,15 @@ export const useWebSocketStore = defineStore("websocket", {
         if (message.data) {
           // K线数据格式转换
           const candleData = message.data.map((item) => ({
-            timestamp: item[0], // 开始时间，Unix时间戳的毫秒数格式，如 1597026383085
-            open: item[1], // 开盘价格
-            high: item[2], // 最高价格
-            low: item[3], // 最低价格
-            close: item[4], // 收盘价格
-            volume: item[5], // 交易量，以张为单位
-            volCcy: item[6], // 交易量，以币为单位
-            volCcyQuote: item[7], // 交易量，以计价货币为单位
-            confirm: item[8], // K线状态
+            timestamp: parseInt(item[0]),
+            open: parseFloat(item[1]),
+            high: parseFloat(item[2]),
+            low: parseFloat(item[3]),
+            close: parseFloat(item[4]),
+            volume: parseFloat(item[5]),
+            volCcy: parseFloat(item[6]),
+            volCcyQuote: parseFloat(item[7]),
+            confirm: item[8],
           }));
 
           this.marketData.candles.set(instId, candleData);
@@ -604,14 +622,16 @@ export const useWebSocketStore = defineStore("websocket", {
         throw new Error("缺少必要的取消订阅参数");
       }
 
-      const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+      // 构建频道名称
+      const channelName = `candle${convertChannelToBar(candlePeriod)}`;
+      const subscriptionKey = getSubscriptionKey(channelName, instId);
 
       // 构建取消订阅消息
       const unsubscribeMessage = {
         op: MarketOperationType.UNSUBSCRIBE,
         args: [
           {
-            channel: candlePeriod,
+            channel: channelName,
             instId: instId,
           },
         ],
@@ -652,17 +672,21 @@ export const useWebSocketStore = defineStore("websocket", {
       const subscribeMessage = {
         op: MarketOperationType.SUBSCRIBE,
         args: subscriptions.map(
-          ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => ({
-            channel: candlePeriod,
-            instId: instId,
-          })
+          ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => {
+            const channelName = `candle${convertChannelToBar(candlePeriod)}`;
+            return {
+              channel: channelName,
+              instId: instId,
+            };
+          }
         ),
       };
 
       // 为每个订阅创建处理函数
       subscriptions.forEach(
         ({ instId, candlePeriod = MarketChannelType.CANDLE_1M, onData }) => {
-          const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+          const channelName = `candle${convertChannelToBar(candlePeriod)}`;
+          const subscriptionKey = getSubscriptionKey(channelName, instId);
           const messageHandler = (message) => {
             if (message.data) {
               // K线数据格式转换
@@ -717,10 +741,13 @@ export const useWebSocketStore = defineStore("websocket", {
       const unsubscribeMessage = {
         op: MarketOperationType.UNSUBSCRIBE,
         args: subscriptions.map(
-          ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => ({
-            channel: candlePeriod,
-            instId: instId,
-          })
+          ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => {
+            const channelName = `candle${convertChannelToBar(candlePeriod)}`;
+            return {
+              channel: channelName,
+              instId: instId,
+            };
+          }
         ),
       };
 
@@ -733,7 +760,8 @@ export const useWebSocketStore = defineStore("websocket", {
       // 清理每个订阅
       subscriptions.forEach(
         ({ instId, candlePeriod = MarketChannelType.CANDLE_1M }) => {
-          const subscriptionKey = getSubscriptionKey(candlePeriod, instId);
+          const channelName = `candle${convertChannelToBar(candlePeriod)}`;
+          const subscriptionKey = getSubscriptionKey(channelName, instId);
           this.connections[WebSocketType.BUSINESS].removeMessageHandler(
             subscriptionKey
           );

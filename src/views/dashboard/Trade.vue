@@ -78,7 +78,8 @@
                                             </div>
                                         </div>
                                         <div class="flex-1 border border-dashed border-dark-300 rounded">
-                                            <KlineChart :data="candleData" :theme="theme" />
+                                            <KlineChart :data="candleData" :theme="theme" :inst-id="selectedCurrency"
+                                                :period="selectedPeriod" />
                                         </div>
                                     </div>
                                 </div>
@@ -394,18 +395,22 @@ import KlineChart from '@/components/KlineChart.vue'
 
 // K线周期选项
 const CANDLE_PERIODS = [
-    { label: '1分钟', value: MarketChannelType.CANDLE_1M },
-    { label: '3分钟', value: MarketChannelType.CANDLE_3M },
-    { label: '5分钟', value: MarketChannelType.CANDLE_5M },
-    { label: '15分钟', value: MarketChannelType.CANDLE_15M },
-    { label: '30分钟', value: MarketChannelType.CANDLE_30M },
-    { label: '1小时', value: MarketChannelType.CANDLE_1H },
-    { label: '2小时', value: MarketChannelType.CANDLE_2H },
-    { label: '4小时', value: MarketChannelType.CANDLE_4H },
-    { label: '6小时', value: MarketChannelType.CANDLE_6H },
-    { label: '12小时', value: MarketChannelType.CANDLE_12H },
-    { label: '1天', value: MarketChannelType.CANDLE_1D },
-    { label: '1周', value: MarketChannelType.CANDLE_1W },
+    { label: '1分钟', value: '1m' },
+    { label: '3分钟', value: '3m' },
+    { label: '5分钟', value: '5m' },
+    { label: '15分钟', value: '15m' },
+    { label: '30分钟', value: '30m' },
+    { label: '1小时', value: '1H' },
+    { label: '2小时', value: '2H' },
+    { label: '4小时', value: '4H' },
+    { label: '6小时', value: '6H' },
+    { label: '12小时', value: '12H' },
+    { label: '1天', value: '1D' },
+    { label: '2天', value: '2D' },
+    { label: '3天', value: '3D' },
+    { label: '1周', value: '1W' },
+    { label: '1月', value: '1M' },
+    { label: '3月', value: '3M' },
 ]
 
 export default defineComponent({
@@ -421,7 +426,7 @@ export default defineComponent({
         const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
 
         // K线相关数据
-        const selectedPeriod = ref(MarketChannelType.CANDLE_1M)
+        const selectedPeriod = ref('1m') // 默认使用1分钟K线
         const candleData = ref([])
         const candlePeriods = CANDLE_PERIODS
 
