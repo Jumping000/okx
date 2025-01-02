@@ -119,16 +119,65 @@ router.beforeEach(async (to, from, next) => {
                     message?.data?.length > 0
                   ) {
                     console.log("账户数据更新:", message);
-                    //   可用余额
+                    const accountData = message.data[0];
+                    const details = accountData.details || [];
+
+                    // 可用余额 (USDT)
                     const availableBalance =
-                      message.data[0].details[0].availBal;
-                    console.log("可用余额:", availableBalance);
-                    //   总资产
-                    const totalBalance = message.data[0].totalEq;
-                    console.log("总资产:", totalBalance);
-                    //   持仓数量
-                    const positionCount = message.data[0].details.length;
-                    console.log("持仓数量:", positionCount);
+                      details.find((item) => item.ccy === "USDT")?.availBal ||
+                      "0";
+                    console.log("可用余额(USDT):", availableBalance);
+
+                    // 总资产 (USDT)
+                    const totalBalance = accountData.totalEq || "0";
+                    console.log("总资产(USDT):", totalBalance);
+
+                    // 计算有效持仓数量
+                    const validPositions = details.filter((item) => {
+                      // 排除USDT
+                      if (item.ccy === "USDT") return false;
+
+                      // 检查是否有持仓数量
+                      const hasPosition = parseFloat(item.cashBal) > 0;
+                      // 检查是否达到最小下单量 (这里以USDT计价的等值资产)
+                      const positionValue = parseFloat(item.eqUsd) || 0;
+                      const minOrderValue = 5; // 最小下单量，以USDT计价，可以根据实际需求调整
+                      return hasPosition && positionValue >= minOrderValue;
+                    });
+
+                    // 有效持仓数量
+                    const validPositionCount = validPositions.length;
+                    console.log("有效持仓数量:", validPositionCount);
+
+                    // 持仓详情
+                    validPositions.forEach((position) => {
+                      console.log("持仓详情:", {
+                        币种: position.ccy,
+                        数量: position.cashBal,
+                        估值: `${position.eqUsd} USDT (≈ ${(
+                          parseFloat(position.eqUsd) * 1
+                        ).toFixed(2)} USD)`,
+                        可用: position.availBal,
+                        冻结: position.frozenBal,
+                        保证金率: position.mgnRatio
+                          ? `${position.mgnRatio}%`
+                          : "不适用",
+                      });
+                    });
+
+                    // 更新到store中
+                    wsStore.$patch({
+                      accountData: {
+                        balance: {
+                          ...accountData,
+                          availableBalance,
+                          totalBalance,
+                          validPositionCount,
+                          validPositions,
+                        },
+                        lastUpdateTime: new Date().getTime(),
+                      },
+                    });
                   }
                 },
               });
