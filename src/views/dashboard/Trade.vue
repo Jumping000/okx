@@ -1,3 +1,4 @@
+<!-- eslint-disable vue/multi-word-component-names -->
 <template>
     <div class="trade h-full overflow-hidden bg-dark-500">
         <!-- 固定头部 -->
@@ -408,12 +409,17 @@
     </div>
 </template>
 
-<script>
-import { defineComponent, ref, computed, onMounted, onUnmounted, watch } from 'vue'
+<script setup>
+import { ref, computed, onMounted, onUnmounted, watch, defineOptions } from 'vue'
 import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
 import { MarketChannelType } from '@/utils/websocket'
 import KlineChart from '@/components/KlineChart.vue'
+
+// 定义组件选项
+defineOptions({
+    name: 'Trade'
+})
 
 // K线周期选项
 const CANDLE_PERIODS = [
@@ -435,381 +441,301 @@ const CANDLE_PERIODS = [
     { label: '3月', value: '3M' },
 ]
 
-export default defineComponent({
-    name: 'TradePage',
-    components: {
-        KlineChart
-    },
-    setup() {
-        const currencyStore = useCurrencyStore()
-        const wsStore = useWebSocketStore()
-        const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
-        const selectedCurrency = ref('')
-        const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
+// Store
+const currencyStore = useCurrencyStore()
+const wsStore = useWebSocketStore()
 
-        // K线相关数据
-        const selectedPeriod = ref('1m') // 默认使用1分钟K线
-        const candleData = ref([])
-        const candlePeriods = CANDLE_PERIODS
+// 基础状态
+const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
+const selectedCurrency = ref('')
+const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
 
-        // 获取最新的K线数据
-        const latestCandle = computed(() => {
-            return candleData.value[0] || null
+// K线相关数据
+const selectedPeriod = ref('1m') // 默认使用1分钟K线
+const candleData = ref([])
+
+// 交易表单数据
+const price = ref(0) // 价格
+const amount = ref(0) // 数量
+
+// 止盈止损数据
+const stopType = ref('single') // single-单向止盈止损，double-双向止盈止损
+const triggerType = ref('mark') // mark-标记价格，new-最新价格，index-指数价格
+const triggerPrice = ref(0) // 触发价格
+const takeProfitPrice = ref(0) // 止盈触发价格
+const stopLossPrice = ref(0) // 止损触发价格
+
+// 合约专属数据
+const marginMode = ref('cross') // cross-全仓, isolated-逐仓
+const leverage = ref(20) // 全仓杠杆倍数
+const longLeverage = ref(20) // 逐仓做多杠杆倍数
+const shortLeverage = ref(20) // 逐仓做空杠杆倍数
+const positionType = ref('open') // open-开仓, close-平仓
+const direction = ref('long') // long-做多, short-做空
+
+// 行情数据
+const marketData = ref({
+    lastPrice: '0.00',
+    priceChangePercent: '0.00',
+    high24h: '0.00',
+    low24h: '0.00',
+    volume24h: '0.00',
+    timestamp: 0,
+})
+
+// 计算属性
+const currentCurrencies = computed(() => {
+    return currencyStore.currencies[tradeType.value] || []
+})
+
+const latestCandle = computed(() => {
+    return candleData.value[0] || null
+})
+
+// 工具函数
+const formatPrice = (price) => {
+    return price ? Number(price).toFixed(2) : '0.00'
+}
+
+const formatVolume = (volume) => {
+    return volume ? Number(volume).toFixed(4) : '0.0000'
+}
+
+// WebSocket 处理函数
+const handleCandleUpdate = (message) => {
+    if (!message.data || !Array.isArray(message.data)) return
+    candleData.value = message.data.map(item => ({
+        timestamp: item[0],
+        open: item[1],
+        high: item[2],
+        low: item[3],
+        close: item[4],
+        volume: item[5],
+        volCcy: item[6],
+        volCcyQuote: item[7],
+        confirm: item[8],
+    }))
+}
+
+const handleTickerUpdate = (message) => {
+    if (!message.data || !Array.isArray(message.data) || !message.data[0]) return
+
+    const ticker = message.data[0]
+    marketData.value = {
+        lastPrice: ticker.last || '0.00',
+        priceChangePercent: ticker.open24h ?
+            (((parseFloat(ticker.last) - parseFloat(ticker.open24h)) / parseFloat(ticker.open24h)) * 100).toFixed(2) :
+            '0.00',
+        high24h: ticker.high24h || '0.00',
+        low24h: ticker.low24h || '0.00',
+        volume24h: ticker.volCcy24h || '0.00',
+        timestamp: Date.now(),
+    }
+}
+
+// WebSocket 订阅相关函数
+const subscribeCandleData = async () => {
+    if (!selectedCurrency.value) return
+
+    try {
+        await wsStore.subscribeCandleData({
+            instId: selectedCurrency.value,
+            candlePeriod: selectedPeriod.value,
+            onData: handleCandleUpdate,
         })
+        console.log(`已订阅 ${selectedCurrency.value} 的K线数据`)
+    } catch (error) {
+        console.error(`订阅 ${selectedCurrency.value} K线失败:`, error)
+    }
+}
 
-        // 格式化价格
-        const formatPrice = (price) => {
-            return price ? Number(price).toFixed(2) : '0.00'
-        }
+const unsubscribeCandleData = () => {
+    const currentInstId = selectedCurrency.value
+    if (!currentInstId) return
 
-        // 格式化成交量
-        const formatVolume = (volume) => {
-            return volume ? Number(volume).toFixed(4) : '0.0000'
-        }
-
-        // 处理K线数据更新
-        const handleCandleUpdate = (message) => {
-            if (!message.data || !Array.isArray(message.data)) return
-            // 更新K线数据
-            candleData.value = message.data.map(item => ({
-                timestamp: item[0],
-                open: item[1],
-                high: item[2],
-                low: item[3],
-                close: item[4],
-                volume: item[5],
-                volCcy: item[6],
-                volCcyQuote: item[7],
-                confirm: item[8],
-            }))
-        }
-
-        // 订阅K线数据
-        const subscribeCandleData = async () => {
-            if (!selectedCurrency.value) return
-
-            try {
-                await wsStore.subscribeCandleData({
-                    instId: selectedCurrency.value,
-                    candlePeriod: selectedPeriod.value,
-                    onData: handleCandleUpdate,
-                })
-                console.log(`已订阅 ${selectedCurrency.value} 的K线数据`)
-            } catch (error) {
-                console.error(`订阅 ${selectedCurrency.value} K线失败:`, error)
-            }
-        }
-
-        // 取消订阅K线数据
-        const unsubscribeCandleData = () => {
-            const currentInstId = selectedCurrency.value
-            if (!currentInstId) return
-
-            try {
-                wsStore.unsubscribeCandleData({
-                    instId: currentInstId,
-                    candlePeriod: selectedPeriod.value,
-                })
-                console.log(`已取消订阅 ${currentInstId} 的K线数据`)
-            } catch (error) {
-                console.error(`取消订阅 ${currentInstId} K线失败:`, error)
-            }
-        }
-
-        // 处理K线周期变化
-        const handlePeriodChange = async (period) => {
-            const currentInstId = selectedCurrency.value
-            if (!currentInstId) return
-
-            try {
-                // 先取消当前订阅
-                unsubscribeCandleData()
-                // 清空当前数据
-                candleData.value = []
-                // 更新周期
-                selectedPeriod.value = period
-                // 重新订阅新周期的数据
-                await subscribeCandleData()
-            } catch (error) {
-                console.error(`切换K线周期失败:`, error)
-            }
-        }
-
-        // 监听币种变化
-        watch(selectedCurrency, async (newInstId, oldInstId) => {
-            if (!newInstId && !oldInstId) return
-
-            try {
-                // 1. 如果存在旧的订阅，先取消所有旧的订阅
-                if (oldInstId) {
-                    console.log(`开始取消 ${oldInstId} 的所有订阅...`)
-
-                    // 取消行情订阅
-                    wsStore.unsubscribeMarket({
-                        instId: oldInstId,
-                        channelType: MarketChannelType.TICKERS,
-                    })
-
-                    // 取消K线订阅
-                    wsStore.unsubscribeCandleData({
-                        instId: oldInstId,
-                        candlePeriod: selectedPeriod.value,
-                    })
-
-                    // 清空数据
-                    candleData.value = []
-                    console.log(`已完成取消 ${oldInstId} 的所有订阅`)
-                }
-
-                // 2. 如果有新的币种，建立新的订阅
-                if (newInstId) {
-                    console.log(`开始订阅 ${newInstId} 的所有数据...`)
-
-                    // 订阅新的行情数据
-                    await wsStore.subscribeMarket({
-                        instId: newInstId,
-                        channelType: MarketChannelType.TICKERS,
-                        onData: handleTickerUpdate,
-                    })
-
-                    // 订阅新的K线数据
-                    await wsStore.subscribeCandleData({
-                        instId: newInstId,
-                        candlePeriod: selectedPeriod.value,
-                        onData: handleCandleUpdate,
-                    })
-
-                    console.log(`已完成订阅 ${newInstId} 的所有数据`)
-                }
-            } catch (error) {
-                console.error(`切换币种失败:`, error)
-            }
+    try {
+        wsStore.unsubscribeCandleData({
+            instId: currentInstId,
+            candlePeriod: selectedPeriod.value,
         })
+        console.log(`已取消订阅 ${currentInstId} 的K线数据`)
+    } catch (error) {
+        console.error(`取消订阅 ${currentInstId} K线失败:`, error)
+    }
+}
 
-        // 组件卸载时清理订阅
-        onUnmounted(() => {
-            const currentInstId = selectedCurrency.value
-            if (!currentInstId) return
+// 事件处理函数
+const handlePeriodChange = async (period) => {
+    const currentInstId = selectedCurrency.value
+    if (!currentInstId) return
 
-            try {
-                console.log(`组件卸载：开始清理所有订阅...`)
+    try {
+        unsubscribeCandleData()
+        candleData.value = []
+        selectedPeriod.value = period
+        await subscribeCandleData()
+    } catch (error) {
+        console.error(`切换K线周期失败:`, error)
+    }
+}
 
-                // 取消行情订阅
-                wsStore.unsubscribeMarket({
-                    instId: currentInstId,
-                    channelType: MarketChannelType.TICKERS,
-                })
+const selectDefaultCurrency = async () => {
+    if (!currentCurrencies.value.length) {
+        await currencyStore.fetchCurrencies()
+    }
 
-                // 取消K线订阅
-                wsStore.unsubscribeCandleData({
-                    instId: currentInstId,
-                    candlePeriod: selectedPeriod.value,
-                })
+    const currencies = currentCurrencies.value
 
-                console.log(`组件卸载：已清理所有订阅`)
-            } catch (error) {
-                console.error('组件卸载：清理订阅失败:', error)
-            }
-        })
+    if (currencies.length > 0) {
+        const suiCurrency = currencies.find(c =>
+            c.instId.startsWith('SUI-') ||
+            c.instId.includes('SUI-USDT')
+        )
 
-        // 交易表单数据
-        const price = ref(0) // 价格
-        const amount = ref(0) // 数量
-
-        // 止盈止损数据
-        const stopType = ref('single') // single-单向止盈止损，double-双向止盈止损
-        const triggerType = ref('mark') // mark-标记价格，new-最新价格，index-指数价格
-
-        // 单向止盈止损
-        const triggerPrice = ref(0) // 触发价格
-
-        // 双向止盈止损
-        const takeProfitPrice = ref(0) // 止盈触发价格
-        const stopLossPrice = ref(0) // 止损触发价格
-
-        // 合约专属数据
-        const marginMode = ref('cross') // cross-全仓, isolated-逐仓
-        const leverage = ref(20) // 全仓杠杆倍数
-        const longLeverage = ref(20) // 逐仓做多杠杆倍数
-        const shortLeverage = ref(20) // 逐仓做空杠杆倍数
-
-        // 杠杆倍数选项
-        const leverageOptions = [
-            { value: 1, label: '1X' },
-            { value: 2, label: '2X' },
-            { value: 3, label: '3X' },
-            { value: 5, label: '5X' },
-            { value: 10, label: '10X' },
-            { value: 20, label: '20X' },
-            { value: 50, label: '50X' },
-            { value: 100, label: '100X' },
-        ]
-
-        // 获取当前交易类型下的所有币种
-        const currentCurrencies = computed(() => {
-            return currencyStore.currencies[tradeType.value] || []
-        })
-
-        // 选择默认币种
-        const selectDefaultCurrency = async () => {
-            // 如果当前交易类型下没有币种数据，先获取数据
-            if (!currentCurrencies.value.length) {
-                await currencyStore.fetchCurrencies()
-            }
-
-            // 获取当前交易类型的币种列表
-            const currencies = currentCurrencies.value
-
-            if (currencies.length > 0) {
-                // 优先选择 BTC
-                const btcCurrency = currencies.find(c =>
-                    c.instId.startsWith('BTC-') ||
-                    c.instId.includes('BTC-USDT')
-                )
-
-                if (btcCurrency) {
-                    selectedCurrency.value = btcCurrency.instId
-                } else {
-                    // 如果没有BTC，则选择第一个币种
-                    selectedCurrency.value = currencies[0].instId
-                }
-
-                console.log('已选择币种:', selectedCurrency.value)
-            } else {
-                console.warn('当前交易类型下没有可用币种')
-                selectedCurrency.value = ''
-            }
+        if (suiCurrency) {
+            selectedCurrency.value = suiCurrency.instId
+        } else {
+            selectedCurrency.value = currencies[0].instId
         }
 
-        // 合约交易方向
-        const positionType = ref('open') // open-开仓, close-平仓
-        const direction = ref('long') // long-做多, short-做空
+        console.log('已选择币种:', selectedCurrency.value)
+    } else {
+        console.warn('当前交易类型下没有可用币种')
+        selectedCurrency.value = ''
+    }
+}
 
-        // 行情数据
-        const marketData = ref({
-            lastPrice: '0.00',
-            priceChangePercent: '0.00',
-            high24h: '0.00',
-            low24h: '0.00',
-            volume24h: '0.00',
-            timestamp: 0,
-        })
+const handleTradeTypeChange = async () => {
+    console.log('交易类型切换为:', tradeType.value)
+    // 重置表单数据
+    price.value = 0
+    amount.value = 0
+    orderType.value = 'limit'
 
-        // 处理行情数据更新
-        const handleTickerUpdate = (message) => {
-            if (!message.data || !Array.isArray(message.data) || !message.data[0]) return;
+    // 重置止盈止损数据
+    stopType.value = 'single'
+    triggerType.value = 'mark'
+    triggerPrice.value = 0
+    takeProfitPrice.value = 0
+    stopLossPrice.value = 0
 
-            const ticker = message.data[0];
-            // OKX API 返回的字段说明：
-            // last: 最新成交价
-            // open24h: 24小时开盘价
-            // high24h: 24小时最高价
-            // low24h: 24小时最低价
-            // vol24h: 24小时成交量
-            // volCcy24h: 24小时成交额
-            marketData.value = {
-                lastPrice: ticker.last || '0.00',
-                priceChangePercent: ticker.open24h ?
-                    (((parseFloat(ticker.last) - parseFloat(ticker.open24h)) / parseFloat(ticker.open24h)) * 100).toFixed(2) :
-                    '0.00',
-                high24h: ticker.high24h || '0.00',
-                low24h: ticker.low24h || '0.00',
-                volume24h: ticker.volCcy24h || '0.00',
-                timestamp: Date.now(),
-            }
+    // 重置合约专属数据
+    if (tradeType.value === 'SWAP') {
+        marginMode.value = 'cross'
+        leverage.value = 20
+        longLeverage.value = 20
+        shortLeverage.value = 20
+        positionType.value = 'open'
+        direction.value = 'long'
+    }
+
+    // 选择默认币种
+    await selectDefaultCurrency()
+}
+
+const handleCurrencyChange = async (value) => {
+    console.log('选择的币种:', value)
+    selectedCurrency.value = value
+}
+
+const filterCurrencyOption = (input, option) => {
+    const searchText = input.toLowerCase()
+    const currencyId = option.value.toLowerCase()
+    const simplifiedId = currencyId
+        .replace('-swap', '')
+        .replace('-usdt', '')
+    return simplifiedId.includes(searchText)
+}
+
+// 监听器
+watch(selectedCurrency, async (newInstId, oldInstId) => {
+    if (!newInstId && !oldInstId) return
+
+    try {
+        if (oldInstId) {
+            console.log(`开始取消 ${oldInstId} 的所有订阅...`)
+
+            wsStore.unsubscribeMarket({
+                instId: oldInstId,
+                channelType: MarketChannelType.TICKERS,
+            })
+
+            wsStore.unsubscribeCandleData({
+                instId: oldInstId,
+                candlePeriod: selectedPeriod.value,
+            })
+
+            candleData.value = []
+            console.log(`已完成取消 ${oldInstId} 的所有订阅`)
         }
 
-        // 处理交易类型变化
-        const handleTradeTypeChange = async () => {
-            console.log('交易类型切换为:', tradeType.value)
-            // 重置表单数据
-            price.value = 0
-            amount.value = 0
-            orderType.value = 'limit'
+        if (newInstId) {
+            console.log(`开始订阅 ${newInstId} 的所有数据...`)
 
-            // 重置止盈止损数据
-            stopType.value = 'single'
-            triggerType.value = 'mark'
-            triggerPrice.value = 0
-            takeProfitPrice.value = 0
-            stopLossPrice.value = 0
+            await wsStore.subscribeMarket({
+                instId: newInstId,
+                channelType: MarketChannelType.TICKERS,
+                onData: handleTickerUpdate,
+            })
 
-            // 重置合约专属数据
-            if (tradeType.value === 'SWAP') {
-                marginMode.value = 'cross'
-                leverage.value = 20
-                longLeverage.value = 20
-                shortLeverage.value = 20
-                positionType.value = 'open'
-                direction.value = 'long'
-            }
+            await wsStore.subscribeCandleData({
+                instId: newInstId,
+                candlePeriod: selectedPeriod.value,
+                onData: handleCandleUpdate,
+            })
 
-            // 选择默认币种
-            await selectDefaultCurrency()
+            console.log(`已完成订阅 ${newInstId} 的所有数据`)
         }
-
-        // 处理币种选择变化
-        const handleCurrencyChange = async (value) => {
-            console.log('选择的币种:', value)
-            // 更新选中的币种
-            selectedCurrency.value = value
-        }
-
-        // 初始化数据
-        onMounted(async () => {
-            await selectDefaultCurrency()
-        })
-
-        // 币种搜索过滤函数
-        const filterCurrencyOption = (input, option) => {
-            // 转换为小写进行比较
-            const searchText = input.toLowerCase()
-            const currencyId = option.value.toLowerCase()
-
-            // 移除 -SWAP 和 -USDT 后进行搜索
-            const simplifiedId = currencyId
-                .replace('-swap', '')
-                .replace('-usdt', '')
-
-            return simplifiedId.includes(searchText)
-        }
-
-        return {
-            currencyStore,
-            tradeType,
-            selectedCurrency,
-            currentCurrencies,
-            orderType,
-            price,
-            amount,
-            stopType,
-            triggerType,
-            triggerPrice,
-            takeProfitPrice,
-            stopLossPrice,
-            marginMode,
-            leverage,
-            longLeverage,
-            shortLeverage,
-            leverageOptions,
-            handleTradeTypeChange,
-            handleCurrencyChange,
-            positionType,
-            direction,
-            // 导出行情数据
-            marketData,
-            selectedPeriod,
-            candlePeriods,
-            candleData,
-            latestCandle,
-            handlePeriodChange,
-            formatPrice,
-            formatVolume,
-            theme: 'dark',
-            filterCurrencyOption,
-        }
+    } catch (error) {
+        console.error(`切换币种失败:`, error)
     }
 })
+
+// 生命周期钩子
+onMounted(async () => {
+    await selectDefaultCurrency()
+})
+
+onUnmounted(() => {
+    const currentInstId = selectedCurrency.value
+    if (!currentInstId) return
+
+    try {
+        console.log(`组件卸载：开始清理所有订阅...`)
+
+        wsStore.unsubscribeMarket({
+            instId: currentInstId,
+            channelType: MarketChannelType.TICKERS,
+        })
+
+        wsStore.unsubscribeCandleData({
+            instId: currentInstId,
+            candlePeriod: selectedPeriod.value,
+        })
+
+        console.log(`组件卸载：已清理所有订阅`)
+    } catch (error) {
+        console.error('组件卸载：清理订阅失败:', error)
+    }
+})
+
+// 杠杆倍数选项
+const leverageOptions = [
+    { value: 1, label: '1X' },
+    { value: 2, label: '2X' },
+    { value: 3, label: '3X' },
+    { value: 5, label: '5X' },
+    { value: 10, label: '10X' },
+    { value: 20, label: '20X' },
+    { value: 50, label: '50X' },
+    { value: 100, label: '100X' },
+]
+
+// 主题配置
+const theme = 'dark'
+
+// K线周期选项
+const candlePeriods = CANDLE_PERIODS
 </script>
 
 <style scoped>

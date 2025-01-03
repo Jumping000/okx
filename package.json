@@ -15,6 +15,7 @@
     "axios": "^1.6.0",
     "core-js": "^3.8.3",
     "crypto-js": "^4.2.0",
+    "decimal.js": "^10.4.3",
     "lightweight-charts": "^4.2.2",
     "pinia": "^2.1.0",
     "vue": "^3.2.13",

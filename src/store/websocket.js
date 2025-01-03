@@ -56,6 +56,50 @@ const convertChannelToBar = (channel) => {
   return channel.replace("candle", "");
 };
 
+// 操作类型常量
+const OperationType = {
+  ORDER: "order",
+  CANCEL_ORDER: "cancel-order",
+  AMEND_ORDER: "amend-order",
+  // ... 其他操作类型
+};
+
+// 交易模式常量
+const TradingMode = {
+  CASH: "cash", // 现货模式
+  ISOLATED: "isolated", // 逐仓模式
+  CROSS: "cross", // 全仓模式
+  SPOT_ISOLATED: "spot_isolated", // 现货逐仓
+};
+
+// 订单类型常量
+const OrderType = {
+  MARKET: "market", // 市价单
+  LIMIT: "limit", // 限价单
+  POST_ONLY: "post_only", // 只做maker单
+  FOK: "fok", // 全部成交或立即取消
+  IOC: "ioc", // 立即成交并取消剩余
+  OPTIMAL_LIMIT_IOC: "optimal_limit_ioc", // 市价委托立即成交并取消剩余
+};
+
+// 订单方向常量
+const OrderSide = {
+  BUY: "buy",
+  SELL: "sell",
+};
+
+// 持仓方向常量
+const PositionSide = {
+  LONG: "long",
+  SHORT: "short",
+};
+
+// 目标币种单位常量
+const TargetCurrency = {
+  BASE_CCY: "base_ccy", // 交易货币
+  QUOTE_CCY: "quote_ccy", // 计价货币
+};
+
 export const useWebSocketStore = defineStore("websocket", {
   state: () => ({
     // 存储所有 WebSocket 连接实例
@@ -100,6 +144,8 @@ export const useWebSocketStore = defineStore("websocket", {
       SWAP: [], // 永续合约持仓数据
       lastUpdateTime: null,
     },
+    // 订单缓存
+    orders: new Map(),
   }),
 
   getters: {
@@ -1081,6 +1127,176 @@ export const useWebSocketStore = defineStore("websocket", {
         SWAP: [],
         lastUpdateTime: null,
       };
+    },
+
+    /**
+     * 生成订单ID
+     * @returns {string} 订单ID
+     */
+    generateOrderId() {
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 1000000)
+        .toString()
+        .padStart(6, "0");
+      return `${timestamp}${random}`;
+    },
+
+    /**
+     * 下单
+     * @param {Object} options 下单选项
+     * @param {string} options.instId 产品ID，如 BTC-USDT
+     * @param {string} options.tdMode 交易模式
+     * @param {string} options.side 订单方向 buy/sell
+     * @param {string} options.ordType 订单类型
+     * @param {string} options.sz 委托数量
+     * @param {string} [options.px] 委托价格，市价单不需要
+     * @param {string} [options.ccy] 保证金币种，仅适用于现货和合约模式下的全仓杠杆订单
+     * @param {string} [options.clOrdId] 客户自定义订单ID
+     * @param {string} [options.tag] 订单标签
+     * @param {string} [options.posSide] 持仓方向，仅适用于交割/永续
+     * @param {boolean} [options.reduceOnly] 是否只减仓
+     * @param {string} [options.tgtCcy] 市价单委托数量单位
+     * @param {boolean} [options.banAmend] 是否禁止币币市价改单
+     * @param {string} [options.expTime] 订单有效期
+     * @returns {Promise<Object>} 下单结果
+     */
+    async placeOrder(options) {
+      if (!this.isConnected(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未连接");
+      }
+
+      if (!this.isLoggedIn(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未登录");
+      }
+
+      // 参数校验
+      if (
+        !options.instId ||
+        !options.tdMode ||
+        !options.side ||
+        !options.ordType ||
+        !options.sz
+      ) {
+        throw new Error("缺少必要的下单参数");
+      }
+
+      // 验证交易模式
+      if (!Object.values(TradingMode).includes(options.tdMode)) {
+        throw new Error("无效的交易模式");
+      }
+
+      // 验证订单类型
+      if (!Object.values(OrderType).includes(options.ordType)) {
+        throw new Error("无效的订单类型");
+      }
+
+      // 验证订单方向
+      if (!Object.values(OrderSide).includes(options.side)) {
+        throw new Error("无效的订单方向");
+      }
+
+      // 验证持仓方向（如果提供）
+      if (
+        options.posSide &&
+        !Object.values(PositionSide).includes(options.posSide)
+      ) {
+        throw new Error("无效的持仓方向");
+      }
+
+      // 验证目标币种单位（如果提供）
+      if (
+        options.tgtCcy &&
+        !Object.values(TargetCurrency).includes(options.tgtCcy)
+      ) {
+        throw new Error("无效的目标币种单位");
+      }
+
+      // 限价单必须提供价格
+      if (options.ordType === OrderType.LIMIT && !options.px) {
+        throw new Error("限价单必须提供价格");
+      }
+
+      // 生成订单消息ID
+      const messageId = this.generateOrderId();
+
+      // 构建下单消息
+      const orderMessage = {
+        id: messageId,
+        op: OperationType.ORDER,
+        args: [
+          {
+            instId: options.instId,
+            tdMode: options.tdMode,
+            side: options.side,
+            ordType: options.ordType,
+            sz: options.sz,
+            ...(options.px && { px: options.px }), // 可选参数，仅在限价单时需要
+            ...(options.ccy && { ccy: options.ccy }),
+            ...(options.clOrdId && { clOrdId: options.clOrdId }),
+            ...(options.tag && { tag: options.tag }),
+            ...(options.posSide && { posSide: options.posSide }),
+            ...(options.reduceOnly && { reduceOnly: options.reduceOnly }),
+            ...(options.tgtCcy && { tgtCcy: options.tgtCcy }),
+            ...(options.banAmend && { banAmend: options.banAmend }),
+            ...(options.expTime && { expTime: options.expTime }),
+          },
+        ],
+      };
+
+      // 创建Promise以等待订单响应
+      const orderPromise = new Promise((resolve, reject) => {
+        // 设置超时处理
+        const timeoutId = setTimeout(() => {
+          this.orders.delete(messageId);
+          reject(new Error("下单请求超时"));
+        }, 10000); // 10秒超时
+
+        // 存储订单Promise
+        this.orders.set(messageId, {
+          resolve,
+          reject,
+          timeoutId,
+        });
+      });
+
+      try {
+        // 发送下单消息
+        await this.send({
+          type: WebSocketType.PRIVATE,
+          data: orderMessage,
+        });
+
+        // 等待订单响应
+        const response = await orderPromise;
+        return response;
+      } finally {
+        // 清理订单Promise
+        const order = this.orders.get(messageId);
+        if (order?.timeoutId) {
+          clearTimeout(order.timeoutId);
+        }
+        this.orders.delete(messageId);
+      }
+    },
+
+    /**
+     * 处理订单响应消息
+     * @param {Object} message 订单响应消息
+     */
+    handleOrderResponse(message) {
+      const orderId = message?.id;
+      if (!orderId || !this.orders.has(orderId)) {
+        return;
+      }
+
+      const order = this.orders.get(orderId);
+      if (!order) return;
+
+      if (message.code === "0") {
+        order.resolve(message);
+      } else {
+        order.reject(new Error(message.msg || "下单失败"));
+      }
     },
   },
 });
