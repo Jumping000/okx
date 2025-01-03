@@ -292,14 +292,14 @@
                                                 placeholder="请输入数量" />
                                         </div>
 
-                                        <!-- 可开数量显示 -->
+                                        <!-- 可开数量显示
                                         <div class="flex justify-between items-center text-sm">
                                             <span class="text-dark-200">可开数量</span>
                                             <div class="flex items-center gap-2">
                                                 <span class="text-dark-100">14.6</span>
                                                 <span class="text-dark-200">张</span>
                                             </div>
-                                        </div>
+                                        </div> -->
                                     </div>
 
                                     <!-- 交易按钮 -->
