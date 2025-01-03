@@ -15,8 +15,10 @@ export const useCurrencyStore = defineStore("currency", {
   }),
 
   getters: {
-    getCurrencyByName: (state) => (name) => {
-      return state.currencies.find((currency) => currency.ccy === name);
+    getCurrencyByName: (state) => (type, name) => {
+      return state.currencies[type].find(
+        (currency) => currency.instId === name
+      );
     },
 
     // 获取所有可用的币种

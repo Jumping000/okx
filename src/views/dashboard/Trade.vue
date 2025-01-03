@@ -309,11 +309,11 @@
                                             <div class="grid grid-cols-2 gap-4">
                                                 <a-button type="primary" class="h-10"
                                                     style="background-color: #00b96b; border-color: #00b96b;"
-                                                    @click=" SubmitTrade('STOP', 'buy', '')">
+                                                    @click=" SubmitTrade('SPOT', 'buy', '')">
                                                     {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
                                                 </a-button>
                                                 <a-button type="primary" danger class="h-10"
-                                                    @click=" SubmitTrade('STOP', 'sell', '')">
+                                                    @click=" SubmitTrade('SPOT', 'sell', '')">
                                                     {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
                                                 </a-button>
                                             </div>
@@ -739,7 +739,27 @@ const theme = 'dark'
 
 // K线周期选项
 const candlePeriods = CANDLE_PERIODS
-
+// 处理精度
+const formatNumber = (num, formatNum) => {
+    // 将formatNum转换为字符串，并分割成整数部分和小数部分
+    let parts = formatNum.toString().split('.');
+    // 如果没有小数点，意味着不需要小数部分
+    let decimalPlaces = 0;
+    if (parts.length > 1) {
+        // 否则，计算需要多少个小数位
+        decimalPlaces = parts[1].length;
+    }
+    // 使用 toFixed 方法来格式化数字，确保它有指定数量的小数位
+    let formatted = num.toFixed(decimalPlaces);
+    // 解析回数字，以便去除不必要的尾随零
+    formatted = parseFloat(formatted);
+    // 如果结果是0，则直接返回"0"
+    if (formatted === 0) {
+        return "0";
+    }
+    // 如果原始的格式化结果是一个整数（即没有小数部分），我们不需要做额外的处理
+    return formatted.toString();
+}
 /**
  * 处理交易
  * @param type 交易类型 SPOT-现货 SWAP-永续合约
@@ -752,6 +772,12 @@ const SubmitTrade = async (type, side, posSide) => {
         if (!selectedCurrency.value) {
             throw new Error('请选择交易币种')
         }
+        // 获取当前选中币种的详细信息
+        const currentCurrency = currencyStore.getCurrencyByName(type, selectedCurrency.value)
+        console.log('当前选中币种:', currentCurrency)
+        if (!currentCurrency) {
+            throw new Error('未找到币种信息')
+        }
 
         if (orderType.value === 'limit' && !price.value) {
             throw new Error('请输入交易价格')
@@ -760,6 +786,29 @@ const SubmitTrade = async (type, side, posSide) => {
         if (!amount.value) {
             throw new Error('请输入交易数量')
         }
+
+        // 检查数量精度
+        const lotSz = parseFloat(currentCurrency.lotSz) // 下单数量精度
+        const minSz = parseFloat(currentCurrency.minSz) // 最小下单数量
+
+        if (amount.value < minSz) {
+            throw new Error(`下单数量不能小于 ${minSz}`)
+        }
+
+        // 检查价格精度
+        if (orderType.value === 'limit') {
+            const tickSz = Number(currentCurrency.tickSz) // 价格精度
+            const priceDecimalPlaces = tickSz.toString().split('.')[1]?.length || 0
+            // const inputPriceDecimalPlaces = price.value.toString().split('.')[1]?.length || 0
+            // 进行截取
+            const formattedPrice = price.value.toFixed(priceDecimalPlaces)
+            if (formattedPrice > priceDecimalPlaces) {
+                throw new Error(`价格精度不能超过 ${priceDecimalPlaces} 位小数`)
+            }
+        }
+        // 处理精度，确保我们能正确地处理小数值
+        amount.value = formatNumber(amount.value, lotSz)
+        console.log('处理后的数量:', amount.value);
 
         // 构建基础订单参数
         const baseOrderParams = {
@@ -802,7 +851,8 @@ const SubmitTrade = async (type, side, posSide) => {
             // 构建现货订单参数
             const spotOrderParams = {
                 ...baseOrderParams,
-                side: orderType.value === 'stopLimit' ? `${side}_stop` : side
+                side: orderType.value === 'stopLimit' ? `${side}_stop` : side,
+                tag: currentCurrency.quoteCcy, // 添加计价币种标识
             }
 
             console.log('发送现货交易订单:', spotOrderParams)
@@ -816,11 +866,20 @@ const SubmitTrade = async (type, side, posSide) => {
                 ...baseOrderParams,
                 side,
                 posSide,
+                tag: currentCurrency.settleCcy, // 添加结算币种标识
             }
 
             // 设置杠杆倍数
             if (marginMode.value === 'isolated') {
-                swapOrderParams.lever = String(posSide === 'long' ? longLeverage.value : shortLeverage.value)
+                // 检查最大杠杆倍数
+                const maxLeverage = Number(currentCurrency.lever)
+                const selectedLeverage = posSide === 'long' ? longLeverage.value : shortLeverage.value
+
+                if (selectedLeverage > maxLeverage) {
+                    throw new Error(`杠杆倍数不能超过 ${maxLeverage}`)
+                }
+
+                swapOrderParams.lever = String(selectedLeverage)
             } else {
                 swapOrderParams.lever = String(leverage.value)
             }
