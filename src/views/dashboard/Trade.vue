@@ -760,6 +760,14 @@ const formatNumber = (num, formatNum) => {
     // 如果原始的格式化结果是一个整数（即没有小数部分），我们不需要做额外的处理
     return formatted.toString();
 }
+// 生成订单号
+const generateOrdId = () => {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000000)
+        .toString()
+        .padStart(6, "0");
+    return `${timestamp}${random}`;
+}
 /**
  * 处理交易
  * @param type 交易类型 SPOT-现货 SWAP-永续合约
@@ -767,6 +775,12 @@ const formatNumber = (num, formatNum) => {
  * @param posSide 持仓方向 long-多 short-空
  */
 const SubmitTrade = async (type, side, posSide) => {
+
+    // 处理止盈止损订单
+    if (orderType.value === 'stopLimit') {
+        // 暂不处理 止盈止损
+        return;
+    }
     try {
         // 参数校验
         if (!selectedCurrency.value) {
@@ -799,101 +813,51 @@ const SubmitTrade = async (type, side, posSide) => {
         if (orderType.value === 'limit') {
             const tickSz = Number(currentCurrency.tickSz) // 价格精度
             const priceDecimalPlaces = tickSz.toString().split('.')[1]?.length || 0
-            // const inputPriceDecimalPlaces = price.value.toString().split('.')[1]?.length || 0
-            // 进行截取
-            const formattedPrice = price.value.toFixed(priceDecimalPlaces)
-            if (formattedPrice > priceDecimalPlaces) {
+            price.value = price.value.toFixed(priceDecimalPlaces)
+            if (price.value.toString().split('.')[1]?.length > priceDecimalPlaces) {
                 throw new Error(`价格精度不能超过 ${priceDecimalPlaces} 位小数`)
             }
         }
         // 处理精度，确保我们能正确地处理小数值
         amount.value = formatNumber(amount.value, lotSz)
         console.log('处理后的数量:', amount.value);
-
+        // 生成订单号
+        const ordId = generateOrdId()
         // 构建基础订单参数
         const baseOrderParams = {
-            instId: selectedCurrency.value,
-            tdMode: type === 'SWAP' ? marginMode.value : 'cash',
-            sz: String(amount.value),
+            instId: selectedCurrency.value, // 产品ID，如 BTC-USDT
+            tdMode: type === 'SWAP' ? marginMode.value : 'cash', // 交易模式 合约模式为marginMode.value（isolated 全仓  cross 逐仓） 现货模式为cash
+            sz: String(amount.value), // 委托数量   
+            clOrdId: ordId, // 客户自定义订单ID
+            tag: type + selectedCurrency.value + String(Date.now()), // 订单标签
+            side: side, // 订单方向 buy/sell
+            ordType: orderType.value === 'limit' ? 'limit' : 'market', // 订单类型 limit-限价单 market-市价单
         }
-
         // 根据订单类型添加价格参数
         if (orderType.value === 'limit') {
-            baseOrderParams.ordType = 'limit'
             baseOrderParams.px = String(price.value)
-        } else if (orderType.value === 'market') {
-            baseOrderParams.ordType = 'market'
-        }
-
-        // 处理止盈止损订单
-        if (orderType.value === 'stopLimit') {
-            baseOrderParams.ordType = 'conditional'
-            baseOrderParams.triggerPx = String(triggerPrice.value)
-            baseOrderParams.triggerPxType = triggerType.value
-
-            if (stopType.value === 'double') {
-                // 双向止盈止损
-                if (!takeProfitPrice.value || !stopLossPrice.value) {
-                    throw new Error('请输入止盈和止损价格')
-                }
-                baseOrderParams.tpTriggerPx = String(takeProfitPrice.value)
-                baseOrderParams.slTriggerPx = String(stopLossPrice.value)
-            } else {
-                // 单向止盈止损
-                if (!triggerPrice.value) {
-                    throw new Error('请输入触发价格')
-                }
-            }
         }
 
         // 现货交易
         if (type === 'SPOT') {
-            // 构建现货订单参数
-            const spotOrderParams = {
-                ...baseOrderParams,
-                side: orderType.value === 'stopLimit' ? `${side}_stop` : side,
-                tag: currentCurrency.quoteCcy, // 添加计价币种标识
-            }
-
-            console.log('发送现货交易订单:', spotOrderParams)
+            console.log('发送现货交易订单:', baseOrderParams)
             // TODO: 调用现货交易API
-            // await tradeApi.spotOrder(spotOrderParams)
         }
         // 合约交易
         else if (type === 'SWAP') {
             // 构建合约订单参数
             const swapOrderParams = {
                 ...baseOrderParams,
-                side,
                 posSide,
-                tag: currentCurrency.settleCcy, // 添加结算币种标识
-            }
-
-            // 设置杠杆倍数
-            if (marginMode.value === 'isolated') {
-                // 检查最大杠杆倍数
-                const maxLeverage = Number(currentCurrency.lever)
-                const selectedLeverage = posSide === 'long' ? longLeverage.value : shortLeverage.value
-
-                if (selectedLeverage > maxLeverage) {
-                    throw new Error(`杠杆倍数不能超过 ${maxLeverage}`)
-                }
-
-                swapOrderParams.lever = String(selectedLeverage)
-            } else {
-                swapOrderParams.lever = String(leverage.value)
             }
 
             console.log('发送合约交易订单:', swapOrderParams)
             // TODO: 调用合约交易API
-            // await tradeApi.swapOrder(swapOrderParams)
         }
 
         // 交易成功提示
-        window.$message.success('交易提交成功')
     } catch (error) {
         console.error('交易失败:', error)
-        window.$message.error(error.message || '交易失败，请重试')
     }
 }
 </script>
