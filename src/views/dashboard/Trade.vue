@@ -308,10 +308,12 @@
                                         <template v-if="tradeType === 'SPOT'">
                                             <div class="grid grid-cols-2 gap-4">
                                                 <a-button type="primary" class="h-10"
-                                                    style="background-color: #00b96b; border-color: #00b96b;">
+                                                    style="background-color: #00b96b; border-color: #00b96b;"
+                                                    @click=" SubmitTrade('STOP', 'buy', '')">
                                                     {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
                                                 </a-button>
-                                                <a-button type="primary" danger class="h-10">
+                                                <a-button type="primary" danger class="h-10"
+                                                    @click=" SubmitTrade('STOP', 'sell', '')">
                                                     {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
                                                 </a-button>
                                             </div>
@@ -348,8 +350,9 @@
                                                 <a-button type="primary" class="w-full h-10" :style="{
                                                     backgroundColor: direction === 'long' ? '#00b96b' : '#ff4d4f',
                                                     borderColor: direction === 'long' ? '#00b96b' : '#ff4d4f'
-                                                }">
-                                                    {{ positionType === 'open' ? '开仓' : '平仓' }}{{ direction === 'long' ? '做多' : '做空' }}
+                                                }"
+                                                    @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', direction === 'long' ? 'long' : 'short')">
+                                                    {{ positionType === 'open' ? '开' : '平' }}{{ direction === 'long' ? '多' : '空' }}
                                                 </a-button>
                                             </div>
                                         </template>
@@ -736,6 +739,104 @@ const theme = 'dark'
 
 // K线周期选项
 const candlePeriods = CANDLE_PERIODS
+
+/**
+ * 处理交易
+ * @param type 交易类型 SPOT-现货 SWAP-永续合约
+ * @param side 方向 buy-买入/开仓 sell-卖出/平仓
+ * @param posSide 持仓方向 long-多 short-空
+ */
+const SubmitTrade = async (type, side, posSide) => {
+    try {
+        // 参数校验
+        if (!selectedCurrency.value) {
+            throw new Error('请选择交易币种')
+        }
+
+        if (orderType.value === 'limit' && !price.value) {
+            throw new Error('请输入交易价格')
+        }
+
+        if (!amount.value) {
+            throw new Error('请输入交易数量')
+        }
+
+        // 构建基础订单参数
+        const baseOrderParams = {
+            instId: selectedCurrency.value,
+            tdMode: type === 'SWAP' ? marginMode.value : 'cash',
+            sz: String(amount.value),
+        }
+
+        // 根据订单类型添加价格参数
+        if (orderType.value === 'limit') {
+            baseOrderParams.ordType = 'limit'
+            baseOrderParams.px = String(price.value)
+        } else if (orderType.value === 'market') {
+            baseOrderParams.ordType = 'market'
+        }
+
+        // 处理止盈止损订单
+        if (orderType.value === 'stopLimit') {
+            baseOrderParams.ordType = 'conditional'
+            baseOrderParams.triggerPx = String(triggerPrice.value)
+            baseOrderParams.triggerPxType = triggerType.value
+
+            if (stopType.value === 'double') {
+                // 双向止盈止损
+                if (!takeProfitPrice.value || !stopLossPrice.value) {
+                    throw new Error('请输入止盈和止损价格')
+                }
+                baseOrderParams.tpTriggerPx = String(takeProfitPrice.value)
+                baseOrderParams.slTriggerPx = String(stopLossPrice.value)
+            } else {
+                // 单向止盈止损
+                if (!triggerPrice.value) {
+                    throw new Error('请输入触发价格')
+                }
+            }
+        }
+
+        // 现货交易
+        if (type === 'SPOT') {
+            // 构建现货订单参数
+            const spotOrderParams = {
+                ...baseOrderParams,
+                side: orderType.value === 'stopLimit' ? `${side}_stop` : side
+            }
+
+            console.log('发送现货交易订单:', spotOrderParams)
+            // TODO: 调用现货交易API
+            // await tradeApi.spotOrder(spotOrderParams)
+        }
+        // 合约交易
+        else if (type === 'SWAP') {
+            // 构建合约订单参数
+            const swapOrderParams = {
+                ...baseOrderParams,
+                side,
+                posSide,
+            }
+
+            // 设置杠杆倍数
+            if (marginMode.value === 'isolated') {
+                swapOrderParams.lever = String(posSide === 'long' ? longLeverage.value : shortLeverage.value)
+            } else {
+                swapOrderParams.lever = String(leverage.value)
+            }
+
+            console.log('发送合约交易订单:', swapOrderParams)
+            // TODO: 调用合约交易API
+            // await tradeApi.swapOrder(swapOrderParams)
+        }
+
+        // 交易成功提示
+        window.$message.success('交易提交成功')
+    } catch (error) {
+        console.error('交易失败:', error)
+        window.$message.error(error.message || '交易失败，请重试')
+    }
+}
 </script>
 
 <style scoped>
