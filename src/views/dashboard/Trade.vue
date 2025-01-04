@@ -677,6 +677,10 @@ const selectDefaultCurrency = async () => {
 // 获取杠杆倍数
 const fetchLeverageInfo = async (instId) => {
     try {
+        const maximumLeverageRatio = currencyStore.getCurrencyByName(tradeType.value, selectedCurrency.value).lever
+        console.log(maximumLeverageRatio);
+        console.log('----------------');
+
         // 获取全仓杠杆倍数
         const crossResponse = await getLeverageInfo({
             instId,
@@ -710,7 +714,6 @@ const fetchLeverageInfo = async (instId) => {
 const handleCurrencyChange = async (value) => {
     console.log('选择的币种:', value)
     selectedCurrency.value = value
-
     // 如果是合约，获取杠杆倍数
     if (tradeType.value === 'SWAP') {
         await fetchLeverageInfo(value)
