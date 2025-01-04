@@ -14,3 +14,8 @@ export const getAccountInstruments = async (data) => {
 export const getLeverageInfo = async (data) => {
   return await request.get("/api/v5/account/leverage-info", data);
 };
+
+// 设置杠杆倍数
+export const setLeverage = async (data) => {
+  return await request.post("/api/v5/account/set-leverage", data);
+};

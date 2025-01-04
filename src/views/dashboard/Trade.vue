@@ -492,7 +492,7 @@ import { useOverviewStore } from '@/store/overview'
 import { MarketChannelType } from '@/utils/websocket'
 import KlineChart from '@/components/KlineChart.vue'
 import { message } from 'ant-design-vue'
-import { getLeverageInfo } from '@/api/module/Basics'
+import { getLeverageInfo, setLeverage } from '@/api/module/Basics'
 
 // 定义组件选项
 defineOptions({
@@ -1013,6 +1013,59 @@ const SubmitTrade = async (type, side, posSide) => {
         loading.value = false; // 结束加载
     }
 }
+
+// 设置杠杆倍数
+const handleSetLeverage = async (value, posSide = '') => {
+    try {
+        const params = {
+            instId: selectedCurrency.value,
+            lever: String(value),
+            mgnMode: marginMode.value,
+        }
+
+        // 如果是逐仓模式，需要添加持仓方向
+        if (marginMode.value === 'isolated' && posSide) {
+            params.posSide = posSide
+        }
+
+        const response = await setLeverage(params)
+        if (response.code === '0') {
+            message.success('设置杠杆倍数成功')
+        } else {
+            throw new Error(response.msg || '设置杠杆倍数失败')
+        }
+    } catch (error) {
+        console.error('设置杠杆倍数失败:', error)
+        message.error(error.message || '设置杠杆倍数失败')
+        // 设置失败时恢复原来的杠杆倍数
+        await fetchLeverageInfo(selectedCurrency.value)
+    }
+}
+
+// 监听杠杆倍数变化
+watch([leverage, longLeverage, shortLeverage], async (newValues, oldValues) => {
+    if (!selectedCurrency.value || tradeType.value !== 'SWAP') return
+
+    if (marginMode.value === 'cross') {
+        // 全仓模式
+        const [newLeverage, oldLeverage] = [newValues[0], oldValues[0]]
+        if (newLeverage !== oldLeverage) {
+            await handleSetLeverage(newLeverage)
+        }
+    } else {
+        // 逐仓模式 - 分别监听多空方向的变化
+        const [, newLongLev, newShortLev] = newValues
+        const [, oldLongLev, oldShortLev] = oldValues
+
+        // 只在对应方向的杠杆倍数发生变化时更新
+        if (newLongLev !== oldLongLev) {
+            await handleSetLeverage(newLongLev, 'long')
+        }
+        if (newShortLev !== oldShortLev) {
+            await handleSetLeverage(newShortLev, 'short')
+        }
+    }
+})
 </script>
 
 <style scoped>
