@@ -369,10 +369,10 @@ class WebSocketClient {
     this._clearHeartbeat();
     // 立即发送一次心跳
     this.send("ping");
-    // 每10秒发送一次心跳
+    // 每6秒发送一次心跳
     this.heartbeatTimer = setInterval(() => {
       this.send("ping");
-    }, 10000); // 10秒
+    }, 6000); // 6秒
   }
 
   /**

@@ -775,7 +775,6 @@ const generateOrdId = () => {
  * @param posSide 持仓方向 long-多 short-空
  */
 const SubmitTrade = async (type, side, posSide) => {
-
     // 处理止盈止损订单
     if (orderType.value === 'stopLimit') {
         // 暂不处理 止盈止损
@@ -823,16 +822,18 @@ const SubmitTrade = async (type, side, posSide) => {
         console.log('处理后的数量:', amount.value);
         // 生成订单号
         const ordId = generateOrdId()
+
         // 构建基础订单参数
         const baseOrderParams = {
             instId: selectedCurrency.value, // 产品ID，如 BTC-USDT
             tdMode: type === 'SWAP' ? marginMode.value : 'cash', // 交易模式 合约模式为marginMode.value（isolated 全仓  cross 逐仓） 现货模式为cash
             sz: String(amount.value), // 委托数量   
             clOrdId: ordId, // 客户自定义订单ID
-            tag: type + selectedCurrency.value + String(Date.now()), // 订单标签
+            tag: String(Date.now()), // 订单标签
             side: side, // 订单方向 buy/sell
             ordType: orderType.value === 'limit' ? 'limit' : 'market', // 订单类型 limit-限价单 market-市价单
         }
+
         // 根据订单类型添加价格参数
         if (orderType.value === 'limit') {
             baseOrderParams.px = String(price.value)
@@ -840,24 +841,39 @@ const SubmitTrade = async (type, side, posSide) => {
 
         // 现货交易
         if (type === 'SPOT') {
+            // tgtCcy
+            baseOrderParams.tgtCcy = 'base_ccy'
             console.log('发送现货交易订单:', baseOrderParams)
-            // TODO: 调用现货交易API
+            // 调用WebSocket下单
+            const response = await wsStore.placeOrder(baseOrderParams)
+            console.log('现货下单响应:', response)
+            if (response.code === '0') {
+                window.$message.success('下单成功')
+            } else {
+                throw new Error(response.msg || '下单失败')
+            }
         }
         // 合约交易
         else if (type === 'SWAP') {
             // 构建合约订单参数
             const swapOrderParams = {
                 ...baseOrderParams,
-                posSide,
+                posSide, // 持仓方向 long/short
             }
 
             console.log('发送合约交易订单:', swapOrderParams)
-            // TODO: 调用合约交易API
+            // 调用WebSocket下单
+            const response = await wsStore.placeOrder(swapOrderParams)
+            console.log('合约下单响应:', response)
+            if (response.code === '0') {
+                window.$message.success('下单成功')
+            } else {
+                throw new Error(response.msg || '下单失败')
+            }
         }
-
-        // 交易成功提示
     } catch (error) {
         console.error('交易失败:', error)
+        window.$message.error(error.message || '交易失败，请重试')
     }
 }
 </script>
