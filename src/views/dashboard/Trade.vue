@@ -314,6 +314,7 @@
                                                     {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
                                                 </a-button>
                                                 <a-button type="primary" danger class="h-10"
+                                                    style="background-color: #ff4d4f; border-color: #ff4d4f;"
                                                     @click=" SubmitTrade('SPOT', 'sell', '')"
                                                     :disabled="orderType === 'stopLimit'">
                                                     {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
@@ -325,7 +326,7 @@
                                         <template v-else>
                                             <!-- 交易方向选择 -->
                                             <div class="space-y-4">
-                                                <div class="grid grid-cols-2 gap-4">
+                                                <div class="grid grid-cols-1 gap-2">
                                                     <!-- 开仓/平仓选择 -->
                                                     <a-radio-group v-model:value="positionType" button-style="solid"
                                                         class="w-full" :disabled="orderType === 'stopLimit'">
@@ -335,7 +336,7 @@
                                                             class="w-1/2 text-center">平仓</a-radio-button>
                                                     </a-radio-group>
                                                     <!-- 多空方向选择 -->
-                                                    <a-radio-group v-model:value="direction" button-style="solid"
+                                                    <!-- <a-radio-group v-model:value="direction" button-style="solid"
                                                         class="w-full" :disabled="orderType === 'stopLimit'">
                                                         <a-radio-button value="long" class="w-1/2 text-center">
                                                             <span
@@ -345,17 +346,29 @@
                                                             <span
                                                                 :class="{ 'text-red-500': direction === 'short' }">空</span>
                                                         </a-radio-button>
-                                                    </a-radio-group>
+                                                    </a-radio-group> -->
                                                 </div>
 
                                                 <!-- 交易按钮 -->
-                                                <a-button type="primary" class="w-full h-10" :style="{
+                                                <!-- <a-button type="primary" class="w-full h-10" :style="{
                                                     backgroundColor: direction === 'long' ? '#00b96b' : '#ff4d4f',
                                                     borderColor: direction === 'long' ? '#00b96b' : '#ff4d4f'
-                                                }" @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', direction === 'long' ? 'long' : 'short')"
+                                                }" @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', direction)"
                                                     :disabled="orderType === 'stopLimit'">
                                                     {{ positionType === 'open' ? '开' : '平' }}{{ direction === 'long' ? '多' : '空' }}
-                                                </a-button>
+                                                </a-button> -->
+                                                <div class="grid grid-cols-2 gap-4">
+                                                    <a-button type="primary" class="h-10"
+                                                        style="background-color: #00b96b; border-color: #00b96b;"
+                                                        @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'long')">
+                                                        {{ positionType === 'open' ? '开' : '平' }}多
+                                                    </a-button>
+                                                    <a-button type="primary" danger class="h-10"
+                                                        style="background-color: #ff4d4f; border-color: #ff4d4f;"
+                                                        @click=" SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'short')">
+                                                        {{ positionType === 'open' ? '开' : '平' }}空
+                                                    </a-button>
+                                                </div>
                                             </div>
                                         </template>
                                     </div>
@@ -862,8 +875,13 @@ const SubmitTrade = async (type, side, posSide) => {
             const swapOrderParams = {
                 ...baseOrderParams,
                 posSide, // 持仓方向 long/short
+                reduceOnly: false,
             }
-
+            // 判断是否是空单 
+            if (posSide === 'short') {
+                // 空单 需将方向改为反转过来进行买入
+                swapOrderParams.side = swapOrderParams.side === 'buy' ? 'sell' : 'buy';
+            }
             console.log('发送合约交易订单:', swapOrderParams)
             // 调用WebSocket下单
             const response = await wsStore.placeOrder(swapOrderParams)
