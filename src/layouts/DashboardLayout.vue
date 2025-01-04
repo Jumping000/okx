@@ -72,7 +72,9 @@ import {
     LogoutOutlined,
     DashboardOutlined,
     FundOutlined,
-    WalletOutlined
+    WalletOutlined,
+    RobotOutlined,
+    OrderedListOutlined
 } from '@ant-design/icons-vue'
 import { storage } from '@/utils/storage'
 import { useCurrencyStore } from '@/store/currency'
@@ -81,13 +83,17 @@ import PreferenceSettings from '@/components/PreferenceSettings.vue'
 const PATH_TO_KEY = {
     '/dashboard/overview': 'dashboard',
     '/dashboard/trade': 'trade',
-    '/dashboard/assets': 'assets'
+    '/dashboard/assets': 'assets',
+    '/dashboard/quant': 'quant',
+    '/dashboard/orders': 'orders'
 }
 
 const KEY_TO_PATH = {
     'dashboard': '/dashboard/overview',
     'trade': '/dashboard/trade',
-    'assets': '/dashboard/assets'
+    'assets': '/dashboard/assets',
+    'quant': '/dashboard/quant',
+    'orders': '/dashboard/orders'
 }
 
 export default defineComponent({
@@ -99,6 +105,8 @@ export default defineComponent({
         DashboardOutlined,
         FundOutlined,
         WalletOutlined,
+        RobotOutlined,
+        OrderedListOutlined,
         PreferenceSettings
     },
     setup() {
@@ -120,9 +128,19 @@ export default defineComponent({
                 text: '交易'
             },
             {
+                key: 'orders',
+                icon: OrderedListOutlined,
+                text: '订单'
+            },
+            {
                 key: 'assets',
                 icon: WalletOutlined,
                 text: '资产'
+            },
+            {
+                key: 'quant',
+                icon: RobotOutlined,
+                text: '量化'
             }
         ]
 

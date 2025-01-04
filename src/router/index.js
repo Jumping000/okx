@@ -45,6 +45,22 @@ const routes = [
           title: "资产",
         },
       },
+      {
+        path: "quant",
+        name: "Quant",
+        component: () => import("../views/dashboard/Quant.vue"),
+        meta: {
+          title: "量化",
+        },
+      },
+      {
+        path: "orders",
+        name: "Orders",
+        component: () => import("../views/dashboard/Orders.vue"),
+        meta: {
+          title: "订单",
+        },
+      },
     ],
   },
 ];
