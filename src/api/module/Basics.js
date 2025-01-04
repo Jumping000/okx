@@ -9,3 +9,8 @@ import request from "../request";
 export const getAccountInstruments = async (data) => {
   return await request.get("/api/v5/account/instruments", data);
 };
+
+// 获取杠杆倍数
+export const getLeverageInfo = async (data) => {
+  return await request.get("/api/v5/account/leverage-info", data);
+};

@@ -24,7 +24,7 @@
                                 <span class="text-sm text-dark-100 font-mono">{{ assets.available }}</span>
                             </div>
                             <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">持仓数量</span>
+                                <span class="text-sm text-dark-200">资产数量</span>
                                 <div class="flex items-center gap-2">
                                     <span class="text-sm text-dark-100 font-mono">{{ assets.positionCount }}</span>
                                     <span class="text-xs text-dark-200">币种</span>

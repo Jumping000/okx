@@ -391,7 +391,7 @@
                                     </div>
                                 </div>
                                 <div class="flex  justify-between items-center">
-                                    <span class="text-sm text-dark-200">持仓数量</span>
+                                    <span class="text-sm text-dark-200">资产数量</span>
                                     <div class="flex items-baseline gap-2">
                                         <span
                                             class="text-base font-medium text-dark-100">{{ overviewStore.assets.positionCount }}</span>
@@ -492,6 +492,7 @@ import { useOverviewStore } from '@/store/overview'
 import { MarketChannelType } from '@/utils/websocket'
 import KlineChart from '@/components/KlineChart.vue'
 import { message } from 'ant-design-vue'
+import { getLeverageInfo } from '@/api/module/Basics'
 
 // 定义组件选项
 defineOptions({
@@ -673,6 +674,50 @@ const selectDefaultCurrency = async () => {
     }
 }
 
+// 获取杠杆倍数
+const fetchLeverageInfo = async (instId) => {
+    try {
+        // 获取全仓杠杆倍数
+        const crossResponse = await getLeverageInfo({
+            instId,
+            mgnMode: 'cross'
+        })
+        if (crossResponse.code === '0' && crossResponse.data?.length) {
+            leverage.value = Number(crossResponse.data[0].lever)
+        }
+
+        // 获取逐仓杠杆倍数
+        const isolatedResponse = await getLeverageInfo({
+            instId,
+            mgnMode: 'isolated'
+        })
+        if (isolatedResponse.code === '0' && isolatedResponse.data?.length) {
+            // 设置多空方向的杠杆倍数
+            isolatedResponse.data.forEach(item => {
+                if (item.posSide === 'long') {
+                    longLeverage.value = Number(item.lever)
+                } else if (item.posSide === 'short') {
+                    shortLeverage.value = Number(item.lever)
+                }
+            })
+        }
+    } catch (error) {
+        console.error('获取杠杆倍数失败:', error)
+    }
+}
+
+// 修改币种切换的处理函数
+const handleCurrencyChange = async (value) => {
+    console.log('选择的币种:', value)
+    selectedCurrency.value = value
+
+    // 如果是合约，获取杠杆倍数
+    if (tradeType.value === 'SWAP') {
+        await fetchLeverageInfo(value)
+    }
+}
+
+// 修改交易类型切换的处理函数
 const handleTradeTypeChange = async () => {
     console.log('交易类型切换为:', tradeType.value)
     // 重置表单数据
@@ -699,11 +744,11 @@ const handleTradeTypeChange = async () => {
 
     // 选择默认币种
     await selectDefaultCurrency()
-}
 
-const handleCurrencyChange = async (value) => {
-    console.log('选择的币种:', value)
-    selectedCurrency.value = value
+    // 如果是合约，获取杠杆倍数
+    if (tradeType.value === 'SWAP' && selectedCurrency.value) {
+        await fetchLeverageInfo(selectedCurrency.value)
+    }
 }
 
 const filterCurrencyOption = (input, option) => {

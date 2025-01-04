@@ -26,7 +26,7 @@
             <!-- 持仓数量 -->
             <div class="bg-dark-400 rounded-lg border border-dark-300 p-4">
                 <div class="flex flex-col gap-1">
-                    <span class="text-sm text-dark-200">持仓数量</span>
+                    <span class="text-sm text-dark-200">资产数量</span>
                     <div class="flex items-baseline gap-2">
                         <span class="text-2xl font-mono">{{ positionsData.count || 0 }}</span>
                         <span class="text-xs text-dark-200">个</span>
