@@ -128,7 +128,29 @@ router.beforeEach(async (to, from, next) => {
                     // 账户数据更新
                     const accountData = message.data[0];
                     const details = accountData.details || [];
-
+                    //   getAccountData
+                    const originalDetails = wsStore.getAccountData?.details;
+                    if (
+                      originalDetails != undefined &&
+                      originalDetails.length > 0
+                    ) {
+                      // 比对之前数据 数组对象循环 originalDetails
+                      originalDetails.forEach((originalItem) => {
+                        const detailItem = details.find(
+                          (item) => item.ccy === originalItem.ccy
+                        );
+                        if (detailItem) {
+                          // 融合数据
+                          // 使用 Object.assign 将 originalItem 的属性合并到 detailItem 中
+                          Object.assign(originalItem, detailItem);
+                          // 更新到 details 中
+                          details[details.indexOf(detailItem)] = originalItem;
+                        } else {
+                          // 如果 details 中没有对应的币种，则添加
+                          details.push(originalItem);
+                        }
+                      });
+                    }
                     // 可用余额 (USDT)
                     const availableBalance =
                       details.find((item) => item.ccy === "USDT")?.availBal ||

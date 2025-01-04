@@ -914,7 +914,7 @@ export const useWebSocketStore = defineStore("websocket", {
           message.data?.[0]
         ) {
           // 更新账户数据缓存
-          this.accountData.balance = message.data[0];
+          //   this.accountData.balance = message.data[0];
           this.accountData.lastUpdateTime = new Date().getTime();
 
           // 调用回调函数

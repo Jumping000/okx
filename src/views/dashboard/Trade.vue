@@ -299,14 +299,14 @@
                                             <div class="grid grid-cols-2 gap-4">
                                                 <a-button type="primary" class="h-10"
                                                     style="background-color: #00b96b; border-color: #00b96b;"
-                                                    @click=" SubmitTrade('SPOT', 'buy', '')"
-                                                    :disabled="orderType === 'stopLimit'">
+                                                    @click="SubmitTrade('SPOT', 'buy', '')" :loading="loading"
+                                                    :disabled="orderType === 'stopLimit' || loading">
                                                     {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
                                                 </a-button>
                                                 <a-button type="primary" danger class="h-10"
                                                     style="background-color: #ff4d4f; border-color: #ff4d4f;"
-                                                    @click=" SubmitTrade('SPOT', 'sell', '')"
-                                                    :disabled="orderType === 'stopLimit'">
+                                                    @click="SubmitTrade('SPOT', 'sell', '')" :loading="loading"
+                                                    :disabled="orderType === 'stopLimit' || loading">
                                                     {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
                                                 </a-button>
                                             </div>
@@ -350,12 +350,14 @@
                                                 <div class="grid grid-cols-2 gap-4">
                                                     <a-button type="primary" class="h-10"
                                                         style="background-color: #00b96b; border-color: #00b96b;"
-                                                        @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'long')">
+                                                        @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'long')"
+                                                        :loading="loading" :disabled="loading">
                                                         {{ positionType === 'open' ? '开' : '平' }}多
                                                     </a-button>
                                                     <a-button type="primary" danger class="h-10"
                                                         style="background-color: #ff4d4f; border-color: #ff4d4f;"
-                                                        @click=" SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'short')">
+                                                        @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'short')"
+                                                        :loading="loading" :disabled="loading">
                                                         {{ positionType === 'open' ? '开' : '平' }}空
                                                     </a-button>
                                                 </div>
@@ -453,7 +455,7 @@
                         </div>
                         <div class="p-4">
                             <template
-                                v-if="wsStore.getAccountData?.details?.filter(asset => parseFloat(asset.eqUsd) >= 0.01 && asset.ccy !== 'USDT')?.length">
+                                v-if="wsStore.getAccountData?.validPositions?.filter(asset => parseFloat(asset.eqUsd) >= 0.01 && asset.ccy !== 'USDT')?.length">
                                 <div class="space-y-3">
                                     <div v-for="asset in wsStore.getAccountData.details.filter(asset => parseFloat(asset.eqUsd) >= 0.01 && asset.ccy !== 'USDT')"
                                         :key="asset.ccy"
@@ -526,6 +528,7 @@ const overviewStore = useOverviewStore()
 const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
 const selectedCurrency = ref('')
 const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
+const loading = ref(false) // 添加加载状态
 
 // K线相关数据
 const selectedPeriod = ref('1m') // 默认使用1分钟K线
@@ -848,12 +851,14 @@ const processingAccuracy = (num, formatNum) => {
  * @param posSide 持仓方向 long-多 short-空
  */
 const SubmitTrade = async (type, side, posSide) => {
-    // 处理止盈止损订单
-    if (orderType.value === 'stopLimit') {
-        // 暂不处理 止盈止损
-        return;
-    }
+    if (loading.value) return; // 如果正在加载，直接返回
+    loading.value = true; // 开始加载
     try {
+        // 处理止盈止损订单
+        if (orderType.value === 'stopLimit') {
+            // 暂不处理 止盈止损
+            return;
+        }
         // 参数校验
         if (!selectedCurrency.value) {
             throw new Error('请选择交易币种')
@@ -953,7 +958,9 @@ const SubmitTrade = async (type, side, posSide) => {
         }
     } catch (error) {
         console.error('交易失败:', error)
-        message.error(error || '交易失败，请重试')
+        message.error(error.message || '交易失败，请重试')
+    } finally {
+        loading.value = false; // 结束加载
     }
 }
 </script>
