@@ -881,9 +881,14 @@ const SubmitTrade = async (type, side, posSide) => {
         // 检查数量精度
         const lotSz = parseFloat(currentCurrency.lotSz) // 下单数量精度
         const minSz = parseFloat(currentCurrency.minSz) // 最小下单数量
-
-        if (amount.value < minSz) {
-            throw new Error(`下单数量不能小于 ${minSz}`)
+        if (type === 'SPOT') {
+            if (amount.value <= minSz) {
+                throw new Error(`下单数量不能小于等于 ${minSz} 币`)
+            }
+        } else if (type === 'SWAP') {
+            if (amount.value < minSz) {
+                throw new Error(`下单数量不能小于 ${minSz} 张`)
+            }
         }
 
         // 检查价格精度
