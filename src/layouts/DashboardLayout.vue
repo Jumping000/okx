@@ -41,10 +41,18 @@
         <div class="flex-1 flex min-h-0 overflow-hidden">
             <!-- 左侧菜单 -->
             <aside class="w-20 min-w-[80px] bg-dark-400 border-r border-dark-300 flex flex-col py-3">
-                <div v-for="item in menuItems" :key="item.key" class="nav-item"
-                    :class="{ active: selectedKeys.includes(item.key) }" @click="handleMenuClick({ key: item.key })">
-                    <component :is="item.icon" class="text-xl mb-1" />
-                    <span class="text-xs">{{ item.text }}</span>
+                <div class="flex-1">
+                    <div v-for="item in menuItems" :key="item.key" class="nav-item"
+                        :class="{ active: selectedKeys.includes(item.key) }"
+                        @click="handleMenuClick({ key: item.key })">
+                        <component :is="item.icon" class="text-xl mb-1" />
+                        <span class="text-xs">{{ item.text }}</span>
+                    </div>
+                </div>
+                <!-- 退出登录按钮 -->
+                <div class="nav-item cursor-pointer hover:bg-dark-300" @click="handleLogout">
+                    <poweroff-outlined class="text-xl mb-1" />
+                    <span class="text-xs">退出</span>
                 </div>
             </aside>
 
@@ -74,7 +82,8 @@ import {
     FundOutlined,
     WalletOutlined,
     RobotOutlined,
-    OrderedListOutlined
+    OrderedListOutlined,
+    PoweroffOutlined
 } from '@ant-design/icons-vue'
 import { storage } from '@/utils/storage'
 import { useCurrencyStore } from '@/store/currency'
@@ -107,6 +116,7 @@ export default defineComponent({
         WalletOutlined,
         RobotOutlined,
         OrderedListOutlined,
+        PoweroffOutlined,
         PreferenceSettings
     },
     setup() {
@@ -156,6 +166,7 @@ export default defineComponent({
         }
 
         const handleLogout = () => {
+            // 清除配置并跳转到登录页
             storage.clearApiConfig()
             router.push('/')
         }
