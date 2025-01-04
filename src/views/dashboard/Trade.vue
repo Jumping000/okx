@@ -418,6 +418,7 @@ import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
 import { MarketChannelType } from '@/utils/websocket'
 import KlineChart from '@/components/KlineChart.vue'
+import { message } from 'ant-design-vue'
 
 // 定义组件选项
 defineOptions({
@@ -848,7 +849,7 @@ const SubmitTrade = async (type, side, posSide) => {
             const response = await wsStore.placeOrder(baseOrderParams)
             console.log('现货下单响应:', response)
             if (response.code === '0') {
-                window.$message.success('下单成功')
+                message.success('下单成功')
             } else {
                 throw new Error(response.msg || '下单失败')
             }
@@ -866,14 +867,14 @@ const SubmitTrade = async (type, side, posSide) => {
             const response = await wsStore.placeOrder(swapOrderParams)
             console.log('合约下单响应:', response)
             if (response.code === '0') {
-                window.$message.success('下单成功')
+                message.success('下单成功')
             } else {
                 throw new Error(response.msg || '下单失败')
             }
         }
     } catch (error) {
         console.error('交易失败:', error)
-        window.$message.error(error.message || '交易失败，请重试')
+        message.error(error.message || '交易失败，请重试')
     }
 }
 </script>

@@ -311,8 +311,7 @@ class WebSocketClient {
 
       // 处理订单响应
       if (message.op === "order" && message.data) {
-        // this.handleOrderResponse(message);
-
+        this.handleOrderResponse(message);
         return;
       }
 
@@ -372,103 +371,32 @@ class WebSocketClient {
    * 处理订单响应消息
    * @param {Object} message 订单响应消息
    */
-  //   handleOrderResponse(message) {
-  //     try {
-  //       console.log("处理订单响应:", message);
-  //       console.log(this.orders);
-  //   if (message.code != 0) {
-  //     console.log("订单创建失败：" + message.data[0].sMsg);
-  //     return;
-  //   }
-  //   if (!message || !message.data || !Array.isArray(message.data)) {
-  //     // 先检查消息格式
-  //     console.warn("无效的订单响应格式");
-  //     return;
-  //   }
+  handleOrderResponse(message) {
+    try {
+      console.log("处理订单响应:", message);
 
-  //   const orderData = message.data[0];
-  //   if (!orderData) {
-  //     console.warn("订单响应数据为空");
-  //     return;
-  //   }
+      if (!message || !message.data || !Array.isArray(message.data)) {
+        console.warn("无效的订单响应格式");
+        return;
+      }
 
-  // 获取订单标识
-  //   const id = message.id;
-  //   const { clOrdId, tag } = orderData;
-  //   let matchedOrder = null;
-  //   let matchedKey = null;
+      const orderData = message.data[0];
+      if (!orderData) {
+        console.warn("订单响应数据为空");
+        return;
+      }
 
-  //   // 遍历订单集合查找匹配的订单
-  //   for (const [key, order] of this.orders.entries()) {
-  //     console.log(key, order);
-  //     if (!order.params || !order.identifiers) continue;
-
-  //     const {
-  //       orderId,
-  //       clOrdId: storedClOrdId,
-  //       tag: storedTag,
-  //     } = order.identifiers;
-
-  //     // 检查所有可能的匹配字段
-  //     if (
-  //       storedClOrdId === clOrdId ||
-  //       storedTag === tag ||
-  //       orderId === message.id ||
-  //       key === message.id
-  //     ) {
-  //       matchedOrder = order;
-  //       matchedKey = key;
-  //       console.log("找到匹配订单:", {
-  //         storedClOrdId,
-  //         receivedClOrdId: clOrdId,
-  //         storedTag,
-  //         receivedTag: tag,
-  //         orderId,
-  //         messageId: message.id,
-  //       });
-  //       break;
-  //     }
-  //   }
-
-  //   if (!matchedOrder) {
-  //     console.warn(
-  //       "未找到匹配的订单 - ID:",
-  //       message.id,
-  //       "clOrdId:",
-  //       clOrdId,
-  //       "tag:",
-  //       tag
-  //     );
-  //     console.log(
-  //       "当前订单集合:",
-  //       Array.from(this.orders.entries()).map(([key, order]) => ({
-  //         key,
-  //         identifiers: order.identifiers,
-  //       }))
-  //     );
-  //     return;
-  //   }
-
-  //   // 处理订单结果
-  //   if (message.code === "0" && orderData.sCode === "0") {
-  //     console.log("订单成功:", orderData);
-  //     matchedOrder.resolve(message);
-  //   } else {
-  //     console.error("订单失败:", orderData.sMsg || message.msg);
-  //     matchedOrder.reject(
-  //       new Error(orderData.sMsg || message.msg || "下单失败")
-  //     );
-  //   }
-
-  //   // 清理订单
-  //   if (matchedOrder.timeoutId) {
-  //     clearTimeout(matchedOrder.timeoutId);
-  //   }
-  //   this.orders.delete(matchedKey);
-  //     } catch (error) {
-  //       console.error("处理订单响应出错:", error);
-  //     }
-  //   }
+      // 遍历所有注册的消息处理函数
+      for (const [key, handler] of this.messageHandlers.entries()) {
+        if (key === "order" && typeof handler === "function") {
+          handler(message);
+          break;
+        }
+      }
+    } catch (error) {
+      console.error("处理订单响应出错:", error);
+    }
+  }
 
   /**
    * 开始心跳检测

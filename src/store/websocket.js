@@ -1259,6 +1259,21 @@ export const useWebSocketStore = defineStore("websocket", {
           reject,
           timeoutId,
         });
+
+        // 添加订单响应处理函数
+        this.connections[WebSocketType.PRIVATE].addMessageHandler(
+          "order",
+          (message) => {
+            if (message.id === messageId) {
+              const orderData = message.data[0];
+              if (message.code === "0" && orderData.sCode === "0") {
+                resolve(message);
+              } else {
+                reject(new Error(orderData.sMsg || message.msg || "下单失败"));
+              }
+            }
+          }
+        );
       });
 
       try {
@@ -1272,12 +1287,13 @@ export const useWebSocketStore = defineStore("websocket", {
         const response = await orderPromise;
         return response;
       } finally {
-        // 清理订单Promise
+        // 清理订单Promise和消息处理函数
         const order = this.orders.get(messageId);
         if (order?.timeoutId) {
           clearTimeout(order.timeoutId);
         }
         this.orders.delete(messageId);
+        this.connections[WebSocketType.PRIVATE].removeMessageHandler("order");
       }
     },
   },
