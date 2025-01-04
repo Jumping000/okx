@@ -677,9 +677,7 @@ const selectDefaultCurrency = async () => {
 // 获取杠杆倍数
 const fetchLeverageInfo = async (instId) => {
     try {
-        const maximumLeverageRatio = currencyStore.getCurrencyByName(tradeType.value, selectedCurrency.value).lever
-        console.log(maximumLeverageRatio);
-        console.log('----------------');
+
 
         // 获取全仓杠杆倍数
         const crossResponse = await getLeverageInfo({
@@ -836,16 +834,20 @@ onUnmounted(() => {
 })
 
 // 杠杆倍数选项
-const leverageOptions = [
-    { value: 1, label: '1X' },
-    { value: 2, label: '2X' },
-    { value: 3, label: '3X' },
-    { value: 5, label: '5X' },
-    { value: 10, label: '10X' },
-    { value: 20, label: '20X' },
-    { value: 50, label: '50X' },
-    { value: 100, label: '100X' },
-]
+const leverageOptions = computed(() => {
+    const maxLeverage = currencyStore.getCurrencyByName(tradeType.value, selectedCurrency.value)?.lever || 100
+    const options = []
+
+    // 生成杠杆倍数选项
+    const leverages = [1, 2, 3, 5, 10, 20, 50, 75, 100, 125]
+    for (const lev of leverages) {
+        if (lev <= maxLeverage) {
+            options.push({ value: lev, label: `${lev}X` })
+        }
+    }
+
+    return options
+})
 
 // 主题配置
 const theme = 'dark'
