@@ -742,32 +742,30 @@ const theme = 'dark'
 const candlePeriods = CANDLE_PERIODS
 // 处理精度
 const formatNumber = (num, formatNum) => {
-    // 将formatNum转换为字符串，并分割成整数部分和小数部分
-    let parts = formatNum.toString().split('.');
-    // 如果没有小数点，意味着不需要小数部分
-    let decimalPlaces = 0;
-    if (parts.length > 1) {
-        // 否则，计算需要多少个小数位
-        decimalPlaces = parts[1].length;
-    }
-    // 使用 toFixed 方法来格式化数字，确保它有指定数量的小数位
-    let formatted = num.toFixed(decimalPlaces);
-    // 解析回数字，以便去除不必要的尾随零
-    formatted = parseFloat(formatted);
-    // 如果结果是0，则直接返回"0"
-    if (formatted === 0) {
+    try {
+        // 将formatNum转换为字符串，并分割成整数部分和小数部分
+        let parts = formatNum.toString().split('.');
+        // 如果没有小数点，意味着不需要小数部分
+        let decimalPlaces = 0;
+        if (parts.length > 1) {
+            // 否则，计算需要多少个小数位
+            decimalPlaces = parts[1].length;
+        }
+        num = parseFloat(num);
+        // 使用 toFixed 方法来格式化数字，确保它有指定数量的小数位
+        let formatted = num.toFixed(decimalPlaces);
+        // 解析回数字，以便去除不必要的尾随零
+        formatted = parseFloat(formatted);
+        // 如果结果是0，则直接返回"0"
+        if (formatted === 0) {
+            return "0";
+        }
+        // 如果原始的格式化结果是一个整数（即没有小数部分），我们不需要做额外的处理
+        return formatted.toString();
+    } catch (error) {
+        console.error('格式化数字时出错:', error);
         return "0";
     }
-    // 如果原始的格式化结果是一个整数（即没有小数部分），我们不需要做额外的处理
-    return formatted.toString();
-}
-// 生成订单号
-const generateOrdId = () => {
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 1000000)
-        .toString()
-        .padStart(6, "0");
-    return `${timestamp}${random}`;
 }
 /**
  * 处理交易
@@ -813,11 +811,13 @@ const SubmitTrade = async (type, side, posSide) => {
         if (orderType.value === 'limit') {
             const tickSz = Number(currentCurrency.tickSz) // 价格精度
             const priceDecimalPlaces = tickSz.toString().split('.')[1]?.length || 0
+            price.value = parseFloat(price.value)
             price.value = price.value.toFixed(priceDecimalPlaces)
             if (price.value.toString().split('.')[1]?.length > priceDecimalPlaces) {
                 throw new Error(`价格精度不能超过 ${priceDecimalPlaces} 位小数`)
             }
         }
+        console.log(amount.value, lotSz);
         // 处理精度，确保我们能正确地处理小数值
         amount.value = formatNumber(amount.value, lotSz)
         console.log('处理后的数量:', amount.value);
@@ -874,7 +874,7 @@ const SubmitTrade = async (type, side, posSide) => {
         }
     } catch (error) {
         console.error('交易失败:', error)
-        message.error(error.message || '交易失败，请重试')
+        message.error(error || '交易失败，请重试')
     }
 }
 </script>
