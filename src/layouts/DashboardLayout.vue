@@ -169,6 +169,7 @@ export default defineComponent({
             // 清除配置并跳转到登录页
             storage.clearApiConfig()
             router.push('/')
+            window.location.href = '/'
         }
 
         const openSettings = () => {
