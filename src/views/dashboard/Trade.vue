@@ -185,43 +185,54 @@
 
                                     <!-- 交易类型选择 -->
                                     <div class="space-y-2">
-                                        <div class="text-sm text-dark-200">交易类型</div>
-                                        <a-radio-group v-model:value="orderType" button-style="solid" class="w-full">
-                                            <a-radio-button value="limit" class="w-1/3 text-center">限价</a-radio-button>
-                                            <a-radio-button value="market" class="w-1/3 text-center">市价</a-radio-button>
-                                            <a-radio-button value="stopLimit"
-                                                class="w-1/3 text-center">止盈止损</a-radio-button>
-                                        </a-radio-group>
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm text-dark-200">交易类型</div>
+                                            <div class="flex-1 ml-4">
+                                                <a-radio-group v-model:value="orderType" button-style="solid"
+                                                    class="w-full">
+                                                    <a-radio-button value="limit"
+                                                        class="w-1/3 text-center">限价</a-radio-button>
+                                                    <a-radio-button value="market"
+                                                        class="w-1/3 text-center">市价</a-radio-button>
+                                                    <a-radio-button value="stopLimit"
+                                                        class="w-1/3 text-center">止盈止损</a-radio-button>
+                                                </a-radio-group>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- 止盈止损类型选择 -->
                                     <template v-if="orderType === 'stopLimit'">
                                         <div class="space-y-2">
-                                            <div class="text-sm text-dark-200">触发方式</div>
-                                            <div class="flex gap-2">
-                                                <a-radio-group v-model:value="stopType" button-style="solid"
-                                                    class="w-full">
-                                                    <a-radio-button value="single"
-                                                        class="w-1/2 text-center">单向止盈止损</a-radio-button>
-                                                    <a-radio-button value="double"
-                                                        class="w-1/2 text-center">双向止盈止损</a-radio-button>
-                                                </a-radio-group>
+                                            <div class="flex items-center justify-between">
+                                                <div class="text-sm text-dark-200">触发方式</div>
+                                                <div class="flex-1 ml-4">
+                                                    <a-radio-group v-model:value="stopType" button-style="solid"
+                                                        class="w-full">
+                                                        <a-radio-button value="single"
+                                                            class="w-1/2 text-center">单向止盈止损</a-radio-button>
+                                                        <a-radio-button value="double"
+                                                            class="w-1/2 text-center">双向止盈止损</a-radio-button>
+                                                    </a-radio-group>
+                                                </div>
                                             </div>
                                         </div>
 
                                         <!-- 触发方式选择 -->
                                         <div class="space-y-2">
-                                            <div class="text-sm text-dark-200">触发类型</div>
-                                            <div class="flex gap-2">
-                                                <a-radio-group v-model:value="triggerType" button-style="solid"
-                                                    class="w-full">
-                                                    <a-radio-button value="mark"
-                                                        class="w-1/3 text-center text-xs">标记价格</a-radio-button>
-                                                    <a-radio-button value="new"
-                                                        class="w-1/3 text-center text-xs">最新价格</a-radio-button>
-                                                    <a-radio-button value="index"
-                                                        class="w-1/3 text-center text-xs">指数价格</a-radio-button>
-                                                </a-radio-group>
+                                            <div class="flex items-center justify-between">
+                                                <div class="text-sm text-dark-200">触发类型</div>
+                                                <div class="flex-1 ml-4">
+                                                    <a-radio-group v-model:value="triggerType" button-style="solid"
+                                                        class="w-full">
+                                                        <a-radio-button value="mark"
+                                                            class="w-1/3 text-center text-xs">标记价格</a-radio-button>
+                                                        <a-radio-button value="new"
+                                                            class="w-1/3 text-center text-xs">最新价格</a-radio-button>
+                                                        <a-radio-button value="index"
+                                                            class="w-1/3 text-center text-xs">指数价格</a-radio-button>
+                                                    </a-radio-group>
+                                                </div>
                                             </div>
                                         </div>
 
