@@ -528,7 +528,7 @@ const overviewStore = useOverviewStore()
 // 基础状态
 const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
 const selectedCurrency = ref('')
-const orderType = ref('limit') // limit-限价委托，market-市价委托，stopLimit-止盈止损
+const orderType = ref('market') // limit-限价委托，market-市价委托，stopLimit-止盈止损
 const loading = ref(false) // 添加加载状态
 
 // K线相关数据
@@ -724,7 +724,7 @@ const handleTradeTypeChange = async () => {
     // 重置表单数据
     price.value = 0
     amount.value = 0
-    orderType.value = 'limit'
+    orderType.value = 'market'  // 重置为市价
 
     // 重置止盈止损数据
     stopType.value = 'single'
