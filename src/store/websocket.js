@@ -1280,25 +1280,5 @@ export const useWebSocketStore = defineStore("websocket", {
         this.orders.delete(messageId);
       }
     },
-
-    /**
-     * 处理订单响应消息
-     * @param {Object} message 订单响应消息
-     */
-    handleOrderResponse(message) {
-      const orderId = message?.id;
-      if (!orderId || !this.orders.has(orderId)) {
-        return;
-      }
-
-      const order = this.orders.get(orderId);
-      if (!order) return;
-
-      if (message.code === "0") {
-        order.resolve(message);
-      } else {
-        order.reject(new Error(message.msg || "下单失败"));
-      }
-    },
   },
 });
