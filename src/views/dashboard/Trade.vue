@@ -508,18 +508,6 @@ const currentCurrencies = computed(() => {
     return currencyStore.currencies[tradeType.value] || []
 })
 
-const latestCandle = computed(() => {
-    return candleData.value[0] || null
-})
-
-// 工具函数
-const formatPrice = (price) => {
-    return price ? Number(price).toFixed(2) : '0.00'
-}
-
-const formatVolume = (volume) => {
-    return volume ? Number(volume).toFixed(4) : '0.0000'
-}
 
 // WebSocket 处理函数
 const handleCandleUpdate = (message) => {
