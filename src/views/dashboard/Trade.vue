@@ -309,11 +309,13 @@
                                             <div class="grid grid-cols-2 gap-4">
                                                 <a-button type="primary" class="h-10"
                                                     style="background-color: #00b96b; border-color: #00b96b;"
-                                                    @click=" SubmitTrade('SPOT', 'buy', '')">
+                                                    @click=" SubmitTrade('SPOT', 'buy', '')"
+                                                    :disabled="orderType === 'stopLimit'">
                                                     {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
                                                 </a-button>
                                                 <a-button type="primary" danger class="h-10"
-                                                    @click=" SubmitTrade('SPOT', 'sell', '')">
+                                                    @click=" SubmitTrade('SPOT', 'sell', '')"
+                                                    :disabled="orderType === 'stopLimit'">
                                                     {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
                                                 </a-button>
                                             </div>
@@ -326,7 +328,7 @@
                                                 <div class="grid grid-cols-2 gap-4">
                                                     <!-- 开仓/平仓选择 -->
                                                     <a-radio-group v-model:value="positionType" button-style="solid"
-                                                        class="w-full">
+                                                        class="w-full" :disabled="orderType === 'stopLimit'">
                                                         <a-radio-button value="open"
                                                             class="w-1/2 text-center">开仓</a-radio-button>
                                                         <a-radio-button value="close"
@@ -334,7 +336,7 @@
                                                     </a-radio-group>
                                                     <!-- 多空方向选择 -->
                                                     <a-radio-group v-model:value="direction" button-style="solid"
-                                                        class="w-full">
+                                                        class="w-full" :disabled="orderType === 'stopLimit'">
                                                         <a-radio-button value="long" class="w-1/2 text-center">
                                                             <span
                                                                 :class="{ 'text-primary': direction === 'long' }">多</span>
@@ -350,8 +352,8 @@
                                                 <a-button type="primary" class="w-full h-10" :style="{
                                                     backgroundColor: direction === 'long' ? '#00b96b' : '#ff4d4f',
                                                     borderColor: direction === 'long' ? '#00b96b' : '#ff4d4f'
-                                                }"
-                                                    @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', direction === 'long' ? 'long' : 'short')">
+                                                }" @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', direction === 'long' ? 'long' : 'short')"
+                                                    :disabled="orderType === 'stopLimit'">
                                                     {{ positionType === 'open' ? '开' : '平' }}{{ direction === 'long' ? '多' : '空' }}
                                                 </a-button>
                                             </div>
