@@ -406,17 +406,74 @@
                             <h3 class="text-base font-medium text-dark-100">当前持仓</h3>
                         </div>
                         <div class="p-4">
-                            <a-empty description="暂无持仓" class="text-dark-200" />
+                            <template v-if="wsStore.positionsData.SWAP.length">
+                                <div class="space-y-2">
+                                    <div v-for="position in wsStore.positionsData.SWAP" :key="position.posId"
+                                        class="flex items-center justify-between p-2.5 rounded-lg border border-dark-300 hover:bg-dark-300 transition-colors">
+                                        <div class="flex items-center gap-3">
+                                            <div class="flex flex-col">
+                                                <div class="flex items-center gap-2">
+                                                    <span
+                                                        class="font-medium">{{ position.instId.replace('-USDT-SWAP', '') }}</span>
+                                                    <a-tag :color="position.posSide === 'long' ? 'success' : 'error'"
+                                                        class="m-0 text-xs px-1.5 py-0">
+                                                        {{ position.posSide === 'long' ? '多' : '空' }}
+                                                    </a-tag>
+                                                    <a-tag class="m-0 text-xs px-1.5 py-0">{{ position.lever }}X</a-tag>
+                                                </div>
+                                                <div class="flex items-center gap-2 mt-1">
+                                                    <span class="text-xs text-dark-200">持仓:
+                                                        {{ formatNumber(position.pos, 6) }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-col items-end">
+                                            <span class="text-sm font-medium"
+                                                :class="parseFloat(position.upl) >= 0 ? 'text-primary' : 'text-red-500'">
+                                                {{ formatNumber(position.upl, 6) }} USDT
+                                            </span>
+                                            <span class="text-xs mt-1"
+                                                :class="parseFloat(position.uplRatio) >= 0 ? 'text-primary' : 'text-red-500'">
+                                                {{ formatPercent(position.uplRatio) }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <a-empty description="暂无持仓" class="text-dark-200" />
+                            </template>
                         </div>
                     </div>
 
-                    <!-- 订单信息 -->
+                    <!-- 当前资产 -->
                     <div class="bg-dark-400 rounded-lg border border-dark-300">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-dark-300">
-                            <h3 class="text-base font-medium text-dark-100">当前订单</h3>
+                            <h3 class="text-base font-medium text-dark-100">当前资产</h3>
                         </div>
                         <div class="p-4">
-                            <a-empty description="暂无订单" class="text-dark-200" />
+                            <template
+                                v-if="wsStore.getAccountData?.details?.filter(asset => parseFloat(asset.eqUsd) >= 0.01 && asset.ccy !== 'USDT')?.length">
+                                <div class="space-y-3">
+                                    <div v-for="asset in wsStore.getAccountData.details.filter(asset => parseFloat(asset.eqUsd) >= 0.01 && asset.ccy !== 'USDT')"
+                                        :key="asset.ccy"
+                                        class="flex items-center justify-between p-3 rounded-lg border border-dark-300 hover:bg-dark-300 transition-colors">
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-medium text-base">{{ asset.ccy }}</span>
+                                            <span class="text-xs text-dark-200">可用</span>
+                                        </div>
+                                        <div class="flex flex-col items-end">
+                                            <span
+                                                class="text-sm font-medium text-dark-100">{{ formatNumber(asset.eq, 6) }}</span>
+                                            <span class="text-xs text-dark-200 mt-0.5">≈ ${{ formatNumber(asset.eqUsd,
+                                                2) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <a-empty description="暂无资产" class="text-dark-200" />
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -744,8 +801,21 @@ const theme = 'dark'
 
 // K线周期选项
 const candlePeriods = CANDLE_PERIODS
+// 格式化数字
+const formatNumber = (value, decimals = 2) => {
+    if (!value) return '0'
+    const num = parseFloat(value)
+    if (isNaN(num)) return '0'
+    return num.toFixed(decimals)
+}
+
+// 格式化百分比
+const formatPercent = (value) => {
+    if (!value) return '0%'
+    return (parseFloat(value) * 100).toFixed(2) + '%'
+}
 // 处理精度
-const formatNumber = (num, formatNum) => {
+const processingAccuracy = (num, formatNum) => {
     try {
         // 将formatNum转换为字符串，并分割成整数部分和小数部分
         let parts = formatNum.toString().split('.');
@@ -823,7 +893,7 @@ const SubmitTrade = async (type, side, posSide) => {
         }
         console.log(amount.value, lotSz);
         // 处理精度，确保我们能正确地处理小数值
-        amount.value = formatNumber(amount.value, lotSz)
+        amount.value = processingAccuracy(amount.value, lotSz)
         console.log('处理后的数量:', amount.value);
         // 生成订单号
         // const ordId = generateOrdId()
