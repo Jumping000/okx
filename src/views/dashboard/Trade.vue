@@ -821,15 +821,15 @@ const SubmitTrade = async (type, side, posSide) => {
         amount.value = formatNumber(amount.value, lotSz)
         console.log('处理后的数量:', amount.value);
         // 生成订单号
-        const ordId = generateOrdId()
+        // const ordId = generateOrdId()
 
         // 构建基础订单参数
         const baseOrderParams = {
             instId: selectedCurrency.value, // 产品ID，如 BTC-USDT
             tdMode: type === 'SWAP' ? marginMode.value : 'cash', // 交易模式 合约模式为marginMode.value（isolated 全仓  cross 逐仓） 现货模式为cash
             sz: String(amount.value), // 委托数量   
-            clOrdId: ordId, // 客户自定义订单ID
-            tag: String(Date.now()), // 订单标签
+            // clOrdId: ordId, // 客户自定义订单ID
+            // tag: String(Date.now()), // 订单标签
             side: side, // 订单方向 buy/sell
             ordType: orderType.value === 'limit' ? 'limit' : 'market', // 订单类型 limit-限价单 market-市价单
         }
