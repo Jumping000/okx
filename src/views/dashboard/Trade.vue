@@ -33,9 +33,9 @@
         <div class="trade-scroll-container">
             <div class="trade-content grid grid-cols-12 gap-4 p-4">
                 <!-- 左侧主区域：K线和交易区 -->
-                <div class="col-span-9 grid grid-cols-5 gap-4">
+                <div class="col-span-9 grid grid-cols-7 gap-4">
                     <!-- K线和行情区域 -->
-                    <div class="col-span-3 space-y-4">
+                    <div class="col-span-4 space-y-4">
                         <!-- K线图区域 -->
                         <div class="bg-dark-400 rounded-lg border border-dark-300">
                             <div class="flex items-center justify-between px-4 py-3 border-b border-dark-300">
@@ -74,46 +74,21 @@
                                     </a-select>
                                 </div>
                             </div>
-                            <div class="chart-container">
-                                <div class="market-info grid grid-cols-5 gap-4 px-4 py-3">
-                                    <div class="market-info-item">
-                                        <div class="text-xs text-dark-200">24h开盘</div>
-                                        <div class="font-medium">{{ formatPrice(latestCandle?.open) }}</div>
-                                    </div>
-                                    <div class="market-info-item">
-                                        <div class="text-xs text-dark-200">24h最高</div>
-                                        <div class="font-medium text-primary">{{ formatPrice(latestCandle?.high) }}
-                                        </div>
-                                    </div>
-                                    <div class="market-info-item">
-                                        <div class="text-xs text-dark-200">24h最低</div>
-                                        <div class="font-medium text-red-500">{{ formatPrice(latestCandle?.low) }}</div>
-                                    </div>
-                                    <div class="market-info-item">
-                                        <div class="text-xs text-dark-200">24h收盘</div>
-                                        <div class="font-medium">{{ formatPrice(latestCandle?.close) }}</div>
-                                    </div>
-                                    <div class="market-info-item">
-                                        <div class="text-xs text-dark-200">24h成交量</div>
-                                        <div class="font-medium">{{ formatVolume(latestCandle?.volume) }}</div>
+                            <div class="h-[400px] px-4 pb-4">
+                                <div v-if="candleData.length" class="h-full">
+                                    <div class="h-full rounded border border-dark-300 overflow-hidden">
+                                        <KlineChart :data="candleData" :theme="theme" :inst-id="selectedCurrency"
+                                            :period="selectedPeriod" />
                                     </div>
                                 </div>
-                                <div class="h-[480px] px-4 pb-4">
-                                    <div v-if="candleData.length" class="h-full">
-                                        <div class="h-full rounded border border-dark-300 overflow-hidden">
-                                            <KlineChart :data="candleData" :theme="theme" :inst-id="selectedCurrency"
-                                                :period="selectedPeriod" />
-                                        </div>
-                                    </div>
-                                    <div v-else class="h-full flex items-center justify-center">
-                                        <a-spin />
-                                    </div>
+                                <div v-else class="h-full flex items-center justify-center">
+                                    <a-spin />
                                 </div>
                             </div>
                         </div>
 
                         <!-- 当前行情 -->
-                        <div class="bg-dark-400 rounded-lg border border-dark-300 p-4">
+                        <div class="bg-dark-400 rounded-lg border border-dark-300 p-3">
                             <div class="grid grid-cols-4 gap-6">
                                 <div>
                                     <div class="text-sm text-dark-200 mb-1">最新价</div>
@@ -141,7 +116,7 @@
                     </div>
 
                     <!-- 交易操作区 -->
-                    <div class="col-span-2">
+                    <div class="col-span-3">
                         <div class="bg-dark-400 rounded-lg border border-dark-300 h-full">
                             <div class="p-4">
                                 <div class="flex flex-col gap-4">
@@ -149,14 +124,18 @@
                                     <template v-if="tradeType === 'SWAP'">
                                         <!-- 保证金模式 -->
                                         <div class="space-y-2">
-                                            <div class="text-sm text-dark-200">保证金模式</div>
-                                            <a-radio-group v-model:value="marginMode" button-style="solid"
-                                                class="w-full">
-                                                <a-radio-button value="cross"
-                                                    class="w-1/2 text-center">全仓</a-radio-button>
-                                                <a-radio-button value="isolated"
-                                                    class="w-1/2 text-center">逐仓</a-radio-button>
-                                            </a-radio-group>
+                                            <div class="flex items-center justify-between">
+                                                <div class="text-sm text-dark-200">保证金模式</div>
+                                                <div class="flex-1 ml-4">
+                                                    <a-radio-group v-model:value="marginMode" button-style="solid"
+                                                        class="w-full">
+                                                        <a-radio-button value="cross"
+                                                            class="w-1/2 text-center">全仓</a-radio-button>
+                                                        <a-radio-button value="isolated"
+                                                            class="w-1/2 text-center">逐仓</a-radio-button>
+                                                    </a-radio-group>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <!-- 杠杆倍数选择器 -->
@@ -401,13 +380,21 @@
                         </div>
                         <div class="p-4">
                             <div class="space-y-3">
-                                <div class="flex justify-between items-center">
+                                <div class="flex  justify-between items-center">
                                     <span class="text-sm text-dark-200">可用余额</span>
-                                    <span class="text-base font-medium text-dark-100">0.00 USDT</span>
+                                    <div class="flex items-baseline gap-2">
+                                        <span
+                                            class="text-base font-medium text-dark-100">{{ overviewStore.assets.available }}</span>
+                                        <span class="text-xs text-dark-200">USDT</span>
+                                    </div>
                                 </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-dark-200">冻结金额</span>
-                                    <span class="text-base font-medium text-dark-100">0.00 USDT</span>
+                                <div class="flex  justify-between items-center">
+                                    <span class="text-sm text-dark-200">持仓数量</span>
+                                    <div class="flex items-baseline gap-2">
+                                        <span
+                                            class="text-base font-medium text-dark-100">{{ overviewStore.assets.positionCount }}</span>
+                                        <span class="text-xs text-dark-200">币种</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -442,6 +429,7 @@
 import { ref, computed, onMounted, onUnmounted, watch, defineOptions } from 'vue'
 import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
+import { useOverviewStore } from '@/store/overview'
 import { MarketChannelType } from '@/utils/websocket'
 import KlineChart from '@/components/KlineChart.vue'
 import { message } from 'ant-design-vue'
@@ -474,6 +462,8 @@ const CANDLE_PERIODS = [
 // Store
 const currencyStore = useCurrencyStore()
 const wsStore = useWebSocketStore()
+const overviewStore = useOverviewStore()
+
 
 // 基础状态
 const tradeType = ref('SPOT') // SPOT-现货，SWAP-永续合约
