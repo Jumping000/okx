@@ -881,14 +881,10 @@ const SubmitTrade = async (type, side, posSide) => {
         // 检查数量精度
         const lotSz = parseFloat(currentCurrency.lotSz) // 下单数量精度
         const minSz = parseFloat(currentCurrency.minSz) // 最小下单数量
-        if (type === 'SPOT') {
-            if (amount.value <= minSz) {
-                throw new Error(`下单数量不能小于等于 ${minSz} 币`)
-            }
-        } else if (type === 'SWAP') {
-            if (amount.value < minSz) {
-                throw new Error(`下单数量不能小于 ${minSz} 张`)
-            }
+
+        if ((type === 'SPOT' && amount.value <= minSz) || (type === 'SWAP' && amount.value < minSz)) {
+            const errorMsg = type === 'SPOT' ? `下单数量不能小于等于 ${minSz} 币` : `下单数量不能小于 ${minSz} 张`;
+            throw new Error(errorMsg);
         }
 
         // 检查价格精度
@@ -901,7 +897,6 @@ const SubmitTrade = async (type, side, posSide) => {
                 throw new Error(`价格精度不能超过 ${priceDecimalPlaces} 位小数`)
             }
         }
-        console.log(amount.value, lotSz);
         // 处理精度，确保我们能正确地处理小数值
         amount.value = processingAccuracy(amount.value, lotSz)
         console.log('处理后的数量:', amount.value);
