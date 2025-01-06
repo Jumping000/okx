@@ -86,25 +86,52 @@
                 <div class="bg-dark-400 rounded-lg border border-dark-300">
                     <div class="flex justify-between items-center p-4 border-b border-dark-300">
                         <h3 class="text-base font-medium text-dark-100">最近交易</h3>
-                        <a-button type="link" size="small">查看更多</a-button>
+                        <a-button type="link" size="small" @click="router.push('/dashboard/orders')">查看更多</a-button>
                     </div>
-                    <div class="p-4">
-                        <div class="space-y-4">
-                            <div v-for="(trade, index) in recentTrades" :key="index"
-                                class="flex justify-between items-center">
-                                <div class="flex flex-col gap-1">
-                                    <span class="text-sm font-medium text-dark-100">{{ trade.symbol }}</span>
-                                    <span class="text-xs text-dark-200">{{ trade.time }}</span>
-                                </div>
-                                <div class="flex flex-col items-end gap-1">
-                                    <span class="text-sm font-mono"
-                                        :class="trade.type === 'buy' ? 'text-primary' : 'text-red-500'">
-                                        {{ trade.type === 'buy' ? '买入' : '卖出' }} {{ trade.amount }}
+                    <div class="orders-table" style="height: 200px;">
+                        <a-table :dataSource="filteredOrders.slice(0, 50)" :columns="columns" :loading="loading"
+                            :pagination="false" size="small" :scroll="{ y: 160 }">
+                            <template #bodyCell="{ column, text, record }">
+                                <!-- 产品 -->
+                                <template v-if="column.dataIndex === 'instId'">
+                                    <div class="flex items-center gap-1">
+                                        <span class="font-medium text-sm">{{ text.split('-')[0] }}</span>
+                                        <a-tag :color="record.instId.includes('SWAP') ? 'purple' : 'blue'"
+                                            class="m-0 text-xs px-1">
+                                            {{ record.instId.includes('SWAP') ? '永续' : '现货' }}
+                                        </a-tag>
+                                    </div>
+                                </template>
+
+                                <!-- 订单方向 -->
+                                <template v-else-if="column.dataIndex === 'side'">
+                                    <span :class="text === 'buy' ? 'text-success' : 'text-danger'">
+                                        {{ text === 'buy' ? '买入' : '卖出' }}
                                     </span>
-                                    <span class="text-xs text-dark-200">{{ trade.price }} USDT</span>
-                                </div>
-                            </div>
-                        </div>
+                                </template>
+
+                                <!-- 价格 -->
+                                <template v-else-if="column.dataIndex === 'px'">
+                                    <span
+                                        class="font-mono">{{ !text || text === '0' ? '市价' : formatNumber(text) }}</span>
+                                </template>
+
+                                <!-- 数量 -->
+                                <template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
+                                    <span class="font-mono">{{ formatNumber(text) }}</span>
+                                </template>
+
+                                <!-- 创建时间 -->
+                                <template v-else-if="column.dataIndex === 'cTime'">
+                                    <span>{{ formatTime(text) }}</span>
+                                </template>
+
+                                <!-- 默认显示 -->
+                                <template v-else>
+                                    <span>{{ text }}</span>
+                                </template>
+                            </template>
+                        </a-table>
                     </div>
                 </div>
 
@@ -259,7 +286,8 @@
 </template>
 
 <script>
-import { defineComponent, computed, ref } from 'vue'
+import { defineComponent, computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import {
     LockOutlined,
@@ -271,6 +299,8 @@ import {
 } from '@ant-design/icons-vue'
 import { useOverviewStore } from '@/store/overview'
 import { useCurrencyStore } from '@/store/currency'
+import { useWebSocketStore } from '@/store/websocket'
+import dayjs from 'dayjs'
 
 export default defineComponent({
     name: 'DashboardOverview',
@@ -283,12 +313,104 @@ export default defineComponent({
         InboxOutlined
     },
     setup() {
+        const router = useRouter()
         const store = useOverviewStore()
         const currencyStore = useCurrencyStore()
-        const { assets, connection, recentTrades, statistics, currentPeriod } = storeToRefs(store)
+        const wsStore = useWebSocketStore()
+        const { assets, connection, statistics, currentPeriod } = storeToRefs(store)
         const isRefreshing = ref(false)
         const spotSearch = ref('')
         const swapSearch = ref('')
+        const loading = ref(false)
+
+        // 表格列定义
+        const columns = [
+            {
+                title: '产品',
+                dataIndex: 'instId',
+                key: 'instId',
+                width: 120,
+            },
+            {
+                title: '方向',
+                dataIndex: 'side',
+                key: 'side',
+                width: 60,
+            },
+            {
+                title: '价格',
+                dataIndex: 'px',
+                key: 'px',
+                width: 100,
+            },
+            {
+                title: '数量',
+                dataIndex: 'sz',
+                key: 'sz',
+                width: 100,
+            },
+            {
+                title: '创建时间',
+                dataIndex: 'cTime',
+                key: 'cTime',
+                width: 160,
+            },
+        ]
+
+        // 获取订单数据
+        const filteredOrders = computed(() => {
+            const spotOrders = wsStore.getOrdersData('SPOT')
+            const swapOrders = wsStore.getOrdersData('SWAP')
+            const allOrders = [
+                ...(spotOrders.active || []),
+                ...(spotOrders.history || []),
+                ...(swapOrders.active || []),
+                ...(swapOrders.history || [])
+            ]
+            // 按时间倒序排序
+            return allOrders.sort((a, b) => Number(b.cTime) - Number(a.cTime))
+        })
+
+        // 格式化数字
+        const formatNumber = (value) => {
+            if (!value) return '0'
+            return Number(value).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 8
+            })
+        }
+
+        // 格式化时间
+        const formatTime = (timestamp) => {
+            if (!timestamp) return '-'
+            return dayjs(Number(timestamp)).format('YYYY-MM-DD HH:mm:ss')
+        }
+
+        // 获取订单类型颜色
+        const getOrderTypeColor = (type) => {
+            const colors = {
+                market: 'orange',
+                limit: 'blue',
+                post_only: 'cyan',
+                fok: 'purple',
+                ioc: 'geekblue',
+                optimal_limit_ioc: 'gold'
+            }
+            return colors[type] || 'default'
+        }
+
+        // 获取订单类型文本
+        const getOrderTypeText = (type) => {
+            const texts = {
+                market: '市价',
+                limit: '限价',
+                post_only: '只做maker',
+                fok: 'FOK',
+                ioc: 'IOC',
+                optimal_limit_ioc: '最优限价'
+            }
+            return texts[type] || type
+        }
 
         // 网络状态的引用
         const networkStatus = computed(() => connection.value.network)
@@ -366,6 +488,34 @@ export default defineComponent({
             }
         }
 
+        // 获取订单数据
+        const fetchOrders = async () => {
+            loading.value = true
+            try {
+                await wsStore.subscribeOrders({
+                    instType: 'SPOT',
+                    onData: (message) => {
+                        console.log('现货订单数据更新:', message)
+                    }
+                })
+                await wsStore.subscribeOrders({
+                    instType: 'SWAP',
+                    onData: (message) => {
+                        console.log('永续订单数据更新:', message)
+                    }
+                })
+            } catch (error) {
+                console.error('获取订单数据失败:', error)
+            } finally {
+                loading.value = false
+            }
+        }
+
+        // 组件挂载时获取订单数据
+        onMounted(() => {
+            fetchOrders()
+        })
+
         return {
             // 资产数据
             assets,
@@ -375,8 +525,6 @@ export default defineComponent({
             privateChannelStatus,
             businessChannelStatus,
             isAllConnected,
-            // 交易数据
-            recentTrades,
             // 统计数据
             statsPeriod: currentPeriod,
             stats,
@@ -390,6 +538,14 @@ export default defineComponent({
             swapSearch,
             filteredSpotCurrencies,
             filteredSwapCurrencies,
+            router,
+            columns,
+            loading,
+            filteredOrders,
+            formatNumber,
+            formatTime,
+            getOrderTypeColor,
+            getOrderTypeText,
         }
     }
 })
@@ -649,5 +805,86 @@ export default defineComponent({
 /* 总资产数字样式 */
 .total-assets {
     color: var(--text-color) !important;
+}
+
+/* 表格样式自定义 */
+:deep(.orders-table) {
+    .ant-table {
+        background: transparent;
+        color: var(--text-color);
+    }
+
+    .ant-table-thead>tr>th {
+        background-color: var(--dark-500) !important;
+        border-bottom: 1px solid var(--border-color);
+        color: var(--text-secondary);
+        font-weight: 500;
+        padding: 8px 16px !important;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+
+        &::before {
+            display: none;
+        }
+    }
+
+    .ant-table-tbody>tr>td {
+        border-bottom: 1px solid var(--border-color);
+        transition: background-color 0.3s;
+        background-color: transparent;
+        color: var(--text-color);
+        padding: 8px 16px !important;
+    }
+
+    .ant-table-tbody>tr:hover>td {
+        background-color: var(--dark-500) !important;
+    }
+}
+
+/* 隐藏滚动条占位列 */
+:deep(.orders-table) {
+    .ant-table-cell-scrollbar {
+        display: none !important;
+    }
+
+    .ant-table-header {
+        margin-right: 0 !important;
+        overflow-y: hidden !important;
+    }
+
+    .ant-table-body {
+        overflow-y: auto !important;
+    }
+}
+
+/* 自定义滚动条样式 */
+.orders-table {
+    :deep(.ant-table-body) {
+        &::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        &::-webkit-scrollbar-track {
+            background: var(--bg-color);
+        }
+
+        &::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 3px;
+
+            &:hover {
+                background: var(--text-secondary);
+            }
+        }
+    }
+}
+
+.text-success {
+    color: var(--success-color) !important;
+}
+
+.text-danger {
+    color: var(--danger-color) !important;
 }
 </style>

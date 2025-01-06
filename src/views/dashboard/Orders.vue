@@ -33,7 +33,7 @@
                         showQuickJumper: false,
                         showTotal: (total) => `共 ${total} 条`
                     }" size="small" :scroll="{ x: 1200 }">
-                        <template #bodyCell="{ column, text }">
+                        <template #bodyCell="{ column, text, record }">
                             <!-- 订单类型 -->
                             <template v-if="column.dataIndex === 'ordType'">
                                 <a-tag :color="getOrderTypeColor(text)">{{ getOrderTypeText(text) }}</a-tag>
@@ -41,9 +41,39 @@
 
                             <!-- 订单方向 -->
                             <template v-else-if="column.dataIndex === 'side'">
-                                <span :class="text === 'buy' ? 'text-success' : 'text-danger'">
-                                    {{ text === 'buy' ? '买入' : '卖出' }}
-                                </span>
+                                <template v-if="record.instId.includes('SWAP')">
+                                    <span class="font-medium text-sm"
+                                        :class="text === 'buy' ? 'buy-color' : 'sell-color'">
+                                        {{ text === 'buy' ?
+                                            (record.posSide === 'long' ? '开多' : '开空') :
+                                            (record.posSide === 'long' ? '平多' : '平空') 
+                                        }}
+                                    </span>
+                                </template>
+                                <template v-else>
+                                    <span class="font-medium text-sm"
+                                        :class="text === 'buy' ? 'buy-color' : 'sell-color'">
+                                        {{ text === 'buy' ? '买入' : '卖出' }}
+                                    </span>
+                                </template>
+                            </template>
+
+                            <!-- 杠杆倍数 -->
+                            <template v-else-if="column.dataIndex === 'lever'">
+                                <span v-if="record.instId.includes('SWAP')" class="font-mono">{{ text }}X</span>
+                                <span v-else>-</span>
+                            </template>
+
+                            <!-- 保证金模式 -->
+                            <template v-else-if="column.dataIndex === 'tdMode'">
+                                <template v-if="record.instId.includes('SWAP')">
+                                    <a-tag :color="text === 'cross' ? 'blue' : 'purple'">
+                                        {{ text === 'cross' ? '全仓' : '逐仓' }}
+                                    </a-tag>
+                                </template>
+                                <template v-else>
+                                    <span>-</span>
+                                </template>
                             </template>
 
                             <!-- 订单状态 -->
@@ -51,9 +81,24 @@
                                 <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text) }}</a-tag>
                             </template>
 
-                            <!-- 价格和数量 -->
-                            <template v-else-if="['px', 'sz', 'accFillSz'].includes(column.dataIndex)">
+                            <!-- 价格 -->
+                            <template v-else-if="column.dataIndex === 'px'">
+                                <span class="font-mono">{{ !text || text === '0' ? '市价' : formatNumber(text) }}</span>
+                            </template>
+
+                            <!-- 数量 -->
+                            <template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
                                 <span class="font-mono">{{ formatNumber(text) }}</span>
+                            </template>
+
+                            <!-- 订单来源 -->
+                            <template v-else-if="column.dataIndex === 'clOrdId'">
+                                <a-tag v-if="text?.includes('YAN')" class="source-tag" color="primary">
+                                    <span class="px-1">本平台</span>
+                                </a-tag>
+                                <a-tag v-else class="source-tag" color="default">
+                                    <span class="px-1">其他</span>
+                                </a-tag>
                             </template>
 
                             <!-- 创建时间 -->
@@ -90,56 +135,81 @@ const loading = ref(false)
 const selectedInstType = ref('SPOT') // SPOT 或 SWAP
 
 // 表格列定义
-const columns = [
-    {
-        title: '产品',
-        dataIndex: 'instId',
-        key: 'instId',
-        width: 120,
-    },
-    {
-        title: '类型',
-        dataIndex: 'ordType',
-        key: 'ordType',
-        width: 100,
-    },
-    {
-        title: '方向',
-        dataIndex: 'side',
-        key: 'side',
-        width: 80,
-    },
-    {
-        title: '价格',
-        dataIndex: 'px',
-        key: 'px',
-        width: 120,
-    },
-    {
-        title: '数量',
-        dataIndex: 'sz',
-        key: 'sz',
-        width: 120,
-    },
-    {
-        title: '已成交数量',
-        dataIndex: 'accFillSz',
-        key: 'accFillSz',
-        width: 120,
-    },
-    {
-        title: '状态',
-        dataIndex: 'state',
-        key: 'state',
-        width: 100,
-    },
-    {
-        title: '创建时间',
-        dataIndex: 'cTime',
-        key: 'cTime',
-        width: 180,
-    },
-]
+const columns = computed(() => {
+    const baseColumns = [
+        {
+            title: '产品',
+            dataIndex: 'instId',
+            key: 'instId',
+            width: 120,
+        },
+        {
+            title: '方向',
+            dataIndex: 'side',
+            key: 'side',
+            width: 80,
+        },
+        {
+            title: '价格',
+            dataIndex: 'px',
+            key: 'px',
+            width: 120,
+        },
+        {
+            title: '数量',
+            dataIndex: 'sz',
+            key: 'sz',
+            width: 120,
+        },
+        {
+            title: '已成交数量',
+            dataIndex: 'accFillSz',
+            key: 'accFillSz',
+            width: 120,
+        },
+        {
+            title: '状态',
+            dataIndex: 'state',
+            key: 'state',
+            width: 100,
+        },
+        {
+            title: '来源',
+            dataIndex: 'clOrdId',
+            key: 'clOrdId',
+            width: 80,
+        },
+        {
+            title: '创建时间',
+            dataIndex: 'cTime',
+            key: 'cTime',
+            width: 180,
+        },
+    ]
+
+    // 如果是永续合约，添加杠杆和保证金模式列
+    if (selectedInstType.value === 'SWAP') {
+        return [
+            baseColumns[0],
+            baseColumns[1],
+            {
+                title: '杠杆',
+                dataIndex: 'lever',
+                key: 'lever',
+                width: 80,
+            },
+            {
+                title: '保证金模式',
+                dataIndex: 'tdMode',
+                key: 'tdMode',
+                width: 100,
+            },
+            ...baseColumns.slice(2)
+        ]
+    }
+
+    return baseColumns
+})
 
 // 获取订单数据
 const fetchOrders = async () => {
@@ -289,6 +359,7 @@ onMounted(() => {
         transition: background-color 0.3s;
         background-color: transparent;
         color: var(--text-color);
+        padding: 8px 16px;
     }
 
     .ant-table-tbody>tr:hover>td {
@@ -484,5 +555,31 @@ onMounted(() => {
         width: 1px;
         height: 100%;
     }
+}
+
+/* 来源标签样式 */
+:deep(.source-tag) {
+    padding: 0;
+    line-height: 20px;
+    background-color: var(--dark-400) !important;
+    border-color: var(--border-color) !important;
+
+    span {
+        color: var(--text-color);
+        font-weight: 500;
+    }
+
+    &.ant-tag-primary {
+        border-color: var(--primary-color) !important;
+    }
+}
+
+/* 买卖方向颜色 */
+:deep(.buy-color) {
+    color: #f5222d !important;
+}
+
+:deep(.sell-color) {
+    color: #52c41a !important;
 }
 </style>
