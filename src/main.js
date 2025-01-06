@@ -7,6 +7,7 @@ import "ant-design-vue/dist/antd.css";
 import "./styles/tailwind.css";
 import "./styles/theme.css";
 import "./styles/ant-theme.css";
+import { storage } from "@/utils/storage";
 
 // 设置文档标题
 document.title = process.env.VUE_APP_TITLE;
@@ -19,7 +20,7 @@ app.use(Antd);
 
 // 初始化主题
 const initTheme = () => {
-  const savedSettings = localStorage.getItem("userPreferences");
+  const savedSettings = storage.get("userPreferences");
   if (savedSettings) {
     try {
       const { theme } = JSON.parse(savedSettings);

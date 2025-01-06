@@ -1,13 +1,21 @@
 <template>
-    <div id="app">
-        <router-view></router-view>
+    <div id="app" class="h-screen flex flex-col">
+        <TitleBar v-if="isElectronApp" />
+        <div class="flex-1 overflow-hidden">
+            <router-view></router-view>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { onMounted, onUnmounted } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { useWebSocketStore } from '@/store/websocket';
 import { WebSocketType } from '@/utils/websocket';
+import { isElectron } from '@/utils/environment';
+import TitleBar from '@/components/TitleBar.vue';
+
+// 判断是否是桌面应用
+const isElectronApp = ref(isElectron());
 
 const wsStore = useWebSocketStore();
 
@@ -66,6 +74,5 @@ onUnmounted(() => {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color: rgba(0, 0, 0, 0.85);
-    min-height: 100vh;
 }
 </style>

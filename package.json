@@ -2,19 +2,53 @@
   "name": "okx",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/main.js",
   "scripts": {
     "dev": "vue-cli-service serve --mode development",
     "serve": "vue-cli-service serve --mode development",
     "build": "vue-cli-service build --mode production",
     "build:dev": "vue-cli-service build --mode development",
     "lint": "vue-cli-service lint",
-    "preview": "pnpm build && pnpm serve dist"
+    "preview": "pnpm build && pnpm serve dist",
+    "electron:serve": "cross-env NODE_ENV=development electron .",
+    "electron:dev": "cross-env NODE_ENV=development concurrently \"vue-cli-service serve --mode development\" \"wait-on http://localhost:604 && electron .\"",
+    "electron:build": "vue-cli-service build --mode production && electron-builder",
+    "electron": "electron ."
+  },
+  "build": {
+    "appId": "com.okx.desktop",
+    "productName": "OKX Desktop",
+    "directories": {
+      "output": "dist_electron"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ]
   },
   "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
     "ant-design-vue": "^3.2.0",
     "axios": "^1.6.0",
     "core-js": "^3.8.3",
     "crypto-js": "^4.2.0",
+    "dayjs": "^1.11.13",
     "decimal.js": "^10.4.3",
     "lightweight-charts": "^4.2.2",
     "pinia": "^2.1.0",
@@ -28,10 +62,15 @@
     "@vue/cli-plugin-eslint": "~5.0.0",
     "@vue/cli-service": "~5.0.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
     "eslint": "^7.32.0",
     "eslint-plugin-vue": "^8.0.3",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^3.4.17",
+    "wait-on": "^8.0.1"
   },
   "eslintConfig": {
     "root": true,
