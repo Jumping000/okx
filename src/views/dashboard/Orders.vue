@@ -29,7 +29,7 @@
                     <a-table :dataSource="filteredOrders" :columns="columns" :loading="loading" :pagination="{
                         total: filteredOrders.length,
                         pageSize: 10,
-                        showSizeChanger: true,
+                        showSizeChanger: false,
                         showQuickJumper: false,
                         showTotal: (total) => `共 ${total} 条`
                     }" size="small" :scroll="{ x: 1200 }">
