@@ -25,6 +25,7 @@ export const WebSocketType = {
 export const AccountChannelType = {
   ACCOUNT: "account", // 账户频道
   POSITIONS: "positions", // 持仓频道
+  ORDERS: "orders", // 订单频道
 };
 
 /**
@@ -71,6 +72,29 @@ export const MarketChannelType = {
 export const MarketOperationType = {
   SUBSCRIBE: "subscribe", // 订阅
   UNSUBSCRIBE: "unsubscribe", // 取消订阅
+};
+
+/**
+ * 产品类型枚举
+ */
+export const InstrumentType = {
+  SPOT: "SPOT", // 币币
+  MARGIN: "MARGIN", // 币币杠杆
+  SWAP: "SWAP", // 永续合约
+  FUTURES: "FUTURES", // 交割合约
+  OPTION: "OPTION", // 期权
+  ANY: "ANY", // 全部
+};
+
+/**
+ * 订单状态枚举
+ */
+export const OrderState = {
+  CANCELED: "canceled", // 撤单成功
+  LIVE: "live", // 等待成交
+  PARTIALLY_FILLED: "partially_filled", // 部分成交
+  FILLED: "filled", // 完全成交
+  MMP_CANCELED: "mmp_canceled", // 做市商保护机制导致的自动撤单
 };
 
 /**

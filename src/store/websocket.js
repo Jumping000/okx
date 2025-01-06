@@ -1,11 +1,13 @@
 import { defineStore } from "pinia";
 import { useOverviewStore } from "@/store/overview";
+import { getHistoryOrders, getPendingOrders } from "@/api/module/Basics";
 import WebSocketClient, {
   WebSocketState,
   WebSocketType,
   MarketChannelType,
   MarketOperationType,
   AccountChannelType,
+  InstrumentType,
 } from "@/utils/websocket";
 
 // WebSocket 配置
@@ -146,6 +148,19 @@ export const useWebSocketStore = defineStore("websocket", {
     },
     // 订单缓存
     orders: new Map(),
+    // 订单数据缓存
+    ordersData: {
+      SPOT: {
+        active: [], // 活跃订单（未完成订单）
+        history: [], // 历史订单
+        lastUpdateTime: null,
+      },
+      SWAP: {
+        active: [], // 活跃订单（未完成订单）
+        history: [], // 历史订单
+        lastUpdateTime: null,
+      },
+    },
   }),
 
   getters: {
@@ -188,6 +203,16 @@ export const useWebSocketStore = defineStore("websocket", {
     // 获取永续合约持仓数据
     getPositionsData: (state) => state.positionsData.SWAP,
     getPositionsDataUpdateTime: (state) => state.positionsData.lastUpdateTime,
+
+    // 获取订单数据
+    getOrdersData: (state) => (instType) => ({
+      active: state.ordersData[instType]?.active || [],
+      history: state.ordersData[instType]?.history || [],
+      lastUpdateTime: state.ordersData[instType]?.lastUpdateTime,
+    }),
+
+    // 获取订单数据最后更新时间
+    getOrdersDataUpdateTime: (state) => state.ordersData.lastUpdateTime,
   },
 
   actions: {
@@ -1294,6 +1319,241 @@ export const useWebSocketStore = defineStore("websocket", {
         }
         this.orders.delete(messageId);
         this.connections[WebSocketType.PRIVATE].removeMessageHandler("order");
+      }
+    },
+
+    /**
+     * 获取历史订单和未完结订单
+     * @param {string} instType 产品类型
+     */
+    async fetchOrdersData(instType) {
+      try {
+        // 获取历史订单
+        const historyResponse = await getHistoryOrders({
+          instType,
+          limit: "100", // 最大获取100条
+        });
+
+        // 获取未完结订单
+        const pendingResponse = await getPendingOrders({
+          instType,
+          limit: "100", // 最大获取100条
+        });
+
+        if (historyResponse.code === "0" && pendingResponse.code === "0") {
+          // 更新订单数据
+          this.ordersData[instType] = {
+            active: pendingResponse.data || [],
+            history: historyResponse.data || [],
+            lastUpdateTime: new Date().getTime(),
+          };
+        } else {
+          throw new Error(
+            historyResponse.msg || pendingResponse.msg || "获取订单数据失败"
+          );
+        }
+      } catch (error) {
+        console.error(`获取${instType}订单数据失败:`, error);
+        throw error;
+      }
+    },
+
+    /**
+     * 订阅订单频道
+     * @param {Object} options 订阅选项
+     * @param {string} options.instType 产品类型
+     * @param {Function} options.onData 数据回调函数
+     * @returns {Promise<void>}
+     */
+    async subscribeOrders({ instType = InstrumentType.ANY, onData }) {
+      if (!this.isConnected(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未连接");
+      }
+
+      if (!this.isLoggedIn(WebSocketType.PRIVATE)) {
+        throw new Error("WebSocket未登录");
+      }
+
+      // 验证产品类型
+      if (!Object.values(InstrumentType).includes(instType)) {
+        throw new Error("无效的产品类型");
+      }
+
+      // 先获取历史订单和未完结订单
+      await this.fetchOrdersData(instType);
+
+      const subscriptionKey = `${AccountChannelType.ORDERS}_${instType}`;
+
+      // 构建订阅消息
+      const message = {
+        op: "subscribe",
+        args: [
+          {
+            channel: AccountChannelType.ORDERS,
+            instType: instType,
+          },
+        ],
+      };
+
+      // 创建消息处理函数
+      const messageHandler = (message) => {
+        // 处理订阅成功消息
+        if (
+          message.event === "subscribe" &&
+          message.arg?.channel === AccountChannelType.ORDERS
+        ) {
+          console.log(`${instType}订单频道订阅成功`);
+          return;
+        }
+
+        // 处理订单数据更新
+        if (
+          message?.arg?.channel === AccountChannelType.ORDERS &&
+          Array.isArray(message?.data)
+        ) {
+          // 更新订单数据
+          const newOrders = message.data;
+          const currentActive = [...(this.ordersData[instType]?.active || [])];
+          const currentHistory = [
+            ...(this.ordersData[instType]?.history || []),
+          ];
+
+          // 遍历新的订单数据
+          newOrders.forEach((newOrder) => {
+            // 根据订单状态决定是活跃订单还是历史订单
+            const isActiveOrder =
+              newOrder.state === "live" ||
+              newOrder.state === "partially_filled";
+
+            if (isActiveOrder) {
+              // 处理活跃订单
+              const existingIndex = currentActive.findIndex(
+                (order) => order.ordId === newOrder.ordId
+              );
+
+              if (existingIndex !== -1) {
+                // 更新已存在的订单
+                currentActive[existingIndex] = {
+                  ...currentActive[existingIndex],
+                  ...newOrder,
+                };
+              } else {
+                // 添加新订单
+                currentActive.push(newOrder);
+              }
+            } else {
+              // 处理历史订单
+              const existingIndex = currentHistory.findIndex(
+                (order) => order.ordId === newOrder.ordId
+              );
+
+              if (existingIndex !== -1) {
+                // 更新已存在的订单
+                currentHistory[existingIndex] = {
+                  ...currentHistory[existingIndex],
+                  ...newOrder,
+                };
+              } else {
+                // 添加新订单
+                currentHistory.push(newOrder);
+
+                // 如果这个订单之前在活跃订单中，需要从活跃订单中移除
+                const activeIndex = currentActive.findIndex(
+                  (order) => order.ordId === newOrder.ordId
+                );
+                if (activeIndex !== -1) {
+                  currentActive.splice(activeIndex, 1);
+                }
+              }
+            }
+          });
+
+          // 更新状态
+          this.ordersData[instType] = {
+            active: currentActive,
+            history: currentHistory,
+            lastUpdateTime: new Date().getTime(),
+          };
+
+          // 调用回调函数
+          if (typeof onData === "function") {
+            onData({
+              ...message,
+              ordersData: this.ordersData[instType],
+            });
+          }
+        }
+      };
+
+      // 添加消息处理函数
+      this.connections[WebSocketType.PRIVATE].addMessageHandler(
+        subscriptionKey,
+        messageHandler
+      );
+
+      // 发送订阅消息
+      this.send({
+        type: WebSocketType.PRIVATE,
+        data: message,
+      });
+
+      console.log(`已订阅${instType}订单数据`);
+    },
+
+    /**
+     * 取消订阅订单频道
+     * @param {Object} options 取消订阅选项
+     * @param {string} options.instType 产品类型
+     */
+    unsubscribeOrders({ instType = InstrumentType.ANY }) {
+      if (!this.isConnected(WebSocketType.PRIVATE)) {
+        return;
+      }
+
+      const subscriptionKey = `${AccountChannelType.ORDERS}_${instType}`;
+
+      // 构建取消订阅消息
+      const message = {
+        op: "unsubscribe",
+        args: [
+          {
+            channel: AccountChannelType.ORDERS,
+            instType: instType,
+          },
+        ],
+      };
+
+      // 发送取消订阅消息
+      this.send({
+        type: WebSocketType.PRIVATE,
+        data: message,
+      });
+
+      // 移除消息处理函数
+      this.connections[WebSocketType.PRIVATE].removeMessageHandler(
+        subscriptionKey
+      );
+
+      // 清空对应产品类型的订单数据
+      this.ordersData[instType] = [];
+      this.ordersData.lastUpdateTime = new Date().getTime();
+
+      console.log(`已取消订阅${instType}订单数据`);
+    },
+
+    /**
+     * 清空订单数据
+     * @param {string} [instType] 产品类型，如果不指定则清空所有
+     */
+    clearOrdersData(instType) {
+      if (instType) {
+        this.ordersData[instType] = [];
+      } else {
+        this.ordersData = {
+          SPOT: [],
+          SWAP: [],
+          lastUpdateTime: null,
+        };
       }
     },
   },

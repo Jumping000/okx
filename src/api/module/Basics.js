@@ -19,3 +19,13 @@ export const getLeverageInfo = async (data) => {
 export const setLeverage = async (data) => {
   return await request.post("/api/v5/account/set-leverage", data);
 };
+
+// 获取历史订单记录（近三个月）
+export const getHistoryOrders = async (data) => {
+  return await request.get("/api/v5/trade/orders-history-archive", data);
+};
+
+// 获取未成交订单列表
+export const getPendingOrders = async (data) => {
+  return await request.get("/api/v5/trade/orders-pending", data);
+};

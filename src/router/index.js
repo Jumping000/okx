@@ -3,7 +3,7 @@ import { storage } from "@/utils/storage";
 import { useWebSocketStore } from "@/store/websocket";
 import { useCurrencyStore } from "@/store/currency";
 import { useOverviewStore } from "@/store/overview";
-import { WebSocketType } from "@/utils/websocket";
+import { WebSocketType, InstrumentType } from "@/utils/websocket";
 import { message } from "ant-design-vue";
 
 const routes = [
@@ -133,6 +133,31 @@ router.beforeEach(async (to, from, next) => {
         // 登录成功后，订阅账户数据
         if (wsStore.isLoggedIn(WebSocketType.PRIVATE)) {
           try {
+            // 订阅现货订单数据
+            await wsStore.subscribeOrders({
+              instType: InstrumentType.SPOT,
+              onData: (message) => {
+                if (
+                  message?.arg?.channel === "orders" &&
+                  Array.isArray(message?.data)
+                ) {
+                  console.log("现货订单数据更新:", message.data);
+                }
+              },
+            });
+            // 订阅永续合约订单数据
+            await wsStore.subscribeOrders({
+              instType: InstrumentType.SWAP,
+              onData: (message) => {
+                if (
+                  message?.arg?.channel === "orders" &&
+                  Array.isArray(message?.data)
+                ) {
+                  console.log("永续合约订单数据更新:", message.data);
+                }
+              },
+            });
+
             // 订阅账户数据
             if (!wsStore.getAccountData) {
               await wsStore.subscribeAccount({
@@ -195,11 +220,11 @@ router.beforeEach(async (to, from, next) => {
                       // 比较持仓数量和最小下单量
                       const currentSize = parseFloat(item.cashBal);
                       const minimumSize = parseFloat(spotCurrency.minSz);
-
                       return currentSize >= minimumSize;
                     });
 
                     // 有效持仓数量
+
                     const validPositionCount = validPositions.length;
 
                     // 更新到 websocket store 中
