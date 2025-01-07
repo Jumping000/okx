@@ -6,18 +6,18 @@ const isDev = process.env.NODE_ENV !== "production";
 // 创建主窗口
 const createWindow = () => {
   const mainWindow = new BrowserWindow({
-    width: 1440,
-    height: 800,
-    minWidth: 1200,
-    minHeight: 700,
+    width: 1440, // 窗口宽度
+    height: 800, // 窗口高度
+    minWidth: 1200, // 最小宽度
+    minHeight: 700, // 最小高度
     frame: false, // 无边框窗口
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
-      nodeIntegration: true,
-      contextIsolation: true,
-      enableRemoteModule: true,
-      webSecurity: false,
-      allowRunningInsecureContent: true,
+      preload: path.join(__dirname, "preload.js"), // 预加载脚本
+      nodeIntegration: true, // 启用Node.js集成
+      contextIsolation: true, // 启用上下文隔离
+      enableRemoteModule: true, // 启用远程模块
+      webSecurity: false, // 禁用跨域检查
+      allowRunningInsecureContent: true, // 允许运行不安全的代码
     },
   });
 
