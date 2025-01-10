@@ -124,7 +124,7 @@ class StrategyWorker extends self.BaseWorker {
 
     // 订阅历史K线
     await this.handleHistoryKline(this.klineTimeLevels);
-    // TODO:接下来要进行内容 完善 历史k线 然后订阅多个K线频道 通过状态判断是否完结完结存入历史 不然则为最新的
+    // TODO:接下来要进行内容 完善 历史k线 然后循环订阅多个K线频道 通过状态判断是否完结完结存入历史 不然则为最新的
 
     // // 订阅行情数据
     // const subscribeMessage = {
