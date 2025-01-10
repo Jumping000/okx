@@ -111,6 +111,60 @@
                             <a-table :dataSource="strategyList" :columns="strategyColumns" :loading="loading"
                                 :pagination="strategyList.length > 5 ? { pageSize: 5 } : false" size="small">
                                 <template v-slot:bodyCell="{ column, record }">
+                                    <template v-if="column.key === 'name'">
+                                        <a-tooltip placement="topLeft">
+                                            <template #title>
+                                                <div class="strategy-tooltip">
+                                                    <div class="tooltip-item">
+                                                        <span class="label">策略名称：</span>
+                                                        <span class="value">{{ record.name }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">策略描述：</span>
+                                                        <span class="value">{{ record.description }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">交易类型：</span>
+                                                        <span class="value">永续</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">币种信息：</span>
+                                                        <span class="value">{{ record.currency }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">委托数量：</span>
+                                                        <span class="value">{{ record.quantity }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">杠杆倍数：</span>
+                                                        <span class="value">{{ record.leverage }}倍</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">仓位类型：</span>
+                                                        <span
+                                                            class="value">{{ record.positionType === 'cross' ? '全仓' : '逐仓' }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">止损比例：</span>
+                                                        <span class="value">{{ record.stopLoss }}%</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">完整表达式：</span>
+                                                        <span class="value">{{ record.fullExpression }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">原始表达式：</span>
+                                                        <span class="value">{{ record.originalExpression }}</span>
+                                                    </div>
+                                                    <div class="tooltip-item">
+                                                        <span class="label">创建时间：</span>
+                                                        <span class="value">{{ formatTime(record.createTime) }}</span>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                            <span>{{ record.name }}</span>
+                                        </a-tooltip>
+                                    </template>
                                     <template v-if="column.key === 'status'">
                                         <div class="text-center">
                                             <a-tag :color="record.status === 'running' ? 'success' : 'default'">
@@ -337,7 +391,17 @@ const expressionColumns = [
 ]
 
 const strategyColumns = [
-    { title: '策略名称', dataIndex: 'name', key: 'name', width: '25%' },
+    {
+        title: '策略名称',
+        dataIndex: 'name',
+        key: 'name',
+        width: '25%',
+        customCell: () => ({
+            style: {
+                cursor: 'pointer'
+            }
+        })
+    },
     { title: '策略说明', dataIndex: 'description', key: 'description', width: '35%' },
     { title: '状态', dataIndex: 'status', key: 'status', width: '20%', align: 'center' },
     { title: '操作', key: 'action', width: '20%', align: 'center' }
@@ -375,12 +439,12 @@ const handleFormulaSubmit = ({ type, data }) => {
 const handleStrategySubmit = async (formData) => {
     dialogLoading.value = true
     try {
-        // TODO: 调用API保存策略
-        console.log('保存策略数据:', formData)
         strategyList.value.push(formData)
         strategyDialogVisible.value = false
+        message.success('保存成功')
     } catch (error) {
         console.error('保存失败:', error)
+        message.error('保存失败')
     } finally {
         dialogLoading.value = false
     }
@@ -406,24 +470,28 @@ const handleDelete = async (record, type) => {
 
 const handleDeleteStrategy = async (record) => {
     try {
-        // TODO: 调用API删除策略
-        console.log('删除策略:', record)
         strategyList.value = strategyList.value.filter(item => item.id !== record.id)
+        // 更新本地存储
+        localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
+        message.success('删除成功')
     } catch (error) {
         console.error('删除失败:', error)
+        message.error('删除失败')
     }
 }
 
 const handleStrategyAction = async (record) => {
     try {
-        // TODO: 调用API启动/停止策略
-        console.log('策略操作:', record)
         const index = strategyList.value.findIndex(item => item.id === record.id)
         if (index !== -1) {
             strategyList.value[index].status = record.status === 'running' ? 'stopped' : 'running'
+            // 更新本地存储
+            localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
+            message.success(record.status === 'running' ? '已停止' : '已启动')
         }
     } catch (error) {
         console.error('操作失败:', error)
+        message.error('操作失败')
     }
 }
 
@@ -435,9 +503,22 @@ const formatTime = (timestamp) => {
     return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
 }
 
+// 添加加载策略列表的方法
+const loadStrategies = () => {
+    try {
+        const storedStrategies = localStorage.getItem('quant_strategies')
+        if (storedStrategies) {
+            strategyList.value = JSON.parse(storedStrategies)
+        }
+    } catch (error) {
+        console.error('加载策略列表失败:', error)
+    }
+}
+
 // 组件挂载时加载数据
 onMounted(() => {
     loadFromStorage()
+    loadStrategies()
 })
 </script>
 
@@ -687,5 +768,33 @@ onMounted(() => {
 /* 移除交易类型选项卡样式 */
 :deep(.trade-type-tabs) {
     display: none;
+}
+
+/* 策略提示框样式 */
+.strategy-tooltip {
+    padding: 4px;
+    max-width: 400px;
+}
+
+.tooltip-item {
+    margin-bottom: 8px;
+    line-height: 1.5;
+    display: flex;
+    align-items: flex-start;
+}
+
+.tooltip-item:last-child {
+    margin-bottom: 0;
+}
+
+.tooltip-item .label {
+    color: var(--text-secondary);
+    margin-right: 8px;
+    flex-shrink: 0;
+}
+
+.tooltip-item .value {
+    color: #fff;
+    word-break: break-all;
 }
 </style>

@@ -227,22 +227,51 @@ const handleSave = () => {
         }
     }
 
-    // 生成完整的条件表达式，考虑括号激活状态
-    const conditionExpression = form.value.conditions.map((condition, index) => {
+    // 生成完整的条件表达式和原始表达式
+    const fullExpression = form.value.conditions.map((condition, index) => {
         const leftBracket = activeBrackets.value[`${index}-left`] ? '(' : ''
         const rightBracket = activeBrackets.value[`${index}-right`] ? ')' : ''
         const text = `${leftBracket}${condition.expression} ${condition.compareType} ${condition.value}${rightBracket}`
         return index < form.value.conditions.length - 1 ? `${text} ${condition.relation}` : text
     }).join(' ')
 
+    const originalExpression = form.value.conditions.map((condition, index) => {
+        const leftBracket = activeBrackets.value[`${index}-left`] ? '(' : ''
+        const rightBracket = activeBrackets.value[`${index}-right`] ? ')' : ''
+        // 从表达式选项中找到对应的标签
+        const expressionLabel = expressionOptions.value.find(opt => opt.value === condition.expression)?.label || condition.expression
+        const text = `${leftBracket}${expressionLabel} ${condition.compareType} ${condition.value}${rightBracket}`
+        return index < form.value.conditions.length - 1 ? `${text} ${condition.relation === 'and' ? '并且' : '或者'}` : text
+    }).join(' ')
+
+    // 生成唯一ID
+    const id = Date.now().toString()
+
     // 提交数据
     const formData = {
+        id,
         ...form.value,
-        conditionExpression
+        fullExpression,
+        originalExpression,
+        status: 'stopped',
+        createTime: new Date().toISOString()
     }
-    emit('submit', formData)
-    // 关闭弹窗
-    emit('update:visible', false)
+
+    // 保存到本地存储
+    try {
+        const storedStrategies = localStorage.getItem('quant_strategies') || '[]'
+        const strategies = JSON.parse(storedStrategies)
+        strategies.push(formData)
+        localStorage.setItem('quant_strategies', JSON.stringify(strategies))
+
+        emit('submit', formData)
+        // 关闭弹窗
+        emit('update:visible', false)
+        message.success('保存成功')
+    } catch (error) {
+        console.error('保存策略失败:', error)
+        message.error('保存失败')
+    }
 }
 
 // 加载表达式列表
