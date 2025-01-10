@@ -1,404 +1,629 @@
 <template>
-    <CustomDialog :model-value="visible" title="新增策略" :width="900" :close-on-click-mask="false"
+    <CustomDialog :model-value="visible" title="新增策略" :width="800" :close-on-click-mask="false"
         @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
         <div class="strategy-dialog">
-            <a-form :model="formData" layout="vertical">
+            <a-form :model="form" layout="vertical">
                 <!-- 基本信息 -->
-                <a-form-item label="策略名称" required :rules="[{ required: true, message: '请输入策略名称' }]">
-                    <a-input v-model:value="formData.name" placeholder="请输入策略名称" />
-                </a-form-item>
-
-                <a-form-item label="策略描述" required :rules="[{ required: true, message: '请输入策略描述' }]">
-                    <a-textarea v-model:value="formData.description" placeholder="请输入策略描述" :rows="3" />
-                </a-form-item>
-
-                <!-- 交易设置 -->
-                <div class="section-title">交易设置</div>
-                <div class="grid grid-cols-2 gap-4">
-                    <a-form-item label="交易方向">
-                        <a-select v-model:value="formData.direction" placeholder="请选择交易方向">
-                            <a-select-option value="long">做多</a-select-option>
-                            <a-select-option value="short">做空</a-select-option>
-                            <a-select-option value="both">双向</a-select-option>
-                        </a-select>
+                <div class="section-header">
+                    <span class="title">基本信息</span>
+                </div>
+                <div class="section-content">
+                    <a-form-item label="策略名称" required>
+                        <a-input v-model:value="form.name" placeholder="请输入策略名称" />
                     </a-form-item>
-
-                    <a-form-item label="保证金模式">
-                        <a-select v-model:value="formData.marginMode" placeholder="请选择保证金模式">
-                            <a-select-option value="cross">全仓</a-select-option>
-                            <a-select-option value="isolated">逐仓</a-select-option>
-                        </a-select>
+                    <a-form-item label="策略描述" required>
+                        <a-textarea v-model:value="form.description" placeholder="请输入策略描述" :rows="2" />
                     </a-form-item>
-
-                    <a-form-item label="杠杆倍数">
-                        <a-input-number v-model:value="formData.leverage" :min="1" :max="100" style="width: 100%" />
-                    </a-form-item>
-
-                    <a-form-item label="开仓数量">
-                        <a-input-number v-model:value="formData.size" :min="0" style="width: 100%" />
+                    <a-form-item label="交易类型" required>
+                        <a-radio-group v-model:value="form.tradeType" @change="handleTradeTypeChange">
+                            <a-radio value="SPOT">现货</a-radio>
+                            <a-radio value="SWAP">永续</a-radio>
+                        </a-radio-group>
                     </a-form-item>
                 </div>
 
-                <!-- 策略参数 -->
-                <div class="section-title">策略参数</div>
-                <div class="strategy-params">
-                    <div class="param-list">
-                        <div v-for="(param, index) in formData.params" :key="index" class="param-item">
-                            <div class="param-content">
-                                <span class="param-name">{{ param.name }}</span>
-                                <span class="param-desc">{{ param.description }}</span>
-                            </div>
-                            <div class="param-value">
-                                <a-input-number v-model:value="param.value" :min="param.min" :max="param.max"
+                <!-- 交易设置 -->
+                <div class="section-header">
+                    <span class="title">交易设置</span>
+                </div>
+                <div class="section-content">
+                    <div class="currency-settings">
+                        <div class="settings-row">
+                            <a-form-item label="币种" required>
+                                <el-select v-model="form.currency" placeholder="请选择币种" filterable style="width: 120px">
+                                    <el-option v-for="currency in currentCurrencies" :key="currency.instId"
+                                        :label="currency.instId.replace('-SWAP', '').replace('-USDT', '')"
+                                        :value="currency.instId">
+                                        <div class="flex items-center justify-between">
+                                            <span>{{ currency.instId.replace('-SWAP', '').replace('-USDT', '') }}</span>
+                                            <span class="text-dark-200 text-xs">
+                                                {{ currency.instId.includes('-SWAP') ? '永续' : '现货' }}
+                                            </span>
+                                        </div>
+                                    </el-option>
+                                </el-select>
+                            </a-form-item>
+                            <a-form-item label="委托数量" required>
+                                <a-input-number v-model:value="form.quantity" :min="0" :precision="4" :step="0.0001"
                                     style="width: 120px" />
-                            </div>
-                            <a-button type="text" danger @click="removeParam(index)">
-                                <template #icon>
-                                    <delete-outlined />
-                                </template>
-                            </a-button>
-                        </div>
-                    </div>
-                    <div class="add-param">
-                        <a-button type="dashed" block @click="showParamSelect">
-                            <template #icon>
-                                <plus-outlined />
+                            </a-form-item>
+                            <template v-if="form.tradeType === 'SWAP'">
+                                <a-form-item label="杠杆倍数" required>
+                                    <a-input-number v-model:value="form.leverage" :min="1" :max="125"
+                                        style="width: 100px" />
+                                </a-form-item>
+                                <a-form-item label="仓位类型" required>
+                                    <el-select v-model="form.positionType" style="width: 100px">
+                                        <el-option value="cross" label="全仓" />
+                                        <el-option value="isolated" label="逐仓" />
+                                    </el-select>
+                                </a-form-item>
                             </template>
-                            添加参数
-                        </a-button>
+                            <a-form-item label="止损比例" required>
+                                <a-input-number v-model:value="form.stopLoss" :min="0" :max="100" :step="0.1"
+                                    style="width: 100px" />
+                                <span class="unit">%</span>
+                            </a-form-item>
+                        </div>
                     </div>
                 </div>
 
                 <!-- 触发条件 -->
-                <div class="section-title">触发条件</div>
-                <div class="trigger-conditions">
-                    <div class="condition-list">
-                        <div v-for="(condition, index) in formData.conditions" :key="index" class="condition-item">
+                <div class="section-header">
+                    <span class="title">触发条件</span>
+                    <a-button type="link" @click="addCondition">
+                        <template #icon><plus-outlined /></template>
+                        添加条件
+                    </a-button>
+                </div>
+                <div class="section-content">
+                    <div v-if="form.conditions.length === 0" class="empty-tip">
+                        请添加触发条件
+                    </div>
+                    <div v-else class="conditions-list">
+                        <div v-for="(condition, index) in form.conditions" :key="index" class="condition-item">
                             <div class="condition-content">
-                                <span class="condition-name">{{ condition.name }}</span>
-                                <span class="condition-desc">{{ condition.description }}</span>
-                            </div>
-                            <a-button type="text" danger @click="removeCondition(index)">
-                                <template #icon>
-                                    <delete-outlined />
+                                <el-select v-model="condition.expression" placeholder="选择表达式" style="width: 200px">
+                                    <el-option v-for="expr in expressionOptions" :key="expr.value" :label="expr.label"
+                                        :value="expr.value" />
+                                </el-select>
+                                <el-select v-model="condition.compareType" placeholder="比较类型" style="width: 120px">
+                                    <el-option v-for="type in compareTypes" :key="type.value" :label="type.label"
+                                        :value="type.value" />
+                                </el-select>
+                                <a-input-number v-model:value="condition.value" placeholder="比较值"
+                                    style="width: 120px" />
+                                <template v-if="index < form.conditions.length - 1">
+                                    <el-select v-model="condition.relation" placeholder="关系" style="width: 80px">
+                                        <el-option value="and" label="并且" />
+                                        <el-option value="or" label="或者" />
+                                    </el-select>
                                 </template>
-                            </a-button>
+                                <a-button type="link" danger @click="removeCondition(index)">
+                                    <template #icon><delete-outlined /></template>
+                                </a-button>
+                            </div>
                         </div>
                     </div>
-                    <div class="add-condition">
-                        <a-button type="dashed" block @click="showConditionSelect">
-                            <template #icon>
-                                <plus-outlined />
-                            </template>
-                            添加条件
-                        </a-button>
-                    </div>
-                </div>
-
-                <!-- 风控设置 -->
-                <div class="section-title">风控设置</div>
-                <div class="grid grid-cols-2 gap-4">
-                    <a-form-item label="止损比例">
-                        <a-input-number v-model:value="formData.stopLoss" :min="0" :max="100" style="width: 100%"
-                            addon-after="%" />
-                    </a-form-item>
-
-                    <a-form-item label="止盈比例">
-                        <a-input-number v-model:value="formData.takeProfit" :min="0" :max="1000" style="width: 100%"
-                            addon-after="%" />
-                    </a-form-item>
-
-                    <a-form-item label="最大持仓时间">
-                        <a-input-number v-model:value="formData.maxHoldingTime" :min="0" style="width: 100%"
-                            addon-after="分钟" />
-                    </a-form-item>
-
-                    <a-form-item label="最大回撤">
-                        <a-input-number v-model:value="formData.maxDrawdown" :min="0" :max="100" style="width: 100%"
-                            addon-after="%" />
-                    </a-form-item>
                 </div>
             </a-form>
-
-            <!-- 底部按钮 -->
+        </div>
+        <template #footer>
             <div class="dialog-footer">
                 <a-button @click="handleCancel">取消</a-button>
-                <a-button type="primary" :loading="loading" @click="handleSubmit">确定</a-button>
-            </div>
-        </div>
-    </CustomDialog>
-
-    <!-- 参数选择弹窗 -->
-    <CustomDialog :model-value="paramSelectVisible" title="选择参数" :width="600"
-        @update:model-value="(val) => paramSelectVisible = val" @close="() => paramSelectVisible = false">
-        <div class="param-select">
-            <a-table :columns="paramColumns" :dataSource="availableParams" :rowSelection="paramSelection"
-                :pagination="false" size="small">
-                <template v-slot:bodyCell="{ column, text }">
-                    <template v-if="column.dataIndex === 'formula'">
-                        <span class="font-mono">{{ text }}</span>
-                    </template>
-                </template>
-            </a-table>
-        </div>
-        <template #footer>
-            <div class="dialog-footer">
-                <a-button @click="paramSelectVisible = false">取 消</a-button>
-                <a-button type="primary" @click="handleParamSelect">确 定</a-button>
-            </div>
-        </template>
-    </CustomDialog>
-
-    <!-- 条件选择弹窗 -->
-    <CustomDialog :model-value="conditionSelectVisible" title="选择条件" :width="600"
-        @update:model-value="(val) => conditionSelectVisible = val" @close="() => conditionSelectVisible = false">
-        <div class="condition-select">
-            <a-table :columns="expressionColumns" :dataSource="availableExpressions" :rowSelection="expressionSelection"
-                :pagination="false" size="small">
-                <template v-slot:bodyCell="{ column, text }">
-                    <template v-if="column.dataIndex === 'formula'">
-                        <span class="font-mono">{{ text }}</span>
-                    </template>
-                </template>
-            </a-table>
-        </div>
-        <template #footer>
-            <div class="dialog-footer">
-                <a-button @click="conditionSelectVisible = false">取 消</a-button>
-                <a-button type="primary" @click="handleConditionSelect">确 定</a-button>
+                <a-button type="primary" @click="handleSave">确定</a-button>
             </div>
         </template>
     </CustomDialog>
 </template>
 
 <script setup>
-import { ref, computed, defineProps, defineEmits } from 'vue'
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons-vue'
+import { ref, computed, watch, defineProps, defineEmits } from 'vue'
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import CustomDialog from '@/components/common/CustomDialog.vue'
+import { useCurrencyStore } from '@/store/currency'
 
+// Props 定义
 const props = defineProps({
     visible: {
         type: Boolean,
         required: true
-    },
-    loading: {
-        type: Boolean,
-        default: false
     }
 })
 
+// Emits 定义
 const emit = defineEmits(['update:visible', 'submit'])
 
+// Store
+const currencyStore = useCurrencyStore()
+
 // 表单数据
-const formData = ref({
+const form = ref({
     name: '',
     description: '',
-    direction: 'long',
-    marginMode: 'cross',
+    tradeType: 'SPOT',
+    currency: '',
+    quantity: 0,
     leverage: 1,
-    size: 1,
-    params: []
+    positionType: 'cross',
+    stopLoss: 0,
+    conditions: []
 })
 
-// 参数选择相关
-const paramSelectVisible = ref(false)
-const selectedParams = ref([])
-const availableParams = ref([
-    {
-        id: 1,
-        name: 'MA周期',
-        description: '移动平均线周期',
-        formula: 'MA_PERIOD',
-        value: 20,
-        min: 1,
-        max: 1000
-    },
-    {
-        id: 2,
-        name: 'RSI周期',
-        description: 'RSI指标周期',
-        formula: 'RSI_PERIOD',
-        value: 14,
-        min: 1,
-        max: 100
-    }
-])
+// 币种列表
+const currentCurrencies = computed(() => {
+    return currencyStore.currencies[form.value.tradeType] || []
+})
 
-const paramColumns = [
-    { title: '参数名称', dataIndex: 'name' },
-    { title: '参数说明', dataIndex: 'description' },
-    { title: '参数公式', dataIndex: 'formula' }
+// 表达式选项
+const expressionOptions = ref([])
+
+// 比较类型选项
+const compareTypes = [
+    { value: '>', label: '大于' },
+    { value: '>=', label: '大于等于' },
+    { value: '<', label: '小于' },
+    { value: '<=', label: '小于等于' },
+    { value: '==', label: '等于' },
+    { value: '!=', label: '不等于' }
 ]
 
-const selectedParamKeys = computed(() => selectedParams.value.map(item => item.id))
-
-const paramSelection = {
-    selectedRowKeys: selectedParamKeys,
-    onChange: (selectedRowKeys, selectedRows) => {
-        selectedParams.value = selectedRows
-    }
+// 交易类型变更处理
+const handleTradeTypeChange = () => {
+    form.value.currency = ''
 }
 
-// 条件选择相关
-const conditionSelectVisible = ref(false)
-const selectedExpressions = ref([])
-const availableExpressions = ref([
-    {
-        id: 1,
-        name: '金叉',
-        description: 'MA5上穿MA10',
-        formula: 'CROSS(MA5, MA10)'
-    },
-    {
-        id: 2,
-        name: '死叉',
-        description: 'MA5下穿MA10',
-        formula: 'CROSS(MA10, MA5)'
-    }
-])
-
-const expressionColumns = [
-    { title: '条件名称', dataIndex: 'name' },
-    { title: '条件说明', dataIndex: 'description' },
-    { title: '条件公式', dataIndex: 'formula' }
-]
-
-const selectedExpressionKeys = computed(() => selectedExpressions.value.map(item => item.id))
-
-const expressionSelection = {
-    selectedRowKeys: selectedExpressionKeys,
-    onChange: (selectedRowKeys, selectedRows) => {
-        selectedExpressions.value = selectedRows
-    }
+// 添加触发条件
+const addCondition = () => {
+    form.value.conditions.push({
+        expression: '',
+        compareType: '',
+        value: null,
+        relation: 'and'
+    })
 }
 
-// 方法定义
+// 删除触发条件
+const removeCondition = (index) => {
+    form.value.conditions.splice(index, 1)
+}
+
+// 取消处理
 const handleCancel = () => {
     emit('update:visible', false)
 }
 
-const showParamSelect = () => {
-    selectedParams.value = []
-    paramSelectVisible.value = true
-}
-
-const showConditionSelect = () => {
-    selectedExpressions.value = []
-    conditionSelectVisible.value = true
-}
-
-const handleParamSelect = () => {
-    if (!selectedParams.value.length) {
-        message.warning('请选择参数')
-        return
-    }
-    formData.value.params.push(...selectedParams.value)
-    paramSelectVisible.value = false
-}
-
-const handleConditionSelect = () => {
-    if (!selectedExpressions.value.length) {
-        message.warning('请选择条件')
-        return
-    }
-    formData.value.conditions.push(...selectedExpressions.value)
-    conditionSelectVisible.value = false
-}
-
-const removeParam = (index) => {
-    formData.value.params.splice(index, 1)
-}
-
-const removeCondition = (index) => {
-    formData.value.conditions.splice(index, 1)
-}
-
-const handleSubmit = () => {
-    // 验证表单
-    if (!formData.value.name || !formData.value.description) {
+// 保存处理
+const handleSave = () => {
+    // 表单验证
+    if (!form.value.name || !form.value.description) {
         message.warning('请填写必填项')
         return
     }
 
-    if (props.loading) {
+    if (!form.value.currency || !form.value.quantity) {
+        message.warning('请完善币种设置信息')
         return
     }
 
-    emit('submit', formData.value)
-}
-</script>
+    if (form.value.conditions.length === 0) {
+        message.warning('请至少添加一个触发条件')
+        return
+    }
 
-<style>
-/* 全局样式，不使用 scoped */
-.strategy-dialog {
-    background: var(--bg-color);
-    color: var(--text-color);
+    // 验证触发条件
+    for (const condition of form.value.conditions) {
+        if (!condition.expression || !condition.compareType || condition.value === null) {
+            message.warning('请完善触发条件信息')
+            return
+        }
+    }
+
+    // 提交数据
+    emit('submit', form.value)
+    // 关闭弹窗
+    emit('update:visible', false)
 }
-</style>
+
+// 加载表达式列表
+const loadExpressions = () => {
+    try {
+        const storedExpressions = localStorage.getItem('quant_expressions')
+        if (storedExpressions) {
+            const parsedExpressions = JSON.parse(storedExpressions)
+            expressionOptions.value = parsedExpressions.map(expr => ({
+                label: expr.name,
+                value: expr.formula
+            }))
+        }
+    } catch (error) {
+        console.error('加载表达式失败:', error)
+    }
+}
+
+// 监听弹窗显示状态
+watch(() => props.visible, (newVal) => {
+    if (newVal) {
+        loadExpressions()
+    }
+})
+
+// 初始化时加载币种列表
+currencyStore.fetchCurrencies()
+</script>
 
 <style scoped>
 .strategy-dialog {
     padding: 20px;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+    position: static !important;
 }
 
-.section-title {
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0 12px;
+    padding-left: 10px;
+    border-left: 4px solid var(--primary-color);
+    position: sticky;
+    top: 0;
+    background-color: var(--bg-color);
+    z-index: 1;
+}
+
+.section-header .title {
     font-size: 16px;
     font-weight: 500;
     color: var(--text-color);
-    margin: 24px 0 16px;
-    padding-left: 10px;
-    border-left: 4px solid var(--primary-color);
 }
 
-.strategy-params,
-.trigger-conditions {
+.section-content {
     background: var(--bg-color);
     border: 1px solid var(--border-color);
     border-radius: 4px;
     padding: 16px;
+    position: static !important;
 }
 
-.param-item,
+.currency-settings .settings-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    .ant-form-item {
+        margin-bottom: 0;
+        min-width: 120px;
+        position: static !important;
+    }
+}
+
+.empty-tip {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 24px;
+    background: var(--bg-hover);
+    border-radius: 4px;
+}
+
+.conditions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .condition-item {
+    background: var(--bg-hover);
+    border-radius: 4px;
+    padding: 12px;
+}
+
+.condition-content {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px;
-    background: var(--bg-hover);
-    border-radius: 4px;
-    margin-bottom: 8px;
+    flex-wrap: wrap;
 }
 
-.param-content,
-.condition-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.param-name,
-.condition-name {
-    font-weight: 500;
-    color: var(--text-color);
-}
-
-.param-desc,
-.condition-desc {
-    font-size: 12px;
+.unit {
+    margin-left: 4px;
     color: var(--text-secondary);
 }
 
-.add-param,
-.add-condition {
-    margin-top: 16px;
+:deep(.ant-form-item) {
+    margin-bottom: 16px;
 }
 
-.dialog-footer {
-    margin-top: 24px;
+:deep(.ant-form-item:last-child) {
+    margin-bottom: 0;
+}
+
+/* 输入框样式 */
+:deep(.ant-input),
+:deep(.ant-input-number),
+:deep(.ant-select-selector) {
+    background-color: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-input:hover),
+:deep(.ant-input-number:hover),
+:deep(.ant-select:hover .ant-select-selector) {
+    border-color: var(--primary-color) !important;
+}
+
+:deep(.ant-input:focus),
+:deep(.ant-input-number-focused),
+:deep(.ant-select-focused .ant-select-selector) {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px var(--primary-color-10) !important;
+}
+
+:deep(.ant-input::placeholder),
+:deep(.ant-input-number-input::placeholder) {
+    color: var(--text-secondary) !important;
+}
+
+:deep(.ant-input-number),
+:deep(.ant-select) {
+    width: 100%;
+}
+
+:deep(.ant-select-dropdown) {
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border-color) !important;
+    z-index: 9999 !important;
+    position: fixed !important;
+}
+
+:deep(.ant-form-item) {
+    margin-bottom: 16px;
     display: flex;
-    justify-content: flex-end;
-    gap: 8px;
+    flex-direction: column;
+}
+
+:deep(.ant-form-item-label) {
+    text-align: left;
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+:deep(.ant-form-item-control) {
+    width: 100%;
+    position: static !important;
+}
+
+:deep(.ant-form-item-control-input) {
+    position: static !important;
+}
+
+:deep(.ant-form-item-control-input-content) {
+    position: static !important;
+}
+
+:deep(.ant-select-selection-search-input) {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-select-arrow) {
+    color: var(--text-secondary) !important;
+}
+
+:deep(.ant-select-selection-item) {
+    color: var(--text-color) !important;
+}
+
+/* 修复下拉菜单样式 */
+:deep(.ant-select-dropdown) {
+    padding: 4px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    position: fixed !important;
+    z-index: 9999 !important;
+}
+
+/* 调整表单项样式 */
+.currency-settings .settings-row {
+    .ant-form-item {
+        margin-bottom: 0;
+        min-width: 120px;
+        position: static !important;
+    }
+}
+
+:deep(.ant-select) {
+    position: static !important;
+}
+
+:deep(.ant-form-item-control) {
+    position: static !important;
+}
+
+:deep(.ant-form-item-control-input) {
+    position: static !important;
+}
+
+:deep(.ant-form-item-control-input-content) {
+    position: static !important;
+}
+
+/* 调整下拉选项样式 */
+:deep(.ant-select-item) {
+    padding: 8px 12px !important;
+    border-radius: 4px !important;
+    transition: all 0.3s !important;
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-select-item-option-active) {
+    background-color: var(--bg-hover) !important;
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-select-item-option-selected) {
+    background-color: var(--primary-color-10) !important;
+    color: var(--primary-color) !important;
+}
+
+/* 调整下拉框触发器样式 */
+:deep(.ant-select-selector) {
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+/* 确保弹窗内容不遮挡下拉框 */
+.strategy-dialog {
+    position: static !important;
+}
+
+.section-content {
+    position: static !important;
+}
+
+/* 确保所有下拉框和输入框高度一致 */
+:deep(.ant-select-selector),
+:deep(.ant-input-number) {
+    height: 32px !important;
+    line-height: 32px !important;
+}
+
+:deep(.ant-select-selection-search-input) {
+    height: 30px !important;
+    line-height: 30px !important;
+}
+
+:deep(.ant-select-selection-item) {
+    line-height: 30px !important;
+}
+
+/* 调整表达式下拉框样式 */
+.condition-content {
+    :deep(.ant-select) {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    :deep(.ant-input-number) {
+        flex: 1;
+        min-width: 100px;
+    }
+}
+
+/* 自定义滚动条样式 */
+.strategy-dialog::-webkit-scrollbar {
+    width: 6px;
+}
+
+.strategy-dialog::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+.strategy-dialog::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.strategy-dialog::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Element Plus 下拉框样式 */
+:deep(.el-select) {
+    width: 100%;
+}
+
+:deep(.el-select .el-input__wrapper) {
+    background-color: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: none !important;
+    padding: 0 8px !important;
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+    border-color: var(--primary-color) !important;
+}
+
+:deep(.el-select .el-input__wrapper.is-focus) {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 1px var(--primary-color) !important;
+}
+
+:deep(.el-select-dropdown) {
+    background-color: var(--bg-color) !important;
+    border: 1px solid var(--border-color) !important;
+    padding: 4px !important;
+}
+
+:deep(.el-select-dropdown__item) {
+    color: var(--text-color) !important;
+    padding: 8px 12px !important;
+    height: 36px !important;
+    line-height: 20px !important;
+}
+
+:deep(.el-select-dropdown__item.hover) {
+    background-color: var(--bg-hover) !important;
+}
+
+:deep(.el-select-dropdown__item.selected) {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+:deep(.el-input__wrapper) {
+    background-color: var(--bg-color) !important;
+}
+
+:deep(.el-input__inner) {
+    color: var(--text-color) !important;
+    height: 32px !important;
+    font-size: 14px !important;
+}
+
+:deep(.el-input__suffix) {
+    color: var(--text-secondary) !important;
+}
+
+/* 确保下拉框和输入框高度一致 */
+:deep(.el-input__wrapper),
+:deep(.ant-input-number) {
+    height: 32px !important;
+    line-height: 32px !important;
+}
+
+/* 下拉框选项分组样式 */
+:deep(.el-select-dropdown__list) {
+    padding: 4px !important;
+}
+
+:deep(.el-select-dropdown__wrap) {
+    max-height: 274px !important;
+}
+
+/* 下拉框搜索框样式 */
+:deep(.el-select .el-input__wrapper input::placeholder) {
+    color: var(--text-secondary) !important;
+}
+
+:deep(.el-select-dropdown.is-multiple .el-select-dropdown__item.selected) {
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+
+:deep(.el-select-dropdown.is-multiple .el-select-dropdown__item.selected.hover) {
+    background-color: var(--primary-color) !important;
+}
+
+/* 下拉框空状态样式 */
+:deep(.el-select-dropdown__empty) {
+    color: var(--text-secondary) !important;
+    padding: 8px 12px !important;
 }
 </style>
