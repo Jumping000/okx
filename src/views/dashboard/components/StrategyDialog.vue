@@ -15,8 +15,7 @@
                         <a-textarea v-model:value="form.description" placeholder="请输入策略描述" :rows="2" />
                     </a-form-item>
                     <a-form-item label="交易类型" required>
-                        <a-radio-group v-model:value="form.tradeType" @change="handleTradeTypeChange">
-                            <a-radio value="SPOT">现货</a-radio>
+                        <a-radio-group v-model:value="form.tradeType">
                             <a-radio value="SWAP">永续</a-radio>
                         </a-radio-group>
                     </a-form-item>
@@ -83,6 +82,8 @@
                     <div v-else class="conditions-list">
                         <div v-for="(condition, index) in form.conditions" :key="index" class="condition-item">
                             <div class="condition-content">
+                                <div class="condition-bracket" :class="{ active: activeBrackets[`${index}-left`] }"
+                                    @click="handleBracketClick(index, 'left')">(</div>
                                 <el-select v-model="condition.expression" placeholder="选择表达式" style="width: 200px">
                                     <el-option v-for="expr in expressionOptions" :key="expr.value" :label="expr.label"
                                         :value="expr.value" />
@@ -93,6 +94,8 @@
                                 </el-select>
                                 <a-input-number v-model:value="condition.value" placeholder="比较值"
                                     style="width: 120px" />
+                                <div class="condition-bracket" :class="{ active: activeBrackets[`${index}-right`] }"
+                                    @click="handleBracketClick(index, 'right')">)</div>
                                 <template v-if="index < form.conditions.length - 1">
                                     <el-select v-model="condition.relation" placeholder="关系" style="width: 80px">
                                         <el-option value="and" label="并且" />
@@ -142,7 +145,7 @@ const currencyStore = useCurrencyStore()
 const form = ref({
     name: '',
     description: '',
-    tradeType: 'SPOT',
+    tradeType: 'SWAP',
     currency: '',
     quantity: 0,
     leverage: 1,
@@ -150,6 +153,15 @@ const form = ref({
     stopLoss: 0,
     conditions: []
 })
+
+// 添加括号激活状态
+const activeBrackets = ref({})
+
+// 处理括号点击
+const handleBracketClick = (index, position) => {
+    const key = `${index}-${position}`
+    activeBrackets.value[key] = !activeBrackets.value[key]
+}
 
 // 币种列表
 const currentCurrencies = computed(() => {
@@ -168,11 +180,6 @@ const compareTypes = [
     { value: '==', label: '等于' },
     { value: '!=', label: '不等于' }
 ]
-
-// 交易类型变更处理
-const handleTradeTypeChange = () => {
-    form.value.currency = ''
-}
 
 // 添加触发条件
 const addCondition = () => {
@@ -220,8 +227,20 @@ const handleSave = () => {
         }
     }
 
+    // 生成完整的条件表达式，考虑括号激活状态
+    const conditionExpression = form.value.conditions.map((condition, index) => {
+        const leftBracket = activeBrackets.value[`${index}-left`] ? '(' : ''
+        const rightBracket = activeBrackets.value[`${index}-right`] ? ')' : ''
+        const text = `${leftBracket}${condition.expression} ${condition.compareType} ${condition.value}${rightBracket}`
+        return index < form.value.conditions.length - 1 ? `${text} ${condition.relation}` : text
+    }).join(' ')
+
     // 提交数据
-    emit('submit', form.value)
+    const formData = {
+        ...form.value,
+        conditionExpression
+    }
+    emit('submit', formData)
     // 关闭弹窗
     emit('update:visible', false)
 }
@@ -234,7 +253,7 @@ const loadExpressions = () => {
             const parsedExpressions = JSON.parse(storedExpressions)
             expressionOptions.value = parsedExpressions.map(expr => ({
                 label: expr.name,
-                value: expr.formula
+                value: `(${expr.formula})`
             }))
         }
     } catch (error) {
@@ -326,8 +345,11 @@ currencyStore.fetchCurrencies()
 .condition-content {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     flex-wrap: wrap;
+    background: var(--bg-hover);
+    border-radius: 4px;
+    padding: 12px;
 }
 
 .unit {
@@ -468,8 +490,8 @@ currencyStore.fetchCurrencies()
 }
 
 :deep(.ant-select-item-option-selected) {
-    background-color: var(--primary-color-10) !important;
-    color: var(--primary-color) !important;
+    background-color: var(--primary-color) !important;
+    color: #fff !important;
 }
 
 /* 调整下拉框触发器样式 */
@@ -534,96 +556,24 @@ currencyStore.fetchCurrencies()
     background: var(--text-secondary);
 }
 
-/* Element Plus 下拉框样式 */
-:deep(.el-select) {
-    width: 100%;
+.condition-bracket {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--text-color);
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    user-select: none;
 }
 
-:deep(.el-select .el-input__wrapper) {
-    background-color: var(--bg-color) !important;
-    border-color: var(--border-color) !important;
-    box-shadow: none !important;
-    padding: 0 8px !important;
+.condition-bracket:hover {
+    color: var(--primary-color);
 }
 
-:deep(.el-select .el-input__wrapper:hover) {
-    border-color: var(--primary-color) !important;
-}
-
-:deep(.el-select .el-input__wrapper.is-focus) {
-    border-color: var(--primary-color) !important;
-    box-shadow: 0 0 0 1px var(--primary-color) !important;
-}
-
-:deep(.el-select-dropdown) {
-    background-color: var(--bg-color) !important;
-    border: 1px solid var(--border-color) !important;
-    padding: 4px !important;
-}
-
-:deep(.el-select-dropdown__item) {
-    color: var(--text-color) !important;
-    padding: 8px 12px !important;
-    height: 36px !important;
-    line-height: 20px !important;
-}
-
-:deep(.el-select-dropdown__item.hover) {
-    background-color: var(--bg-hover) !important;
-}
-
-:deep(.el-select-dropdown__item.selected) {
-    background-color: var(--primary-color) !important;
-    color: #fff !important;
-}
-
-:deep(.el-input__wrapper) {
-    background-color: var(--bg-color) !important;
-}
-
-:deep(.el-input__inner) {
-    color: var(--text-color) !important;
-    height: 32px !important;
-    font-size: 14px !important;
-}
-
-:deep(.el-input__suffix) {
-    color: var(--text-secondary) !important;
-}
-
-/* 确保下拉框和输入框高度一致 */
-:deep(.el-input__wrapper),
-:deep(.ant-input-number) {
-    height: 32px !important;
-    line-height: 32px !important;
-}
-
-/* 下拉框选项分组样式 */
-:deep(.el-select-dropdown__list) {
-    padding: 4px !important;
-}
-
-:deep(.el-select-dropdown__wrap) {
-    max-height: 274px !important;
-}
-
-/* 下拉框搜索框样式 */
-:deep(.el-select .el-input__wrapper input::placeholder) {
-    color: var(--text-secondary) !important;
-}
-
-:deep(.el-select-dropdown.is-multiple .el-select-dropdown__item.selected) {
-    background-color: var(--primary-color) !important;
-    color: #fff !important;
-}
-
-:deep(.el-select-dropdown.is-multiple .el-select-dropdown__item.selected.hover) {
-    background-color: var(--primary-color) !important;
-}
-
-/* 下拉框空状态样式 */
-:deep(.el-select-dropdown__empty) {
-    color: var(--text-secondary) !important;
-    padding: 8px 12px !important;
+.condition-bracket.active {
+    color: var(--primary-color);
+    text-shadow: 0 0 8px var(--primary-color-10);
 }
 </style>

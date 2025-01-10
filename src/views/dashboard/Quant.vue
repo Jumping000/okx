@@ -7,17 +7,6 @@
                 <div class="flex items-center gap-4">
                     <h2 class="text-dark-100">量化</h2>
                 </div>
-                <!-- 交易类型选项卡 -->
-                <div class="trade-type-tabs">
-                    <a-radio-group v-model:value="selectedInstType" size="small">
-                        <a-radio-button value="SPOT">
-                            <span class="px-4">现货</span>
-                        </a-radio-button>
-                        <a-radio-button value="SWAP">
-                            <span class="px-4">永续</span>
-                        </a-radio-button>
-                    </a-radio-group>
-                </div>
             </div>
         </div>
 
@@ -244,7 +233,6 @@ defineOptions({
 })
 
 // 状态管理
-const selectedInstType = ref('SPOT') // SPOT 或 SWAP
 const loading = ref(false)
 const dialogLoading = ref(false)
 const formulaDialogVisible = ref(false)
@@ -526,57 +514,6 @@ onMounted(() => {
     scrollbar-color: var(--border-color) var(--bg-color);
 }
 
-/* 交易类型选项卡样式 */
-:deep(.trade-type-tabs) {
-    .ant-radio-group {
-        display: flex;
-        border: 1px solid var(--primary-color);
-        border-radius: 2px;
-        padding: 0;
-    }
-
-    .ant-radio-button-wrapper {
-        height: 24px;
-        line-height: 22px;
-        padding: 0;
-        background: transparent;
-        border: none !important;
-        color: var(--primary-color);
-
-        &::before {
-            display: none;
-        }
-
-        &:hover {
-            color: var(--primary-color-light);
-        }
-
-        &:first-child {
-            border-radius: 1px 0 0 1px;
-        }
-
-        &:last-child {
-            border-radius: 0 1px 1px 0;
-        }
-    }
-
-    .ant-radio-button-wrapper-checked {
-        background-color: var(--primary-color) !important;
-        color: #fff !important;
-        box-shadow: none;
-
-        &:hover {
-            color: #fff !important;
-        }
-    }
-
-    .ant-radio-button-wrapper:not(:first-child)::before {
-        background-color: var(--primary-color);
-        width: 1px;
-        height: 100%;
-    }
-}
-
 /* 日志样式 */
 .log-item {
     padding: 4px 8px;
@@ -745,5 +682,10 @@ onMounted(() => {
             color: #fff;
         }
     }
+}
+
+/* 移除交易类型选项卡样式 */
+:deep(.trade-type-tabs) {
+    display: none;
 }
 </style>
