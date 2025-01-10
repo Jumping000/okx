@@ -269,7 +269,7 @@
 
 <script setup>
 import { defineOptions } from 'vue'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
     PlusOutlined,
@@ -280,6 +280,7 @@ import {
 import FormulaDialog from './components/FormulaDialog.vue'
 import StrategyDialog from './components/StrategyDialog.vue'
 import dayjs from 'dayjs'
+import WorkerManager from '@/worker/WorkerManager';
 
 // 定义组件选项
 defineOptions({
@@ -298,10 +299,10 @@ const monitorPeriod = ref('realtime')
 const statsPeriod = ref('today')
 
 // 列表数据
-const parameterList = ref([])
-const expressionList = ref([])
-const strategyList = ref([])
-const strategyLogs = ref([])
+const parameterList = ref([]) // 参数列表
+const expressionList = ref([]) // 表达式列表
+const strategyList = ref([]) // 策略列表
+const strategyLogs = ref([]) // 策略日志
 
 // 本地存储的键名
 const STORAGE_KEYS = {
@@ -480,20 +481,123 @@ const handleDeleteStrategy = async (record) => {
     }
 }
 
+// 初始化线程 
+const workerManager = new WorkerManager();
+
+// 初始化策略
 const handleStrategyAction = async (record) => {
     try {
         const index = strategyList.value.findIndex(item => item.id === record.id)
         if (index !== -1) {
-            strategyList.value[index].status = record.status === 'running' ? 'stopped' : 'running'
+            const newStatus = record.status === 'running' ? 'stopped' : 'running'
+
+            if (newStatus === 'running') {
+                // 启动策略时创建新的 Worker
+                await workerManager.start(record.id, '/workers/worker-entry.js')
+
+                // 监听 Worker 消息
+                workerManager.onMessage(record.id, (data) => {
+                    // 处理 Worker 返回的消息
+                    handleWorkerMessage(record.id, data)
+                })
+
+                // 准备要发送的数据，只包含必要的可序列化字段
+                const workerData = {
+                    type: 'init',
+                    payload: {
+                        strategy: {
+                            id: record.id,
+                            name: record.name,
+                            description: record.description,
+                            currency: record.currency,
+                            quantity: record.quantity,
+                            leverage: record.leverage,
+                            positionType: record.positionType,
+                            stopLoss: record.stopLoss,
+                            fullExpression: record.fullExpression,
+                            originalExpression: record.originalExpression
+                        },
+                    }
+                }
+
+                // 发送初始化数据给 Worker
+                workerManager.postMessage(record.id, workerData)
+
+                // 添加启动日志
+                strategyLogs.value.unshift({
+                    time: new Date(),
+                    type: 'success',
+                    content: `策略 ${record.name} 已启动`
+                })
+            } else {
+                // 停止策略时终止 Worker
+                workerManager.stop(record.id)
+
+                // 添加停止日志
+                strategyLogs.value.unshift({
+                    time: new Date(),
+                    type: 'warning',
+                    content: `策略 ${record.name} 已停止`
+                })
+            }
+
+            // 更新策略状态
+            strategyList.value[index].status = newStatus
             // 更新本地存储
             localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
-            message.success(record.status === 'running' ? '已停止' : '已启动')
+            message.success(newStatus === 'running' ? '策略已启动' : '策略已停止')
         }
     } catch (error) {
-        console.error('操作失败:', error)
-        message.error('操作失败')
+        console.error('策略操作失败:', error)
+        message.error('策略操作失败')
+        // 添加错误日志
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'error',
+            content: `策略操作失败: ${error.message}`
+        })
     }
 }
+
+// 处理 Worker 消息
+const handleWorkerMessage = (strategyId, data) => {
+    const strategy = strategyList.value.find(item => item.id === strategyId)
+    if (!strategy) return
+
+    switch (data.type) {
+        case 'init_complete':
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'info',
+                content: `策略 ${strategy.name} 初始化完成`
+            })
+            break
+
+        case 'process_complete':
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'info',
+                content: `策略 ${strategy.name} 执行完成: ${JSON.stringify(data.data)}`
+            })
+            break
+
+        case 'error':
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'error',
+                content: `策略 ${strategy.name} 发生错误: ${data.error.message}`
+            })
+            break
+
+        default:
+            console.log(`未处理的消息类型: ${data.type}`, data)
+    }
+}
+
+// 组件卸载时清理所有 Worker
+onUnmounted(() => {
+    workerManager.stopAll()
+})
 
 const handleClearLogs = () => {
     strategyLogs.value = []
@@ -508,10 +612,25 @@ const loadStrategies = () => {
     try {
         const storedStrategies = localStorage.getItem('quant_strategies')
         if (storedStrategies) {
-            strategyList.value = JSON.parse(storedStrategies)
+            // 加载策略并将所有策略状态设置为停止
+            strategyList.value = JSON.parse(storedStrategies).map(strategy => ({
+                ...strategy,
+                status: 'stopped'  // 强制设置状态为停止
+            }));
+
+            // 更新本地存储
+            localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
+
+            // 添加日志记录
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'info',
+                content: '页面刷新，所有策略已重置为停止状态'
+            })
         }
     } catch (error) {
         console.error('加载策略列表失败:', error)
+        message.error('加载策略列表失败')
     }
 }
 
