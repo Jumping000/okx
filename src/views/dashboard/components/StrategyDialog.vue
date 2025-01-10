@@ -114,7 +114,7 @@
         <template #footer>
             <div class="dialog-footer">
                 <a-button @click="handleCancel">取消</a-button>
-                <a-button type="primary" @click="handleSave">确定</a-button>
+                <a-button type="primary" :loading="loading" @click="handleSave">确定</a-button>
             </div>
         </template>
     </CustomDialog>
@@ -132,6 +132,10 @@ const props = defineProps({
     visible: {
         type: Boolean,
         required: true
+    },
+    loading: {
+        type: Boolean,
+        default: false
     }
 })
 
