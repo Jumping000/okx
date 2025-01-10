@@ -506,16 +506,16 @@ const handleStrategyAction = async (record) => {
                     type: 'init',
                     payload: {
                         strategy: {
-                            id: record.id,
-                            name: record.name,
-                            description: record.description,
-                            currency: record.currency,
-                            quantity: record.quantity,
-                            leverage: record.leverage,
-                            positionType: record.positionType,
-                            stopLoss: record.stopLoss,
-                            fullExpression: record.fullExpression,
-                            originalExpression: record.originalExpression
+                            id: record.id, // 策略ID
+                            name: record.name, // 策略名称
+                            description: record.description, // 策略描述
+                            currency: record.currency, // 策略货币
+                            quantity: record.quantity, // 策略数量
+                            leverage: record.leverage, // 策略杠杆
+                            positionType: record.positionType, // 策略持仓类型
+                            stopLoss: record.stopLoss, // 策略止损
+                            fullExpression: record.fullExpression, // 策略完整表达式
+                            originalExpression: record.originalExpression // 策略原始表达式
                         },
                     }
                 }
