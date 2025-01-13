@@ -214,7 +214,8 @@ class StrategyWorker extends self.BaseWorker {
           );
           const klines = await this.getHistoryKlines(
             this.strategy.currency, // 交易对
-            timeLevel // K线周期
+            timeLevel, // K线周期
+            300 // 获取300根K线
           );
           console.log(klines);
           // 存储K线数据
@@ -267,27 +268,69 @@ class StrategyWorker extends self.BaseWorker {
    * @param {number} limit 获取数量
    * @returns {Promise} K线数据
    */
-  async getHistoryKlines(instId, bar) {
+  async getHistoryKlines(instId, bar, limit = 100) {
     try {
-      const url = `https://www.okx.com/api/v5/market/history-candles?instId=${instId}&bar=${bar}`;
-      const data = await this.fetchData(url);
+      let allKlines = [];
+      let lastTs = ""; // 用于分页的时间戳
 
-      if (data.code === "0" && Array.isArray(data.data)) {
-        // OKX K线数据格式转换
-        const klines = data.data.map((item) => ({
-          timestamp: parseInt(item[0]), // 开始时间
-          open: parseFloat(item[1]), // 开盘价
-          high: parseFloat(item[2]), // 最高价
-          low: parseFloat(item[3]), // 最低价
-          close: parseFloat(item[4]), // 收盘价
-          volume: parseFloat(item[5]), // 交易量
-          volCcy: parseFloat(item[6]), // 交易额
-        }));
+      // 计算需要请求多少次
+      const batchSize = 100; // 每次请求100条
+      const batchCount = Math.ceil(limit / batchSize);
 
-        return klines;
-      } else {
-        throw new Error("获取K线数据失败: " + JSON.stringify(data));
+      for (let i = 0; i < batchCount; i++) {
+        // 构建请求URL
+        let url = `https://www.okx.com/api/v5/market/history-candles?instId=${instId}&bar=${bar}&limit=${batchSize}`;
+        if (lastTs) {
+          url += `&after=${lastTs}`;
+        }
+
+        // 请求数据
+        const data = await this.fetchData(url);
+
+        if (
+          data.code === "0" &&
+          Array.isArray(data.data) &&
+          data.data.length > 0
+        ) {
+          // OKX K线数据格式转换
+          const klines = data.data.map((item) => ({
+            timestamp: parseInt(item[0]), // 开始时间
+            open: parseFloat(item[1]), // 开盘价
+            high: parseFloat(item[2]), // 最高价
+            low: parseFloat(item[3]), // 最低价
+            close: parseFloat(item[4]), // 收盘价
+            volume: parseFloat(item[5]), // 交易量
+            volCcy: parseFloat(item[6]), // 交易额
+          }));
+
+          // 更新最后一条数据的时间戳，用于下次请求
+          lastTs = data.data[data.data.length - 1][0];
+
+          // 合并数据
+          allKlines = allKlines.concat(klines);
+
+          // 如果返回的数据少于100条，说明没有更多数据了
+          if (data.data.length < batchSize) {
+            break;
+          }
+
+          // 打印进度
+          console.log(`已获取 ${allKlines.length}/${limit} 条K线数据`);
+
+          // 延迟100ms，避免触发频率限制
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } else {
+          throw new Error("获取K线数据失败: " + JSON.stringify(data));
+        }
+
+        // 如果已经获取足够的数据，就停止
+        if (allKlines.length >= limit) {
+          allKlines = allKlines.slice(0, limit); // 只保留需要的数量
+          break;
+        }
       }
+
+      return allKlines;
     } catch (error) {
       console.error("获取历史K线失败:", error);
       throw error;

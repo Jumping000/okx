@@ -125,10 +125,6 @@
                                                     </div>
                                                     <div class="tooltip-item">
                                                         <span class="label">交易类型：</span>
-                                                        <span class="value">永续</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">币种信息：</span>
                                                         <span class="value">{{ record.currency }}</span>
                                                     </div>
                                                     <div class="tooltip-item">
@@ -580,20 +576,31 @@ const handleWorkerMessage = (strategyId, data) => {
                 content: `策略 ${strategy.name} 执行完成: ${JSON.stringify(data.data)}`
             })
             break
+
+        case 'history_kline_progress':
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'info',
+                content: `策略 ${strategy.name} 正在获取 ${data.data.timeLevel} K线数据: ${data.data.percentage}% (${data.data.current}/${data.data.total})`
+            })
+            break
+
         case 'history_kline_complete':
             strategyLogs.value.unshift({
                 time: new Date(),
                 type: 'info',
-                content: `策略 ${strategy.name} 获取 ${data.timeLevel} 历史K线数据完成: ${data.count} 条`
+                content: `策略 ${strategy.name} 获取 ${data.data.timeLevel} 历史K线数据完成: ${data.data.count} 条`
             })
-            break;
+            break
+
         case 'all_history_kline_complete':
             strategyLogs.value.unshift({
                 time: new Date(),
-                type: 'info',
-                content: `策略 ${strategy.name} 历史所有K线数据获取完成`
+                type: 'success',
+                content: `策略 ${strategy.name} 所有历史K线数据获取完成`
             })
-            break;
+            break
+
         case 'error':
             strategyLogs.value.unshift({
                 time: new Date(),
@@ -601,6 +608,7 @@ const handleWorkerMessage = (strategyId, data) => {
                 content: `策略 ${strategy.name} 发生错误: ${data.error.message}`
             })
             break
+
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)
     }
