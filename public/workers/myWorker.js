@@ -69,9 +69,10 @@ class StrategyWorker extends self.BaseWorker {
       if (!this.strategy) {
         throw new Error("初始化数据不完整");
       }
-
+      // 订阅历史K线
+      await this.handleHistoryKline(this.klineTimeLevels);
       // 初始化 WebSocket 连接
-      await this.initWebSocket();
+      //   await this.initWebSocket();
 
       // 发送初始化完成消息
       this.postMessage({
@@ -213,10 +214,9 @@ class StrategyWorker extends self.BaseWorker {
           );
           const klines = await this.getHistoryKlines(
             this.strategy.currency, // 交易对
-            timeLevel, // K线周期
-            500 // 获取1000根K线
+            timeLevel // K线周期
           );
-
+          console.log(klines);
           // 存储K线数据
           this.historyKlines[timeLevel] = klines;
 
@@ -267,9 +267,9 @@ class StrategyWorker extends self.BaseWorker {
    * @param {number} limit 获取数量
    * @returns {Promise} K线数据
    */
-  async getHistoryKlines(instId, bar, limit = 100) {
+  async getHistoryKlines(instId, bar) {
     try {
-      const url = `https://www.okx.com/api/v5/market/history-candles?instId=${instId}&bar=${bar}&limit=${limit}`;
+      const url = `https://www.okx.com/api/v5/market/history-candles?instId=${instId}&bar=${bar}`;
       const data = await this.fetchData(url);
 
       if (data.code === "0" && Array.isArray(data.data)) {
