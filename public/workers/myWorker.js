@@ -69,8 +69,7 @@ class StrategyWorker extends self.BaseWorker {
       if (!this.strategy) {
         throw new Error("初始化数据不完整");
       }
-      // 订阅历史K线
-      await this.handleHistoryKline(this.klineTimeLevels);
+      //
       // 初始化 WebSocket 连接
       //   await this.initWebSocket();
 
@@ -105,9 +104,9 @@ class StrategyWorker extends self.BaseWorker {
     );
 
     // // 注册消息处理器
-    this.wsClient.onMessage("tickers", (data) => {
-      this.handleTickerData(data);
-    });
+    // this.wsClient.onMessage("tickers", (data) => {
+    //   this.handleTickerData(data);
+    // });
 
     // this.wsClient.onMessage("candle1m", (data) => {
     //   this.handleKlineData(data);
@@ -127,29 +126,6 @@ class StrategyWorker extends self.BaseWorker {
     // 订阅历史K线
     await this.handleHistoryKline(this.klineTimeLevels);
     // TODO:接下来要进行内容 完善 历史k线 然后循环订阅多个K线频道 通过状态判断是否完结完结存入历史 不然则为最新的
-
-    // // 订阅行情数据
-    // const subscribeMessage = {
-    //   op: "subscribe",
-    //   args: [
-    //     {
-    //       channel: "tickers",
-    //       //       instId: this.strategy.currency,
-    //       //     },
-    //       //     {
-    //       //       channel: "candle1m",
-    //       //       instId: this.strategy.currency,
-    //       //     },
-    //       //     {
-    //       //       channel: "books",
-    //       //       instId: this.strategy.currency,
-    //       //     },
-    //       //     {
-    //       //       channel: "trades",
-    //       instId: this.strategy.currency,
-    //     },
-    //   ],
-    // };
 
     // console.log("发送订阅请求:", subscribeMessage);
     // this.wsClient.send(subscribeMessage);
