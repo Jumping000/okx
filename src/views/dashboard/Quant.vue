@@ -580,7 +580,20 @@ const handleWorkerMessage = (strategyId, data) => {
                 content: `策略 ${strategy.name} 执行完成: ${JSON.stringify(data.data)}`
             })
             break
-
+        case 'history_kline_complete':
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'info',
+                content: `策略 ${strategy.name} 获取 ${data.timeLevel} 历史K线数据完成: ${data.count} 条`
+            })
+            break;
+        case 'all_history_kline_complete':
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'info',
+                content: `策略 ${strategy.name} 历史所有K线数据获取完成`
+            })
+            break;
         case 'error':
             strategyLogs.value.unshift({
                 time: new Date(),
@@ -588,7 +601,6 @@ const handleWorkerMessage = (strategyId, data) => {
                 content: `策略 ${strategy.name} 发生错误: ${data.error.message}`
             })
             break
-
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)
     }

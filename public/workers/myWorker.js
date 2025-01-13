@@ -64,13 +64,14 @@ class StrategyWorker extends self.BaseWorker {
       this.klineTimeLevels = await this.handleKlineTimeLevel(
         this.strategy.fullExpression
       );
+      console.log("用到的时间级别：", this.klineTimeLevels);
       // 验证必要数据
       if (!this.strategy) {
         throw new Error("初始化数据不完整");
       }
 
       // 初始化 WebSocket 连接
-      //   await this.initWebSocket();
+      await this.initWebSocket();
 
       // 发送初始化完成消息
       this.postMessage({
@@ -199,12 +200,55 @@ class StrategyWorker extends self.BaseWorker {
     klineTimeLevels = [...new Set(klineTimeLevels)];
     return klineTimeLevels;
   }
-  // 订阅历史K线
+  /**
+   * 处理历史K线数据获取
+   * @param {Array} klineTimeLevels K线时间级别数组
+   */
   async handleHistoryKline(klineTimeLevels) {
-    //   TODO:待完善
-    klineTimeLevels.forEach((item) => {
-      console.log(item);
-    });
+    if (klineTimeLevels.length > 0) {
+      try {
+        for (const timeLevel of klineTimeLevels) {
+          console.log(
+            `开始获取 ${this.strategy.currency} ${timeLevel} K线数据`
+          );
+          const klines = await this.getHistoryKlines(
+            this.strategy.currency, // 交易对
+            timeLevel, // K线周期
+            500 // 获取1000根K线
+          );
+
+          // 存储K线数据
+          this.historyKlines[timeLevel] = klines;
+
+          console.log(`${timeLevel} K线数据获取完成，数量:`, klines.length);
+
+          // 通知主线程
+          this.postMessage({
+            type: "history_kline_complete",
+            data: {
+              timeLevel,
+              count: klines.length,
+            },
+          });
+
+          // 延迟一下，避免请求太频繁
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        // 所有K线数据获取完成
+        this.postMessage({
+          type: "all_history_kline_complete",
+          data: {
+            timeLevels: klineTimeLevels,
+          },
+        });
+      } catch (error) {
+        console.error("获取历史K线数据失败:", error);
+        this.handleError(error);
+      }
+    } else {
+      console.log("没有需要获取的K线时间级别");
+    }
   }
   /**
    * 停止策略
@@ -214,6 +258,69 @@ class StrategyWorker extends self.BaseWorker {
     if (this.wsClient) {
       this.wsClient.close();
       this.wsClient = null;
+    }
+  }
+  /**
+   * 获取历史K线数据
+   * @param {string} instId 交易对
+   * @param {string} bar K线周期
+   * @param {number} limit 获取数量
+   * @returns {Promise} K线数据
+   */
+  async getHistoryKlines(instId, bar, limit = 100) {
+    try {
+      const url = `https://www.okx.com/api/v5/market/history-candles?instId=${instId}&bar=${bar}&limit=${limit}`;
+      const data = await this.fetchData(url);
+
+      if (data.code === "0" && Array.isArray(data.data)) {
+        // OKX K线数据格式转换
+        const klines = data.data.map((item) => ({
+          timestamp: parseInt(item[0]), // 开始时间
+          open: parseFloat(item[1]), // 开盘价
+          high: parseFloat(item[2]), // 最高价
+          low: parseFloat(item[3]), // 最低价
+          close: parseFloat(item[4]), // 收盘价
+          volume: parseFloat(item[5]), // 交易量
+          volCcy: parseFloat(item[6]), // 交易额
+        }));
+
+        return klines;
+      } else {
+        throw new Error("获取K线数据失败: " + JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error("获取历史K线失败:", error);
+      throw error;
+    }
+  }
+  // 工具函数
+  /**
+   * 发送 HTTP 请求
+   * @param {string} url 请求地址
+   * @param {Object} options 请求选项
+   * @returns {Promise} 请求结果
+   */
+  async fetchData(url, options = {}) {
+    try {
+      const response = await fetch(url, {
+        method: options.method || "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...options.headers,
+        },
+        body: options.data ? JSON.stringify(options.data) : undefined,
+        ...options,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error("请求失败:", error);
+      throw error;
     }
   }
 }
