@@ -36,10 +36,12 @@ class StrategyWorker extends self.BaseWorker {
         case "init":
           this.handleInit(data.payload);
           break;
+        case "kline_data":
+          this.handleKlineData(data.payload);
+          break;
         case "stop":
           this.stop();
           break;
-
         default:
           throw new Error(`未知的消息类型: ${data.type}`);
       }
@@ -65,13 +67,34 @@ class StrategyWorker extends self.BaseWorker {
         this.strategy.fullExpression
       );
       console.log("用到的时间级别：", this.klineTimeLevels);
+
       // 验证必要数据
       if (!this.strategy) {
         throw new Error("初始化数据不完整");
       }
-      //
-      // 初始化 WebSocket 连接
-      //   await this.initWebSocket();
+
+      // 初始化K线数据存储
+      this.klines = {};
+      this.historyKlines = {};
+      this.klineTimeLevels.forEach((timeLevel) => {
+        this.klines[timeLevel] = [];
+        this.historyKlines[timeLevel] = [];
+      });
+
+      // 先获取历史K线数据
+      console.log("开始获取历史K线数据");
+      await this.handleHistoryKline(this.klineTimeLevels);
+      console.log("历史K线数据获取完成");
+
+      // 通知主进程需要订阅的时间级别
+      this.postMessage({
+        type: "subscribe_klines",
+        data: {
+          strategyId: this.strategy.id,
+          currency: this.strategy.currency,
+          timeLevels: this.klineTimeLevels,
+        },
+      });
 
       // 发送初始化完成消息
       this.postMessage({
@@ -79,6 +102,8 @@ class StrategyWorker extends self.BaseWorker {
         data: {
           strategyId: this.strategy.id,
           status: "initialized",
+          timeLevels: this.klineTimeLevels,
+          historyKlines: this.historyKlines, // 添加历史K线数据到返回信息中
         },
       });
 
@@ -90,50 +115,94 @@ class StrategyWorker extends self.BaseWorker {
   }
 
   /**
-   * 初始化 WebSocket 连接
-   * @private
+   * 处理K线数据
+   * @param {Object} data K线数据
    */
-  async initWebSocket() {
-    // 创建 WebSocket 客户端
-    this.wsClient = new self.WebSocketClient(
-      "wss://ws.okx.com:8443/ws/v5/public",
-      {
-        maxReconnectAttempts: 5,
-        reconnectInterval: 3000,
+  handleKlineData(data) {
+    try {
+      console.log("收到K线数据:", data);
+      const { timeLevel, klineData } = data;
+
+      if (!timeLevel || !klineData || !Array.isArray(klineData)) {
+        console.warn("无效的K线数据格式:", data);
+        return;
       }
-    );
 
-    // // 注册消息处理器
-    // this.wsClient.onMessage("tickers", (data) => {
-    //   this.handleTickerData(data);
-    // });
+      // 确保存储数组已初始化
+      if (!this.klines[timeLevel]) {
+        this.klines[timeLevel] = [];
+      }
+      if (!this.historyKlines[timeLevel]) {
+        this.historyKlines[timeLevel] = [];
+      }
 
-    // this.wsClient.onMessage("candle1m", (data) => {
-    //   this.handleKlineData(data);
-    // });
+      // 处理每一根K线
+      klineData.forEach((item) => {
+        const kline = {
+          timestamp: parseInt(item.ts),
+          open: parseFloat(item.o),
+          high: parseFloat(item.h),
+          low: parseFloat(item.l),
+          close: parseFloat(item.c),
+          volume: parseFloat(item.vol),
+          volCcy: parseFloat(item.volCcy),
+          confirm: item.confirm === "1", // K线是否已完结
+        };
 
-    // this.wsClient.onMessage("books", (data) => {
-    //   this.handleDepthData(data);
-    // });
+        console.log(`[${timeLevel}] 处理K线数据:`, kline);
 
-    // this.wsClient.onMessage("trades", (data) => {
-    //   this.handleTradeData(data);
-    // });
+        if (kline.confirm) {
+          // 已完结的K线存入历史数据
+          console.log(`[${timeLevel}] K线已完结，存入历史数据:`, kline);
+          this.historyKlines[timeLevel].push(kline);
 
-    // 连接 WebSocket
-    await this.wsClient.connect();
+          // 维护历史K线数量上限
+          const maxHistoryKlines = 1000;
+          if (this.historyKlines[timeLevel].length > maxHistoryKlines) {
+            console.log(`[${timeLevel}] 历史K线数量超过限制，删除最早的K线`);
+            this.historyKlines[timeLevel].shift();
+          }
 
-    // 订阅历史K线
-    await this.handleHistoryKline(this.klineTimeLevels);
-    // TODO:接下来要进行内容 完善 历史k线 然后循环订阅多个K线频道 通过状态判断是否完结完结存入历史 不然则为最新的
+          // 如果这根K线在当前K线数组中，需要移除
+          const index = this.klines[timeLevel].findIndex(
+            (k) => k.timestamp === kline.timestamp
+          );
+          if (index !== -1) {
+            console.log(`[${timeLevel}] 从当前K线数组中移除已完结的K线`);
+            this.klines[timeLevel].splice(index, 1);
+          }
+        } else {
+          // 未完结的K线更新或添加到当前K线数组
+          const index = this.klines[timeLevel].findIndex(
+            (k) => k.timestamp === kline.timestamp
+          );
+          if (index !== -1) {
+            console.log(`[${timeLevel}] 更新现有K线数据`);
+            this.klines[timeLevel][index] = kline;
+          } else {
+            console.log(`[${timeLevel}] 添加新的K线数据`);
+            this.klines[timeLevel].push(kline);
+          }
 
-    // console.log("发送订阅请求:", subscribeMessage);
-    // this.wsClient.send(subscribeMessage);
+          // 维护当前K线数量上限
+          const maxKlines = 1000;
+          if (this.klines[timeLevel].length > maxKlines) {
+            console.log(`[${timeLevel}] 当前K线数量超过限制，删除最早的K线`);
+            this.klines[timeLevel].shift();
+          }
+        }
+      });
+
+      // 打印当前状态
+      console.log(`[${timeLevel}] 当前状态:`, {
+        currentKlines: this.klines[timeLevel].length,
+        historyKlines: this.historyKlines[timeLevel].length,
+      });
+    } catch (error) {
+      console.error("处理K线数据失败:", error);
+      this.handleError(error);
+    }
   }
-  //   handleTickerData(data) {
-  //     this.klines.push(data);
-  //     console.log(this.klines);
-  //   }
 
   // 分解表达式
   async handleKlineTimeLevel(expression) {
@@ -188,23 +257,38 @@ class StrategyWorker extends self.BaseWorker {
           console.log(
             `开始获取 ${this.strategy.currency} ${timeLevel} K线数据`
           );
+
+          // 通知进度开始
+          this.postMessage({
+            type: "history_kline_progress",
+            data: {
+              timeLevel,
+              percentage: 0,
+              current: 0,
+              total: 300, // 默认获取300根K线
+            },
+          });
+
           const klines = await this.getHistoryKlines(
             this.strategy.currency, // 交易对
             timeLevel, // K线周期
-            300 // 获取300根K线
+            300 // 获取300根K线用于计算指标
           );
-          console.log(klines);
-          // 存储K线数据
-          this.historyKlines[timeLevel] = klines;
+
+          // 存储K线数据并按时间排序
+          this.historyKlines[timeLevel] = klines.sort(
+            (a, b) => a.timestamp - b.timestamp
+          );
 
           console.log(`${timeLevel} K线数据获取完成，数量:`, klines.length);
 
-          // 通知主线程
+          // 通知获取完成
           this.postMessage({
             type: "history_kline_complete",
             data: {
               timeLevel,
               count: klines.length,
+              klines: klines, // 可以选择是否需要传递K线数据到主线程
             },
           });
 
@@ -217,6 +301,7 @@ class StrategyWorker extends self.BaseWorker {
           type: "all_history_kline_complete",
           data: {
             timeLevels: klineTimeLevels,
+            historyKlines: this.historyKlines,
           },
         });
       } catch (error) {
@@ -244,7 +329,7 @@ class StrategyWorker extends self.BaseWorker {
    * @param {number} limit 获取数量
    * @returns {Promise} K线数据
    */
-  async getHistoryKlines(instId, bar, limit = 100) {
+  async getHistoryKlines(instId, bar, limit = 300) {
     try {
       let allKlines = [];
       let lastTs = ""; // 用于分页的时间戳
@@ -277,6 +362,7 @@ class StrategyWorker extends self.BaseWorker {
             close: parseFloat(item[4]), // 收盘价
             volume: parseFloat(item[5]), // 交易量
             volCcy: parseFloat(item[6]), // 交易额
+            confirm: true, // 历史数据都是已完结的
           }));
 
           // 更新最后一条数据的时间戳，用于下次请求
@@ -285,13 +371,21 @@ class StrategyWorker extends self.BaseWorker {
           // 合并数据
           allKlines = allKlines.concat(klines);
 
+          // 发送进度通知
+          this.postMessage({
+            type: "history_kline_progress",
+            data: {
+              timeLevel: bar,
+              percentage: Math.round((allKlines.length / limit) * 100),
+              current: allKlines.length,
+              total: limit,
+            },
+          });
+
           // 如果返回的数据少于100条，说明没有更多数据了
           if (data.data.length < batchSize) {
             break;
           }
-
-          // 打印进度
-          console.log(`已获取 ${allKlines.length}/${limit} 条K线数据`);
 
           // 延迟100ms，避免触发频率限制
           await new Promise((resolve) => setTimeout(resolve, 100));

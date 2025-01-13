@@ -276,12 +276,16 @@ import {
 import FormulaDialog from './components/FormulaDialog.vue'
 import StrategyDialog from './components/StrategyDialog.vue'
 import dayjs from 'dayjs'
-import WorkerManager from '@/worker/WorkerManager';
+import WorkerManager from '@/worker/WorkerManager'
+import { useWebSocketStore } from '@/store/websocket'
 
 // 定义组件选项
 defineOptions({
     name: 'Quant'
 })
+
+// Store
+const wsStore = useWebSocketStore()
 
 // 状态管理
 const loading = ref(false)
@@ -529,6 +533,22 @@ const handleStrategyAction = async (record) => {
                 // 停止策略时终止 Worker
                 workerManager.stop(record.id)
 
+                // 取消该策略的所有K线订阅
+                const strategy = strategyList.value[index]
+                if (strategy.subscribedLevels) {
+                    for (const timeLevel of strategy.subscribedLevels) {
+                        try {
+                            await wsStore.unsubscribeCandleData({
+                                instId: strategy.currency,
+                                candlePeriod: timeLevel
+                            })
+                            console.log(`已取消订阅 ${strategy.currency} ${timeLevel} K线数据`)
+                        } catch (error) {
+                            console.error(`取消订阅 ${timeLevel} K线数据失败:`, error)
+                        }
+                    }
+                }
+
                 // 添加停止日志
                 strategyLogs.value.unshift({
                     time: new Date(),
@@ -561,7 +581,12 @@ const handleWorkerMessage = (strategyId, data) => {
     if (!strategy) return
 
     switch (data.type) {
-        case 'init_complete':
+        case "subscribe_klines":
+            // 处理订阅K线数据的请求
+            handleSubscribeKlines(data.data)
+            break
+
+        case "init_complete":
             strategyLogs.value.unshift({
                 time: new Date(),
                 type: 'info',
@@ -601,6 +626,7 @@ const handleWorkerMessage = (strategyId, data) => {
             })
             break
 
+
         case 'error':
             strategyLogs.value.unshift({
                 time: new Date(),
@@ -611,6 +637,87 @@ const handleWorkerMessage = (strategyId, data) => {
 
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)
+    }
+}
+
+// 处理订阅K线数据
+const handleSubscribeKlines = async (data) => {
+    try {
+        const { strategyId, currency, timeLevels } = data
+        const strategy = strategyList.value.find(item => item.id === strategyId)
+        if (!strategy) {
+            throw new Error('未找到策略')
+        }
+
+        // 记录订阅的时间级别
+        const index = strategyList.value.findIndex(item => item.id === strategyId)
+        if (index !== -1) {
+            strategyList.value[index].subscribedLevels = timeLevels
+            // 更新本地存储
+            localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
+        }
+
+        // 记录日志
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'info',
+            content: `策略 ${strategy.name} 开始订阅K线数据: ${timeLevels.join(', ')}`
+        })
+
+        // 遍历每个时间级别进行订阅
+        for (const timeLevel of timeLevels) {
+            try {
+                // 订阅K线数据
+                await wsStore.subscribeCandleData({
+                    instId: currency,
+                    candlePeriod: timeLevel,
+                    onData: (message) => {
+                        if (!message.data || !Array.isArray(message.data)) return
+
+                        // 将K线数据转换为Worker需要的格式
+                        const klineData = message.data.map(item => ({
+                            ts: item[0],
+                            o: item[1],
+                            h: item[2],
+                            l: item[3],
+                            c: item[4],
+                            vol: item[5],
+                            volCcy: item[6],
+                            confirm: item[8]
+                        }))
+
+                        // 推送数据给Worker
+                        workerManager.postMessage(strategyId, {
+                            type: 'kline_data',
+                            payload: {
+                                timeLevel,
+                                klineData
+                            }
+                        })
+                    }
+                })
+
+                strategyLogs.value.unshift({
+                    time: new Date(),
+                    type: 'success',
+                    content: `策略 ${strategy.name} 订阅 ${timeLevel} K线数据成功`
+                })
+            } catch (error) {
+                console.error(`订阅 ${timeLevel} K线数据失败:`, error)
+                strategyLogs.value.unshift({
+                    time: new Date(),
+                    type: 'error',
+                    content: `策略 ${strategy.name} 订阅 ${timeLevel} K线数据失败: ${error.message}`
+                })
+            }
+        }
+    } catch (error) {
+        console.error('订阅K线数据失败:', error)
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'error',
+            content: `订阅K线数据失败: ${error.message}`
+        })
     }
 }
 
