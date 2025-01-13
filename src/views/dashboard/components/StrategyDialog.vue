@@ -1,5 +1,5 @@
 <template>
-    <CustomDialog :model-value="visible" title="新增策略" :width="800" :close-on-click-mask="false"
+    <CustomDialog :model-value="visible" title="新增策略" :width="1000" :close-on-click-mask="false"
         @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
         <div class="strategy-dialog">
             <a-form :model="form" layout="vertical">

@@ -171,10 +171,12 @@
                                     <template v-if="column.key === 'action'">
                                         <div class="flex justify-center gap-2">
                                             <a-button :type="record.status === 'running' ? 'danger' : 'primary'"
-                                                size="small" @click="handleStrategyAction(record)">
+                                                size="small" :loading="record.loading"
+                                                @click="handleStrategyAction(record)">
                                                 {{ record.status === 'running' ? '停止' : '启动' }}
                                             </a-button>
-                                            <a-button danger size="small" @click="handleDeleteStrategy(record)">
+                                            <a-button danger size="small" :disabled="record.loading"
+                                                @click="handleDeleteStrategy(record)">
                                                 删除
                                             </a-button>
                                         </div>
@@ -404,8 +406,24 @@ const strategyColumns = [
         })
     },
     { title: '策略说明', dataIndex: 'description', key: 'description', width: '35%' },
-    { title: '状态', dataIndex: 'status', key: 'status', width: '20%', align: 'center' },
-    { title: '操作', key: 'action', width: '20%', align: 'center' }
+    {
+        title: '状态',
+        dataIndex: 'status',
+        key: 'status',
+        width: '20%',
+        align: 'center',
+        customCell: (record) => ({
+            style: {
+                cursor: record.loading ? 'wait' : 'default'
+            }
+        })
+    },
+    {
+        title: '操作',
+        key: 'action',
+        width: '20%',
+        align: 'center'
+    }
 ]
 
 // 方法定义
@@ -484,6 +502,31 @@ const handleDeleteStrategy = async (record) => {
 // 初始化线程 
 const workerManager = new WorkerManager();
 
+// 等待时间窗口函数
+const waitForTimeWindow = async (strategyName) => {
+    const now = new Date()
+    const seconds = now.getSeconds()
+
+    if (seconds < 10 || seconds > 30) {
+        // 计算等待时间
+        const waitSeconds = seconds < 10 ?
+            10 - seconds :
+            70 - seconds // 等待到下一分钟的10秒
+
+        // 添加等待日志
+        strategyLogs.value.unshift({
+            time: now,
+            type: 'info',
+            content: `策略 ${strategyName} 等待进入时间窗口（${waitSeconds}秒后启动）`
+        })
+
+        // 等待到下一个时间窗口
+        await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000))
+        return true
+    }
+    return false
+}
+
 // 初始化策略
 const handleStrategyAction = async (record) => {
     try {
@@ -492,6 +535,12 @@ const handleStrategyAction = async (record) => {
             const newStatus = record.status === 'running' ? 'stopped' : 'running'
 
             if (newStatus === 'running') {
+                // 设置加载状态
+                strategyList.value[index].loading = true
+
+                // 等待时间窗口
+                await waitForTimeWindow(record.name)
+
                 // 启动策略时创建新的 Worker
                 await workerManager.start(record.id, '/workers/worker-entry.js')
 
@@ -572,6 +621,12 @@ const handleStrategyAction = async (record) => {
             type: 'error',
             content: `策略操作失败: ${error.message}`
         })
+    } finally {
+        // 重置加载状态
+        const index = strategyList.value.findIndex(item => item.id === record.id)
+        if (index !== -1) {
+            strategyList.value[index].loading = false
+        }
     }
 }
 
@@ -742,7 +797,8 @@ const loadStrategies = () => {
             // 加载策略并将所有策略状态设置为停止
             strategyList.value = JSON.parse(storedStrategies).map(strategy => ({
                 ...strategy,
-                status: 'stopped'  // 强制设置状态为停止
+                status: 'stopped',  // 强制设置状态为停止
+                loading: false      // 初始化loading状态
             }));
 
             // 更新本地存储

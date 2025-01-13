@@ -1,14 +1,17 @@
 <template>
     <Teleport to="body">
         <Transition name="dialog-fade">
-            <div v-if="modelValue" class="custom-dialog-container" :class="{ 'no-mask': !showMask }" @click="handleMaskClick">
+            <div v-if="modelValue" class="custom-dialog-container" :class="{ 'no-mask': !showMask }"
+                @click="handleMaskClick">
                 <div class="custom-dialog" :style="{ width: width + 'px' }" @click.stop>
                     <!-- 头部 -->
                     <div class="dialog-header">
                         <h3 class="dialog-title">{{ title }}</h3>
                         <button v-if="showClose" class="close-btn" @click="handleClose">
                             <svg viewBox="0 0 1024 1024" width="16" height="16">
-                                <path d="M512 456.310154L94.247385 38.557538a39.542154 39.542154 0 0 0-55.689847 0 39.542154 39.542154 0 0 0 0 55.689847L456.310154 512 38.557538 929.752615a39.542154 39.542154 0 0 0 0 55.689847 39.542154 39.542154 0 0 0 55.689847 0L512 567.689846l417.752615 417.752616c15.163077 15.163077 40.526769 15.163077 55.689847 0s15.163077-40.526769 0-55.689847L567.689846 512 985.442462 94.247385a39.542154 39.542154 0 0 0 0-55.689847 39.542154 39.542154 0 0 0-55.689847 0L512 456.310154z" fill="currentColor"></path>
+                                <path
+                                    d="M512 456.310154L94.247385 38.557538a39.542154 39.542154 0 0 0-55.689847 0 39.542154 39.542154 0 0 0 0 55.689847L456.310154 512 38.557538 929.752615a39.542154 39.542154 0 0 0 0 55.689847 39.542154 39.542154 0 0 0 55.689847 0L512 567.689846l417.752615 417.752616c15.163077 15.163077 40.526769 15.163077 55.689847 0s15.163077-40.526769 0-55.689847L567.689846 512 985.442462 94.247385a39.542154 39.542154 0 0 0 0-55.689847 39.542154 39.542154 0 0 0-55.689847 0L512 456.310154z"
+                                    fill="currentColor"></path>
                             </svg>
                         </button>
                     </div>
@@ -99,6 +102,7 @@ const handleMaskClick = () => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: 80vh;
 }
 
 .dialog-header {
@@ -174,6 +178,7 @@ const handleMaskClick = () => {
         transform: scale(0.9);
         opacity: 0;
     }
+
     100% {
         transform: scale(1);
         opacity: 1;
@@ -185,9 +190,10 @@ const handleMaskClick = () => {
         transform: scale(1);
         opacity: 1;
     }
+
     100% {
         transform: scale(0.9);
         opacity: 0;
     }
 }
-</style> 
+</style>
