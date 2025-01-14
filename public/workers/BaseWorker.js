@@ -22,7 +22,7 @@ class BaseWorker {
    */
   handleMessage(event) {
     try {
-      console.log("BaseWorker 收到消息:", event.data);
+      //   console.log("BaseWorker 收到消息:", event.data);
       this.processData(event.data);
     } catch (error) {
       this.handleError(error);
@@ -42,7 +42,7 @@ class BaseWorker {
    * @param {any} data - 要发送的数据
    */
   postMessage(data) {
-    console.log("BaseWorker 发送消息:", data);
+    // console.log("BaseWorker 发送消息:", data);
     this.ctx.postMessage(data);
   }
 
