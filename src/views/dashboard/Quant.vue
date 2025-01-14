@@ -192,14 +192,128 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略监控</h3>
                             </div>
-
+                            <div class="flex items-center gap-4">
+                                <a-select v-model:value="selectedStrategy" placeholder="请选择策略" style="width: 200px"
+                                    :disabled="!strategyList.length" @clear="handleClearStrategy">
+                                    <a-select-option
+                                        v-for="strategy in strategyList.filter(s => s.status === 'running')"
+                                        :key="strategy.id" :value="strategy.id">
+                                        {{ strategy.name }}
+                                    </a-select-option>
+                                </a-select>
+                            </div>
                         </div>
                         <div class="p-4">
-                            <!-- 监控图表将在这里实现 -->
-                            <div class="flex flex-col items-center justify-center py-8">
-                                <line-chart-outlined class="text-4xl text-dark-200 mb-3" />
-                                <p class="text-dark-200">请先选择要监控的策略</p>
-                            </div>
+                            <template v-if="selectedStrategy && strategyIndicators[selectedStrategy]">
+                                <!-- 添加时间周期选项卡 -->
+                                <a-radio-group v-model:value="selectedTimeLevel" size="small"
+                                    class="time-level-tabs mb-4" :options="Object.keys(strategyIndicators[selectedStrategy]).map(level => ({
+                                        label: level,
+                                        value: level
+                                    }))" />
+
+                                <!-- 展示选中时间周期的指标数据 -->
+                                <template
+                                    v-if="selectedTimeLevel && strategyIndicators[selectedStrategy][selectedTimeLevel]">
+                                    <div class="indicators-container">
+                                        <!-- MA 指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].ma"
+                                            class="indicator-group mb-3">
+                                            <div class="text-dark-200 text-sm mb-1">MA指标</div>
+                                            <div class="grid grid-cols-5 gap-2">
+                                                <div v-for="(value, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].ma"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ value[value.length - 1]?.toFixed(2) || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- MACD 指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].macd"
+                                            class="indicator-group mb-3">
+                                            <div class="text-dark-200 text-sm mb-1">MACD指标</div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].macd"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key.toUpperCase() }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ values[values.length - 1]?.toFixed(4) || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- KDJ 指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].kdj"
+                                            class="indicator-group mb-3">
+                                            <div class="text-dark-200 text-sm mb-1">KDJ指标</div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].kdj"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key.toUpperCase() }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ values[values.length - 1]?.toFixed(2) || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- RSI 指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].rsi"
+                                            class="indicator-group mb-3">
+                                            <div class="text-dark-200 text-sm mb-1">RSI指标</div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div v-for="(value, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].rsi"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ value[value.length - 1]?.toFixed(2) || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- BOLL 指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].boll"
+                                            class="indicator-group mb-3">
+                                            <div class="text-dark-200 text-sm mb-1">BOLL指标</div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].boll"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ values[values.length - 1]?.toFixed(2) || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- 自定义指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].customIndicators"
+                                            class="indicator-group">
+                                            <div class="text-dark-200 text-sm mb-1">自定义指标</div>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].customIndicators"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ values[values.length - 1]?.toFixed(2) || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </template>
+                            <template v-else>
+                                <div class="flex flex-col items-center justify-center py-8">
+                                    <line-chart-outlined class="text-4xl text-dark-200 mb-3" />
+                                    <p class="text-dark-200">{{ !strategyList.length ? '暂无运行中的策略' : '请选择要监控的策略' }}</p>
+                                </div>
+                            </template>
                         </div>
                     </div>
 
@@ -263,7 +377,7 @@
 
 <script setup>
 import { defineOptions } from 'vue'
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
     PlusOutlined,
@@ -306,6 +420,11 @@ const STORAGE_KEYS = {
     PARAMETERS: 'quant_parameters',
     EXPRESSIONS: 'quant_expressions'
 }
+
+// 在 script setup 中添加新的状态管理
+const selectedStrategy = ref(null); // 当前选中的策略
+const strategyIndicators = ref({}); // 存储策略指标数据
+const selectedTimeLevel = ref(null); // 当前选中的时间周期
 
 // 从本地存储读取数据
 const loadFromStorage = () => {
@@ -685,6 +804,22 @@ const handleWorkerMessage = (strategyId, data) => {
             })
             break
 
+        case 'indicators_updated':
+            // 更新指标数据
+            if (!strategyIndicators.value[strategyId]) {
+                strategyIndicators.value[strategyId] = {};
+            }
+            strategyIndicators.value[strategyId][data.data.timeLevel] = data.data.indicators;
+
+            // 如果当前没有选中的时间周期，且有数据，则选中第一个时间周期
+            if (!selectedTimeLevel.value && selectedStrategy.value === strategyId) {
+                const timeLevels = Object.keys(strategyIndicators.value[strategyId]);
+                if (timeLevels.length > 0) {
+                    selectedTimeLevel.value = timeLevels[0];
+                }
+            }
+            break
+
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)
     }
@@ -817,6 +952,28 @@ onMounted(() => {
     loadFromStorage()
     loadStrategies()
 })
+
+// 监听 selectedStrategy 变化，只在有数据时自动选择第一个时间周期
+watch([selectedStrategy, () => strategyIndicators.value], ([newStrategyId, indicators]) => {
+    if (newStrategyId && indicators[newStrategyId]) {
+        const timeLevels = Object.keys(indicators[newStrategyId]);
+        // 只在有数据且没有选中时间周期时，才选中第一个时间周期
+        if (timeLevels.length > 0 && (!selectedTimeLevel.value || !indicators[newStrategyId][selectedTimeLevel.value])) {
+            selectedTimeLevel.value = timeLevels[0];
+        } else if (timeLevels.length === 0) {
+            selectedTimeLevel.value = null;
+        }
+    } else {
+        selectedTimeLevel.value = null;
+    }
+}, { deep: true });
+
+// 在 script setup 中添加处理清空的方法
+const handleClearStrategy = () => {
+    selectedStrategy.value = null;
+    selectedTimeLevel.value = null;
+    // 可以在这里添加其他需要清空的状态
+}
 </script>
 
 <style scoped>
@@ -1093,5 +1250,139 @@ onMounted(() => {
 .tooltip-item .value {
     color: #fff;
     word-break: break-all;
+}
+
+/* 在 style 部分添加以下样式 */
+.indicator-group {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.indicator-group .grid>div {
+    background-color: var(--bg-hover);
+    transition: all 0.3s ease;
+}
+
+.indicator-group .grid>div:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 数值颜色 */
+.text-positive {
+    color: var(--success-color);
+}
+
+.text-negative {
+    color: var(--danger-color);
+}
+
+/* Select 组件样式 */
+:deep(.ant-select) {
+    .ant-select-selector {
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+    }
+
+    .ant-select-selection-placeholder {
+        color: var(--text-secondary);
+    }
+
+    .ant-select-arrow {
+        color: var(--text-secondary);
+    }
+
+    &:not(.ant-select-disabled):hover .ant-select-selector {
+        border-color: var(--primary-color) !important;
+    }
+}
+
+:deep(.ant-select-dropdown) {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+
+    .ant-select-item {
+        color: var(--text-color);
+    }
+
+    .ant-select-item-option-selected {
+        background-color: var(--primary-color);
+        color: #fff;
+    }
+}
+
+/* 滚动条样式 */
+.indicator-group {
+    max-height: 600px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background-color: var(--border-color);
+        border-radius: 3px;
+    }
+}
+
+/* 在 style 部分添加时间周期选项卡样式 */
+.time-level-tabs {
+    margin-bottom: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+:deep(.time-level-tabs) {
+    .ant-radio-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .ant-radio-button-wrapper {
+        height: 28px;
+        line-height: 26px;
+        padding: 0 12px;
+        background: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: var(--text-color);
+        transition: all 0.3s ease;
+
+        &:hover {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        &::before {
+            display: none;
+        }
+    }
+
+    .ant-radio-button-wrapper-checked {
+        background: var(--primary-color) !important;
+        color: #fff !important;
+        border-color: var(--primary-color) !important;
+
+        &:hover {
+            opacity: 0.9;
+        }
+    }
+}
+
+.indicators-container {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 8px;
 }
 </style>
