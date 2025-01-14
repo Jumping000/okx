@@ -225,7 +225,21 @@
                                                     :key="key" class="bg-dark-300 p-2 rounded">
                                                     <div class="text-xs text-dark-200">{{ key }}</div>
                                                     <div class="text-dark-100">
-                                                        {{ value[value.length - 1]?.toFixed(2) || '-' }}
+                                                        {{ value[value.length - 1] || '-' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <!-- EMA 指标 -->
+                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].ema"
+                                            class="indicator-group mb-3">
+                                            <div class="text-dark-200 text-sm mb-1">EMA指标</div>
+                                            <div class="grid grid-cols-5 gap-2">
+                                                <div v-for="(value, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].ema"
+                                                    :key="key" class="bg-dark-300 p-2 rounded">
+                                                    <div class="text-xs text-dark-200">{{ key }}</div>
+                                                    <div class="text-dark-100">
+                                                        {{ value[value.length - 1] || '-' }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -240,7 +254,7 @@
                                                     :key="key" class="bg-dark-300 p-2 rounded">
                                                     <div class="text-xs text-dark-200">{{ key.toUpperCase() }}</div>
                                                     <div class="text-dark-100">
-                                                        {{ values[values.length - 1]?.toFixed(4) || '-' }}
+                                                        {{ values[values.length - 1] || '-' }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -255,7 +269,7 @@
                                                     :key="key" class="bg-dark-300 p-2 rounded">
                                                     <div class="text-xs text-dark-200">{{ key.toUpperCase() }}</div>
                                                     <div class="text-dark-100">
-                                                        {{ values[values.length - 1]?.toFixed(2) || '-' }}
+                                                        {{ values[values.length - 1] || '-' }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -270,7 +284,7 @@
                                                     :key="key" class="bg-dark-300 p-2 rounded">
                                                     <div class="text-xs text-dark-200">{{ key }}</div>
                                                     <div class="text-dark-100">
-                                                        {{ value[value.length - 1]?.toFixed(2) || '-' }}
+                                                        {{ value[value.length - 1] || '-' }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -285,7 +299,7 @@
                                                     :key="key" class="bg-dark-300 p-2 rounded">
                                                     <div class="text-xs text-dark-200">{{ key }}</div>
                                                     <div class="text-dark-100">
-                                                        {{ values[values.length - 1]?.toFixed(2) || '-' }}
+                                                        {{ values[values.length - 1] || '-' }}
                                                     </div>
                                                 </div>
                                             </div>
@@ -300,7 +314,7 @@
                                                     :key="key" class="bg-dark-300 p-2 rounded">
                                                     <div class="text-xs text-dark-200">{{ key }}</div>
                                                     <div class="text-dark-100">
-                                                        {{ values[values.length - 1]?.toFixed(2) || '-' }}
+                                                        {{ values[values.length - 1] || '-' }}
                                                     </div>
                                                 </div>
                                             </div>

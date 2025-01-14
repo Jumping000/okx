@@ -558,6 +558,16 @@ class StrategyWorker extends self.BaseWorker {
   }
 
   /**
+   * 格式化数字到指定精度
+   * @param {number} value - 要格式化的数值
+   * @returns {number} 格式化后的数值
+   */
+  formatNumber(value) {
+    if (typeof value !== "number" || isNaN(value)) return value;
+    return Number(value.toFixed(this.priceDecimalPlaces));
+  }
+
+  /**
    * 计算移动平均线
    * @param {Array} klines - K线数据
    * @returns {Object} MA指标数据
@@ -574,12 +584,11 @@ class StrategyWorker extends self.BaseWorker {
             result[`ma${period}`].push(null);
             continue;
           }
-
           let sum = 0;
           for (let j = 0; j < period; j++) {
             sum += klines[i - j].close;
           }
-          result[`ma${period}`].push(sum / period);
+          result[`ma${period}`].push(this.formatNumber(sum / period));
         }
       });
 
@@ -606,14 +615,14 @@ class StrategyWorker extends self.BaseWorker {
 
         for (let i = 0; i < klines.length; i++) {
           if (i === 0) {
-            result[`ema${period}`].push(klines[i].close);
+            result[`ema${period}`].push(this.formatNumber(klines[i].close));
             continue;
           }
 
           const prevEMA = result[`ema${period}`][i - 1];
           const currentClose = klines[i].close;
           const currentEMA = (currentClose - prevEMA) * multiplier + prevEMA;
-          result[`ema${period}`].push(currentEMA);
+          result[`ema${period}`].push(this.formatNumber(currentEMA));
         }
       });
 
@@ -653,13 +662,14 @@ class StrategyWorker extends self.BaseWorker {
           longEMA[i] = klines[i].close;
           result.dif[i] = 0;
         } else {
-          shortEMA[i] =
+          shortEMA[i] = this.formatNumber(
             (klines[i].close - shortEMA[i - 1]) * shortMultiplier +
-            shortEMA[i - 1];
-          longEMA[i] =
-            (klines[i].close - longEMA[i - 1]) * longMultiplier +
-            longEMA[i - 1];
-          result.dif[i] = shortEMA[i] - longEMA[i];
+              shortEMA[i - 1]
+          );
+          longEMA[i] = this.formatNumber(
+            (klines[i].close - longEMA[i - 1]) * longMultiplier + longEMA[i - 1]
+          );
+          result.dif[i] = this.formatNumber(shortEMA[i] - longEMA[i]);
         }
       }
 
@@ -669,12 +679,13 @@ class StrategyWorker extends self.BaseWorker {
         if (i === 0) {
           result.dea[i] = result.dif[i];
         } else {
-          result.dea[i] =
+          result.dea[i] = this.formatNumber(
             (result.dif[i] - result.dea[i - 1]) * signalMultiplier +
-            result.dea[i - 1];
+              result.dea[i - 1]
+          );
         }
         // MACD = (DIF - DEA) * 2
-        result.macd[i] = (result.dif[i] - result.dea[i]) * 2;
+        result.macd[i] = this.formatNumber((result.dif[i] - result.dea[i]) * 2);
       }
 
       return result;
@@ -713,15 +724,20 @@ class StrategyWorker extends self.BaseWorker {
           highestHigh = Math.max(highestHigh, klines[j].high);
           lowestLow = Math.min(lowestLow, klines[j].low);
         }
-        const rsv =
-          ((klines[i].close - lowestLow) / (highestHigh - lowestLow)) * 100;
+        const rsv = this.formatNumber(
+          ((klines[i].close - lowestLow) / (highestHigh - lowestLow)) * 100
+        );
 
         // 计算KDJ
         const k =
-          i === period - 1 ? rsv : (2 / 3) * result.k[i - 1] + (1 / 3) * rsv;
+          i === period - 1
+            ? rsv
+            : this.formatNumber((2 / 3) * result.k[i - 1] + (1 / 3) * rsv);
         const d =
-          i === period - 1 ? k : (2 / 3) * result.d[i - 1] + (1 / 3) * k;
-        const j = 3 * k - 2 * d;
+          i === period - 1
+            ? k
+            : this.formatNumber((2 / 3) * result.d[i - 1] + (1 / 3) * k);
+        const j = this.formatNumber(3 * k - 2 * d);
 
         result.k.push(k);
         result.d.push(d);
@@ -764,16 +780,20 @@ class StrategyWorker extends self.BaseWorker {
             continue;
           }
 
-          let avgGain =
-            gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
-          let avgLoss =
-            losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+          let avgGain = this.formatNumber(
+            gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period
+          );
+          let avgLoss = this.formatNumber(
+            losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period
+          );
 
           if (avgLoss === 0) {
             result[`rsi${period}`].push(100);
           } else {
             const rs = avgGain / avgLoss;
-            result[`rsi${period}`].push(100 - 100 / (1 + rs));
+            result[`rsi${period}`].push(
+              this.formatNumber(100 - 100 / (1 + rs))
+            );
           }
         }
       });
@@ -813,18 +833,24 @@ class StrategyWorker extends self.BaseWorker {
         for (let j = 0; j < period; j++) {
           sum += klines[i - j].close;
         }
-        const middle = sum / period;
+        const middle = this.formatNumber(sum / period);
 
         // 计算标准差
         let squareSum = 0;
         for (let j = 0; j < period; j++) {
           squareSum += Math.pow(klines[i - j].close - middle, 2);
         }
-        const standardDeviation = Math.sqrt(squareSum / period);
+        const standardDeviation = this.formatNumber(
+          Math.sqrt(squareSum / period)
+        );
 
         // 计算上下轨
-        const upper = middle + multiplier * standardDeviation;
-        const lower = middle - multiplier * standardDeviation;
+        const upper = this.formatNumber(
+          middle + multiplier * standardDeviation
+        );
+        const lower = this.formatNumber(
+          middle - multiplier * standardDeviation
+        );
 
         result.middle.push(middle);
         result.upper.push(upper);
@@ -863,12 +889,14 @@ class StrategyWorker extends self.BaseWorker {
         for (let j = 0; j < volumePeriod; j++) {
           sum += klines[i - j].volume;
         }
-        result.volumeMA.push(sum / volumePeriod);
+        result.volumeMA.push(this.formatNumber(sum / volumePeriod));
       }
 
       // 计算价格波动范围
       for (let i = 0; i < klines.length; i++) {
-        result.priceRange.push(klines[i].high - klines[i].low);
+        result.priceRange.push(
+          this.formatNumber(klines[i].high - klines[i].low)
+        );
       }
 
       // 计算动量指标（10周期）
@@ -879,7 +907,7 @@ class StrategyWorker extends self.BaseWorker {
           continue;
         }
         result.momentum.push(
-          klines[i].close - klines[i - momentumPeriod].close
+          this.formatNumber(klines[i].close - klines[i - momentumPeriod].close)
         );
       }
 
