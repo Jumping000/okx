@@ -185,6 +185,9 @@ class StrategyWorker extends self.BaseWorker {
       // 原子性更新数据
       this.klines.set(timeLevel, tempKlines);
       this.historyKlines.set(timeLevel, tempHistoryKlines);
+
+      // 计算指标
+      this.calculateIndicators(timeLevel);
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
     }
@@ -508,6 +511,380 @@ class StrategyWorker extends self.BaseWorker {
       console.log("Worker 已停止");
     } catch (error) {
       this.handleError(error, "停止策略失败");
+    }
+  }
+
+  /**
+   * 计算指标入口
+   * @param {string} timeLevel - 时间级别
+   */
+  calculateIndicators(timeLevel) {
+    try {
+      // 获取完整的K线数据
+      const currentKlines = this.klines.get(timeLevel) || [];
+      const historyKlines = this.historyKlines.get(timeLevel) || [];
+      const allKlines = [...historyKlines, ...currentKlines].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
+      // 计算各类指标
+      const indicators = {
+        ma: this.calculateMA(allKlines),
+        ema: this.calculateEMA(allKlines),
+        macd: this.calculateMACD(allKlines),
+        kdj: this.calculateKDJ(allKlines),
+        rsi: this.calculateRSI(allKlines),
+        boll: this.calculateBOLL(allKlines),
+        customIndicators: this.calculateCustomIndicators(allKlines),
+      };
+
+      // 发送指标计算结果
+      this.postMessage({
+        type: "indicators_updated",
+        data: {
+          timeLevel,
+          indicators,
+          timestamp: Date.now(),
+        },
+      });
+
+      return indicators;
+    } catch (error) {
+      this.handleError(error, "指标计算失败");
+      return null;
+    }
+  }
+
+  /**
+   * 计算移动平均线
+   * @param {Array} klines - K线数据
+   * @returns {Object} MA指标数据
+   */
+  calculateMA(klines) {
+    try {
+      const periods = [5, 10, 20, 30, 60];
+      const result = {};
+
+      periods.forEach((period) => {
+        result[`ma${period}`] = [];
+        for (let i = 0; i < klines.length; i++) {
+          if (i < period - 1) {
+            result[`ma${period}`].push(null);
+            continue;
+          }
+
+          let sum = 0;
+          for (let j = 0; j < period; j++) {
+            sum += klines[i - j].close;
+          }
+          result[`ma${period}`].push(sum / period);
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "MA计算失败");
+      return {};
+    }
+  }
+
+  /**
+   * 计算指数移动平均线
+   * @param {Array} klines - K线数据
+   * @returns {Object} EMA指标数据
+   */
+  calculateEMA(klines) {
+    try {
+      const periods = [5, 10, 20, 30, 60];
+      const result = {};
+
+      periods.forEach((period) => {
+        result[`ema${period}`] = [];
+        const multiplier = 2 / (period + 1);
+
+        for (let i = 0; i < klines.length; i++) {
+          if (i === 0) {
+            result[`ema${period}`].push(klines[i].close);
+            continue;
+          }
+
+          const prevEMA = result[`ema${period}`][i - 1];
+          const currentClose = klines[i].close;
+          const currentEMA = (currentClose - prevEMA) * multiplier + prevEMA;
+          result[`ema${period}`].push(currentEMA);
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "EMA计算失败");
+      return {};
+    }
+  }
+
+  /**
+   * 计算MACD指标
+   * @param {Array} klines - K线数据
+   * @returns {Object} MACD指标数据
+   */
+  calculateMACD(klines) {
+    try {
+      const shortPeriod = 12;
+      const longPeriod = 26;
+      const signalPeriod = 9;
+      const result = {
+        dif: [],
+        dea: [],
+        macd: [],
+      };
+
+      // 计算快速和慢速EMA
+      const shortEMA = [];
+      const longEMA = [];
+      const shortMultiplier = 2 / (shortPeriod + 1);
+      const longMultiplier = 2 / (longPeriod + 1);
+
+      // 计算DIF
+      for (let i = 0; i < klines.length; i++) {
+        if (i === 0) {
+          shortEMA[i] = klines[i].close;
+          longEMA[i] = klines[i].close;
+          result.dif[i] = 0;
+        } else {
+          shortEMA[i] =
+            (klines[i].close - shortEMA[i - 1]) * shortMultiplier +
+            shortEMA[i - 1];
+          longEMA[i] =
+            (klines[i].close - longEMA[i - 1]) * longMultiplier +
+            longEMA[i - 1];
+          result.dif[i] = shortEMA[i] - longEMA[i];
+        }
+      }
+
+      // 计算DEA和MACD
+      const signalMultiplier = 2 / (signalPeriod + 1);
+      for (let i = 0; i < klines.length; i++) {
+        if (i === 0) {
+          result.dea[i] = result.dif[i];
+        } else {
+          result.dea[i] =
+            (result.dif[i] - result.dea[i - 1]) * signalMultiplier +
+            result.dea[i - 1];
+        }
+        // MACD = (DIF - DEA) * 2
+        result.macd[i] = (result.dif[i] - result.dea[i]) * 2;
+      }
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "MACD计算失败");
+      return {};
+    }
+  }
+
+  /**
+   * 计算KDJ指标
+   * @param {Array} klines - K线数据
+   * @returns {Object} KDJ指标数据
+   */
+  calculateKDJ(klines) {
+    try {
+      const period = 9;
+      const result = {
+        k: [],
+        d: [],
+        j: [],
+      };
+
+      for (let i = 0; i < klines.length; i++) {
+        if (i < period - 1) {
+          result.k.push(50);
+          result.d.push(50);
+          result.j.push(50);
+          continue;
+        }
+
+        // 计算RSV
+        let highestHigh = -Infinity;
+        let lowestLow = Infinity;
+        for (let j = i - period + 1; j <= i; j++) {
+          highestHigh = Math.max(highestHigh, klines[j].high);
+          lowestLow = Math.min(lowestLow, klines[j].low);
+        }
+        const rsv =
+          ((klines[i].close - lowestLow) / (highestHigh - lowestLow)) * 100;
+
+        // 计算KDJ
+        const k =
+          i === period - 1 ? rsv : (2 / 3) * result.k[i - 1] + (1 / 3) * rsv;
+        const d =
+          i === period - 1 ? k : (2 / 3) * result.d[i - 1] + (1 / 3) * k;
+        const j = 3 * k - 2 * d;
+
+        result.k.push(k);
+        result.d.push(d);
+        result.j.push(j);
+      }
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "KDJ计算失败");
+      return {};
+    }
+  }
+
+  /**
+   * 计算RSI指标
+   * @param {Array} klines - K线数据
+   * @returns {Object} RSI指标数据
+   */
+  calculateRSI(klines) {
+    try {
+      const periods = [6, 12, 24];
+      const result = {};
+
+      periods.forEach((period) => {
+        result[`rsi${period}`] = [];
+        let gains = [];
+        let losses = [];
+
+        // 计算涨跌幅
+        for (let i = 1; i < klines.length; i++) {
+          const change = klines[i].close - klines[i - 1].close;
+          gains.push(Math.max(0, change));
+          losses.push(Math.max(0, -change));
+        }
+
+        // 计算RSI
+        for (let i = 0; i < klines.length; i++) {
+          if (i < period) {
+            result[`rsi${period}`].push(null);
+            continue;
+          }
+
+          let avgGain =
+            gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+          let avgLoss =
+            losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+
+          if (avgLoss === 0) {
+            result[`rsi${period}`].push(100);
+          } else {
+            const rs = avgGain / avgLoss;
+            result[`rsi${period}`].push(100 - 100 / (1 + rs));
+          }
+        }
+      });
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "RSI计算失败");
+      return {};
+    }
+  }
+
+  /**
+   * 计算布林带指标
+   * @param {Array} klines - K线数据
+   * @returns {Object} BOLL指标数据
+   */
+  calculateBOLL(klines) {
+    try {
+      const period = 20;
+      const multiplier = 2;
+      const result = {
+        middle: [],
+        upper: [],
+        lower: [],
+      };
+
+      for (let i = 0; i < klines.length; i++) {
+        if (i < period - 1) {
+          result.middle.push(null);
+          result.upper.push(null);
+          result.lower.push(null);
+          continue;
+        }
+
+        // 计算中轨（20日移动平均线）
+        let sum = 0;
+        for (let j = 0; j < period; j++) {
+          sum += klines[i - j].close;
+        }
+        const middle = sum / period;
+
+        // 计算标准差
+        let squareSum = 0;
+        for (let j = 0; j < period; j++) {
+          squareSum += Math.pow(klines[i - j].close - middle, 2);
+        }
+        const standardDeviation = Math.sqrt(squareSum / period);
+
+        // 计算上下轨
+        const upper = middle + multiplier * standardDeviation;
+        const lower = middle - multiplier * standardDeviation;
+
+        result.middle.push(middle);
+        result.upper.push(upper);
+        result.lower.push(lower);
+      }
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "BOLL计算失败");
+      return {};
+    }
+  }
+
+  /**
+   * 计算自定义指标
+   * @param {Array} klines - K线数据
+   * @returns {Object} 自定义指标数据
+   */
+  calculateCustomIndicators(klines) {
+    try {
+      const result = {
+        volumeMA: [], // 成交量移动平均
+        priceRange: [], // 价格波动范围
+        momentum: [], // 动量指标
+      };
+
+      // 计算成交量移动平均
+      const volumePeriod = 5;
+      for (let i = 0; i < klines.length; i++) {
+        if (i < volumePeriod - 1) {
+          result.volumeMA.push(null);
+          continue;
+        }
+
+        let sum = 0;
+        for (let j = 0; j < volumePeriod; j++) {
+          sum += klines[i - j].volume;
+        }
+        result.volumeMA.push(sum / volumePeriod);
+      }
+
+      // 计算价格波动范围
+      for (let i = 0; i < klines.length; i++) {
+        result.priceRange.push(klines[i].high - klines[i].low);
+      }
+
+      // 计算动量指标（10周期）
+      const momentumPeriod = 10;
+      for (let i = 0; i < klines.length; i++) {
+        if (i < momentumPeriod) {
+          result.momentum.push(null);
+          continue;
+        }
+        result.momentum.push(
+          klines[i].close - klines[i - momentumPeriod].close
+        );
+      }
+
+      return result;
+    } catch (error) {
+      this.handleError(error, "自定义指标计算失败");
+      return {};
     }
   }
 }
