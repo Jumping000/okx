@@ -390,6 +390,7 @@ import StrategyDialog from './components/StrategyDialog.vue'
 import dayjs from 'dayjs'
 import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
+import { useCurrencyStore } from '@/store/currency'
 
 // 定义组件选项
 defineOptions({
@@ -398,6 +399,7 @@ defineOptions({
 
 // Store
 const wsStore = useWebSocketStore()
+const currencyStore = useCurrencyStore()
 
 // 状态管理
 const loading = ref(false)
@@ -644,6 +646,10 @@ const waitForTimeWindow = async (strategyName) => {
 // 初始化策略
 const handleStrategyAction = async (record) => {
     try {
+        const currentCurrency = currencyStore.getCurrencyByName('SWAP', record.currency)
+        if (!currentCurrency) {
+            throw new Error('未找到币种信息')
+        }
         const index = strategyList.value.findIndex(item => item.id === record.id)
         if (index !== -1) {
             const newStatus = record.status === 'running' ? 'stopped' : 'running'
@@ -663,6 +669,8 @@ const handleStrategyAction = async (record) => {
                     // 处理 Worker 返回的消息
                     handleWorkerMessage(record.id, data)
                 })
+                const tickSz = currentCurrency.tickSz.toString() // 价格精度
+                const priceDecimalPlaces = tickSz.toString().split('.')[1]?.length || 0
 
                 // 准备要发送的数据，只包含必要的可序列化字段
                 const workerData = {
@@ -678,7 +686,8 @@ const handleStrategyAction = async (record) => {
                             positionType: record.positionType, // 策略持仓类型
                             stopLoss: record.stopLoss, // 策略止损
                             fullExpression: record.fullExpression, // 策略完整表达式
-                            originalExpression: record.originalExpression // 策略原始表达式
+                            originalExpression: record.originalExpression, // 策略原始表达式
+                            priceDecimalPlaces: priceDecimalPlaces // 价格精度
                         },
                     }
                 }

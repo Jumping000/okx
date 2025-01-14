@@ -939,7 +939,7 @@ const SubmitTrade = async (type, side, posSide) => {
 
         // 检查价格精度
         if (orderType.value === 'limit') {
-            const tickSz = Number(currentCurrency.tickSz) // 价格精度
+            const tickSz = currentCurrency.tickSz.toString() // 价格精度
             const priceDecimalPlaces = tickSz.toString().split('.')[1]?.length || 0
             price.value = parseFloat(price.value)
             price.value = price.value.toFixed(priceDecimalPlaces)

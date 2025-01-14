@@ -11,7 +11,8 @@ class StrategyWorker extends self.BaseWorker {
     this.klines = new Map();
     this.historyKlines = new Map();
     this.klineTimeLevels = [];
-
+    // 价格精度
+    this.priceDecimalPlaces = 0;
     // 配置参数
     this.config = {
       maxKlineCount: 1000, // 最大K线数量
@@ -114,6 +115,7 @@ class StrategyWorker extends self.BaseWorker {
       }
 
       this.strategy = payload.strategy;
+      this.priceDecimalPlaces = payload.strategy.priceDecimalPlaces;
       this.klineTimeLevels = await this.handleKlineTimeLevel(
         this.strategy.fullExpression
       );
