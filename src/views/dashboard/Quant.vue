@@ -192,11 +192,7 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略监控</h3>
                             </div>
-                            <a-radio-group v-model:value="monitorPeriod" size="small" class="monitor-tabs">
-                                <a-radio-button value="realtime">实时</a-radio-button>
-                                <a-radio-button value="1h">1小时</a-radio-button>
-                                <a-radio-button value="1d">1天</a-radio-button>
-                            </a-radio-group>
+
                         </div>
                         <div class="p-4">
                             <!-- 监控图表将在这里实现 -->
@@ -297,7 +293,6 @@ const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 
 // 监控和统计周期
-const monitorPeriod = ref('realtime')
 const statsPeriod = ref('today')
 
 // 列表数据
