@@ -335,14 +335,14 @@ class StrategyWorker extends self.BaseWorker {
               timeLevel,
               percentage: 0,
               current: 0,
-              total: 300,
+              total: 800,
             },
           });
 
           const klines = await this.getHistoryKlines(
             this.strategy.currency,
             timeLevel,
-            300
+            800
           );
 
           // 存储K线数据并按时间排序
@@ -381,7 +381,7 @@ class StrategyWorker extends self.BaseWorker {
   /**
    * 获取历史K线数据
    */
-  async getHistoryKlines(instId, bar, limit = 300) {
+  async getHistoryKlines(instId, bar, limit = 800) {
     let allKlines = [];
     let retryCount = 0;
 
@@ -612,18 +612,22 @@ class StrategyWorker extends self.BaseWorker {
       periods.forEach((period) => {
         result[`ema${period}`] = [];
         const multiplier = 2 / (period + 1);
+        const prices = klines.map((k) => k.close);
+        // 从第一个数据开始计算
+        let ema = [prices[0]]; // 初始EMA值使用第一个价格
 
-        for (let i = 0; i < klines.length; i++) {
-          if (i === 0) {
-            result[`ema${period}`].push(this.formatNumber(klines[i].close));
-            continue;
-          }
-
-          const prevEMA = result[`ema${period}`][i - 1];
-          const currentClose = klines[i].close;
-          const currentEMA = (currentClose - prevEMA) * multiplier + prevEMA;
-          result[`ema${period}`].push(this.formatNumber(currentEMA));
+        // 从第二个数据开始向后计算
+        for (let i = 1; i < prices.length; i++) {
+          const currentPrice = prices[i];
+          const previousEMA = ema[ema.length - 1];
+          const currentEMA = this.formatNumber(
+            (currentPrice - previousEMA) * multiplier + previousEMA
+          );
+          ema.push(currentEMA);
         }
+
+        // 将计算结果存入结果对象
+        result[`ema${period}`] = ema;
       });
 
       return result;
