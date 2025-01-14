@@ -194,7 +194,7 @@
                             </div>
                             <div class="flex items-center gap-4">
                                 <a-select v-model:value="selectedStrategy" placeholder="请选择策略" style="width: 200px"
-                                    :disabled="!strategyList.length" @clear="handleClearStrategy">
+                                    :disabled="!strategyList.length" allowClear @clear="handleClearStrategy">
                                     <a-select-option
                                         v-for="strategy in strategyList.filter(s => s.status === 'running')"
                                         :key="strategy.id" :value="strategy.id">
