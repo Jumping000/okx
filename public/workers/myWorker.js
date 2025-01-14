@@ -565,6 +565,13 @@ class StrategyWorker extends self.BaseWorker {
   formatNumber(value) {
     if (typeof value !== "number" || isNaN(value)) return value;
     return Number(value.toFixed(this.priceDecimalPlaces));
+    // let num = parseFloat(value);
+    // if (typeof num !== "number" || isNaN(num)) return num;
+    // // 乘以 10 的 decimalPlaces 次幂
+    // let factor = Math.pow(10, this.priceDecimalPlaces);
+    // // 向下取整
+    // let result = Math.floor(num * factor) / factor;
+    // return value;
   }
 
   /**
@@ -618,8 +625,8 @@ class StrategyWorker extends self.BaseWorker {
 
         // 从第二个数据开始向后计算
         for (let i = 1; i < prices.length; i++) {
-          const currentPrice = prices[i];
-          const previousEMA = ema[ema.length - 1];
+          const currentPrice = this.formatNumber(prices[i]);
+          const previousEMA = this.formatNumber(ema[ema.length - 1]);
           const currentEMA = this.formatNumber(
             (currentPrice - previousEMA) * multiplier + previousEMA
           );
@@ -653,43 +660,51 @@ class StrategyWorker extends self.BaseWorker {
         macd: [],
       };
 
-      // 计算快速和慢速EMA
-      const shortEMA = [];
-      const longEMA = [];
-      const shortMultiplier = 2 / (shortPeriod + 1);
-      const longMultiplier = 2 / (longPeriod + 1);
+      const prices = klines.map((k) => k.close);
 
-      // 计算DIF
-      for (let i = 0; i < klines.length; i++) {
-        if (i === 0) {
-          shortEMA[i] = klines[i].close;
-          longEMA[i] = klines[i].close;
-          result.dif[i] = 0;
-        } else {
-          shortEMA[i] = this.formatNumber(
-            (klines[i].close - shortEMA[i - 1]) * shortMultiplier +
-              shortEMA[i - 1]
-          );
-          longEMA[i] = this.formatNumber(
-            (klines[i].close - longEMA[i - 1]) * longMultiplier + longEMA[i - 1]
-          );
-          result.dif[i] = this.formatNumber(shortEMA[i] - longEMA[i]);
-        }
+      // 计算快速EMA
+      const shortEMA = [prices[0]];
+      const shortMultiplier = 2 / (shortPeriod + 1);
+      for (let i = 1; i < prices.length; i++) {
+        const currentPrice = prices[i];
+        const previousEMA = shortEMA[shortEMA.length - 1];
+        shortEMA.push(
+          (currentPrice - previousEMA) * shortMultiplier + previousEMA
+        );
       }
 
-      // 计算DEA和MACD
+      // 计算慢速EMA
+      const longEMA = [prices[0]];
+      const longMultiplier = 2 / (longPeriod + 1);
+      for (let i = 1; i < prices.length; i++) {
+        const currentPrice = prices[i];
+        const previousEMA = longEMA[longEMA.length - 1];
+        longEMA.push(
+          (currentPrice - previousEMA) * longMultiplier + previousEMA
+        );
+      }
+
+      // 计算DIF
+      for (let i = 0; i < prices.length; i++) {
+        result.dif.push(this.formatNumber(shortEMA[i] - longEMA[i]));
+      }
+
+      // 计算DEA (DIF的EMA)
+      result.dea = [result.dif[0]];
       const signalMultiplier = 2 / (signalPeriod + 1);
-      for (let i = 0; i < klines.length; i++) {
-        if (i === 0) {
-          result.dea[i] = result.dif[i];
-        } else {
-          result.dea[i] = this.formatNumber(
-            (result.dif[i] - result.dea[i - 1]) * signalMultiplier +
-              result.dea[i - 1]
-          );
-        }
-        // MACD = (DIF - DEA) * 2
-        result.macd[i] = this.formatNumber((result.dif[i] - result.dea[i]) * 2);
+      for (let i = 1; i < result.dif.length; i++) {
+        const currentDIF = result.dif[i];
+        const previousDEA = result.dea[result.dea.length - 1];
+        result.dea.push(
+          this.formatNumber(
+            (currentDIF - previousDEA) * signalMultiplier + previousDEA
+          )
+        );
+      }
+
+      // 计算MACD
+      for (let i = 0; i < prices.length; i++) {
+        result.macd.push(this.formatNumber(result.dif[i] - result.dea[i]) * 2);
       }
 
       return result;
@@ -784,12 +799,10 @@ class StrategyWorker extends self.BaseWorker {
             continue;
           }
 
-          let avgGain = this.formatNumber(
-            gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period
-          );
-          let avgLoss = this.formatNumber(
-            losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period
-          );
+          let avgGain =
+            gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
+          let avgLoss =
+            losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
 
           if (avgLoss === 0) {
             result[`rsi${period}`].push(100);
@@ -837,16 +850,14 @@ class StrategyWorker extends self.BaseWorker {
         for (let j = 0; j < period; j++) {
           sum += klines[i - j].close;
         }
-        const middle = this.formatNumber(sum / period);
+        const middle = sum / period;
 
         // 计算标准差
         let squareSum = 0;
         for (let j = 0; j < period; j++) {
           squareSum += Math.pow(klines[i - j].close - middle, 2);
         }
-        const standardDeviation = this.formatNumber(
-          Math.sqrt(squareSum / period)
-        );
+        const standardDeviation = Math.sqrt(squareSum / period);
 
         // 计算上下轨
         const upper = this.formatNumber(
@@ -856,7 +867,7 @@ class StrategyWorker extends self.BaseWorker {
           middle - multiplier * standardDeviation
         );
 
-        result.middle.push(middle);
+        result.middle.push(this.formatNumber(middle));
         result.upper.push(upper);
         result.lower.push(lower);
       }
