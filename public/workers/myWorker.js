@@ -185,11 +185,6 @@ class StrategyWorker extends self.BaseWorker {
       // 原子性更新数据
       this.klines.set(timeLevel, tempKlines);
       this.historyKlines.set(timeLevel, tempHistoryKlines);
-
-      //   console.log(`[${timeLevel}] 当前状态:`, {
-      //     currentKlines: tempKlines.length,
-      //     historyKlines: tempHistoryKlines.length,
-      //   });
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
     }
