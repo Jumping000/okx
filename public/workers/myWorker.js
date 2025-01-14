@@ -535,7 +535,6 @@ class StrategyWorker extends self.BaseWorker {
         ema: this.calculateEMA(allKlines),
         macd: this.calculateMACD(allKlines),
         kdj: this.calculateKDJ(allKlines),
-        rsi: this.calculateRSI(allKlines),
         boll: this.calculateBOLL(allKlines),
         customIndicators: this.calculateCustomIndicators(allKlines),
       };
@@ -766,58 +765,6 @@ class StrategyWorker extends self.BaseWorker {
       return result;
     } catch (error) {
       this.handleError(error, "KDJ计算失败");
-      return {};
-    }
-  }
-
-  /**
-   * 计算RSI指标
-   * @param {Array} klines - K线数据
-   * @returns {Object} RSI指标数据
-   */
-  calculateRSI(klines) {
-    try {
-      const periods = [6, 12, 24];
-      const result = {};
-
-      periods.forEach((period) => {
-        result[`rsi${period}`] = [];
-        let gains = [];
-        let losses = [];
-
-        // 计算涨跌幅
-        for (let i = 1; i < klines.length; i++) {
-          const change = klines[i].close - klines[i - 1].close;
-          gains.push(Math.max(0, change));
-          losses.push(Math.max(0, -change));
-        }
-
-        // 计算RSI
-        for (let i = 0; i < klines.length; i++) {
-          if (i < period) {
-            result[`rsi${period}`].push(null);
-            continue;
-          }
-
-          let avgGain =
-            gains.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
-          let avgLoss =
-            losses.slice(i - period, i).reduce((a, b) => a + b, 0) / period;
-
-          if (avgLoss === 0) {
-            result[`rsi${period}`].push(100);
-          } else {
-            const rs = avgGain / avgLoss;
-            result[`rsi${period}`].push(
-              this.formatNumber(100 - 100 / (1 + rs))
-            );
-          }
-        }
-      });
-
-      return result;
-    } catch (error) {
-      this.handleError(error, "RSI计算失败");
       return {};
     }
   }

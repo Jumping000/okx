@@ -275,21 +275,6 @@
                                             </div>
                                         </div>
 
-                                        <!-- RSI 指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].rsi"
-                                            class="indicator-group mb-3">
-                                            <div class="text-dark-200 text-sm mb-1">RSI指标</div>
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <div v-for="(value, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].rsi"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ value[value.length - 1] || '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
                                         <!-- BOLL 指标 -->
                                         <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].boll"
                                             class="indicator-group mb-3">
