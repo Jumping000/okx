@@ -555,6 +555,7 @@ class StrategyWorker extends self.BaseWorker {
 
   /**
    * 计算指标入口
+   * @param {Array} strategyExpression - 策略表达式
    * @param {string} timeLevel - 时间级别
    */
   calculateIndicators(strategyExpression, timeLevel) {
