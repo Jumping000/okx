@@ -192,125 +192,33 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略监控</h3>
                             </div>
-                            <div class="flex items-center gap-4">
-                                <a-select v-model:value="selectedStrategy" placeholder="请选择策略" style="width: 200px"
-                                    :disabled="!strategyList.length" allowClear @clear="handleClearStrategy">
-                                    <a-select-option
-                                        v-for="strategy in strategyList.filter(s => s.status === 'running')"
-                                        :key="strategy.id" :value="strategy.id">
-                                        {{ strategy.name }}
-                                    </a-select-option>
-                                </a-select>
+                            <div class="flex items-center gap-2">
+                                <a-select v-model:value="selectedStrategy" placeholder="选择策略" style="width: 200px"
+                                    :options="runningStrategies" :field-names="{ label: 'name', value: 'id' }" />
                             </div>
                         </div>
                         <div class="p-4">
                             <template v-if="selectedStrategy && strategyIndicators[selectedStrategy]">
-                                <!-- 添加时间周期选项卡 -->
-                                <a-radio-group v-model:value="selectedTimeLevel" size="small"
-                                    class="time-level-tabs mb-4" :options="Object.keys(strategyIndicators[selectedStrategy]).map(level => ({
-                                        label: level,
-                                        value: level
-                                    }))" />
-
-                                <!-- 展示选中时间周期的指标数据 -->
-                                <template
-                                    v-if="selectedTimeLevel && strategyIndicators[selectedStrategy][selectedTimeLevel]">
-                                    <div class="indicators-container">
-                                        <!-- MA 指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].ma"
-                                            class="indicator-group mb-3">
-                                            <div class="text-dark-200 text-sm mb-1">MA指标</div>
-                                            <div class="grid grid-cols-5 gap-2">
-                                                <div v-for="(value, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].ma"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ value[value.length - 1] || '-' }}
-                                                    </div>
+                                <div v-for="(indicators, timeLevel) in strategyIndicators[selectedStrategy]"
+                                    :key="timeLevel" class="mb-4">
+                                    <div class="text-dark-100 font-medium mb-2">{{ getTimeLevelName(timeLevel) }}</div>
+                                    <div class="grid grid-cols-4 gap-4">
+                                        <template v-for="(indicator, index) in indicators" :key="index">
+                                            <div v-if="indicator && indicator.name"
+                                                class="indicator-card bg-dark-300 p-3 rounded">
+                                                <div class="text-dark-200 text-sm mb-1">
+                                                    {{ getIndicatorName(indicator.name) }}
                                                 </div>
+                                                <div class="text-dark-100 font-mono">{{ indicator.value || '-' }}</div>
                                             </div>
-                                        </div>
-                                        <!-- EMA 指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].ema"
-                                            class="indicator-group mb-3">
-                                            <div class="text-dark-200 text-sm mb-1">EMA指标</div>
-                                            <div class="grid grid-cols-5 gap-2">
-                                                <div v-for="(value, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].ema"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ value[value.length - 1] || '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- MACD 指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].macd"
-                                            class="indicator-group mb-3">
-                                            <div class="text-dark-200 text-sm mb-1">MACD指标</div>
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].macd"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key.toUpperCase() }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ values[values.length - 1] || '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- KDJ 指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].kdj"
-                                            class="indicator-group mb-3">
-                                            <div class="text-dark-200 text-sm mb-1">KDJ指标</div>
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].kdj"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key.toUpperCase() }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ values[values.length - 1] || '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- BOLL 指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].boll"
-                                            class="indicator-group mb-3">
-                                            <div class="text-dark-200 text-sm mb-1">BOLL指标</div>
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].boll"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ values[values.length - 1] || '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- 自定义指标 -->
-                                        <div v-if="strategyIndicators[selectedStrategy][selectedTimeLevel].customIndicators"
-                                            class="indicator-group">
-                                            <div class="text-dark-200 text-sm mb-1">自定义指标</div>
-                                            <div class="grid grid-cols-3 gap-2">
-                                                <div v-for="(values, key) in strategyIndicators[selectedStrategy][selectedTimeLevel].customIndicators"
-                                                    :key="key" class="bg-dark-300 p-2 rounded">
-                                                    <div class="text-xs text-dark-200">{{ key }}</div>
-                                                    <div class="text-dark-100">
-                                                        {{ values[values.length - 1] || '-' }}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        </template>
                                     </div>
-                                </template>
+                                </div>
                             </template>
                             <template v-else>
                                 <div class="flex flex-col items-center justify-center py-8">
                                     <line-chart-outlined class="text-4xl text-dark-200 mb-3" />
-                                    <p class="text-dark-200">{{ !strategyList.length ? '暂无运行中的策略' : '请选择要监控的策略' }}</p>
+                                    <p class="text-dark-200">{{ selectedStrategy ? '暂无监控数据' : '请选择要监控的策略' }}</p>
                                 </div>
                             </template>
                         </div>
@@ -376,7 +284,7 @@
 
 <script setup>
 import { defineOptions } from 'vue'
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import {
     // PlusOutlined,
@@ -426,6 +334,73 @@ const STORAGE_KEYS = {
 const selectedStrategy = ref(null); // 当前选中的策略
 const strategyIndicators = ref({}); // 存储策略指标数据
 const selectedTimeLevel = ref(null); // 当前选中的时间周期
+
+// 添加计算属性：运行中的策略列表
+const runningStrategies = computed(() => {
+    return strategyList.value.filter(strategy => strategy.status === 'running');
+});
+
+// 添加时间级别名称映射函数
+const getTimeLevelName = (timeLevel) => {
+    const timeLevelMap = {
+        '1m': '1分钟',
+        '3m': '3分钟',
+        '5m': '5分钟',
+        '15m': '15分钟',
+        '30m': '30分钟',
+        '1H': '1小时',
+        '2H': '2小时',
+        '4H': '4小时',
+        '6H': '6小时',
+        '12H': '12小时',
+        '1D': '1天',
+        '1W': '1周',
+        '1M': '1月',
+    };
+    return timeLevelMap[timeLevel] || timeLevel;
+};
+
+// 添加指标名称映射函数
+const getIndicatorName = (name) => {
+    // 添加数据验证
+    if (!name) return '未知指标';
+
+    const indicatorMap = {
+        'KP': '开盘价',
+        'SP': '收盘价',
+        'ZG': '最高价',
+        'ZD': '最低价',
+        'CJ': '成交量',
+        'MACD_DIF': 'MACD DIF',
+        'MACD_DEA': 'MACD DEA',
+        'MACD_MACD': 'MACD',
+        'KDJ_K': 'KDJ K',
+        'KDJ_D': 'KDJ D',
+        'KDJ_J': 'KDJ J',
+        'BOLL_UPPER': 'BOLL 上轨',
+        'BOLL_MIDDLE': 'BOLL 中轨',
+        'BOLL_LOWER': 'BOLL 下轨',
+    };
+
+    // 处理 MA 和 EMA 的特殊情况
+    if (name.startsWith('MA_')) {
+        const period = name.split('_')[1];
+        return `MA(${period})`;
+    }
+    if (name.startsWith('EMA_')) {
+        const period = name.split('_')[1];
+        return `EMA(${period})`;
+    }
+    if (name.startsWith('LS_')) {
+        const parts = name.split('_');
+        if (parts.length >= 3) {
+            const [, type, index] = parts;
+            return `${indicatorMap[type] || type}[${index}]`;
+        }
+    }
+
+    return indicatorMap[name] || name;
+};
 
 // 从本地存储读取数据
 const loadFromStorage = () => {
@@ -803,7 +778,6 @@ const handleWorkerMessage = (strategyId, data) => {
             })
             break
 
-
         case 'error':
             strategyLogs.value.unshift({
                 time: new Date(),
@@ -814,17 +788,15 @@ const handleWorkerMessage = (strategyId, data) => {
 
         case 'indicators_updated':
             // 更新指标数据
-            if (!strategyIndicators.value[strategyId]) {
-                strategyIndicators.value[strategyId] = {};
-            }
-            strategyIndicators.value[strategyId][data.data.timeLevel] = data.data.indicators;
-
-            // 如果当前没有选中的时间周期，且有数据，则选中第一个时间周期
-            if (!selectedTimeLevel.value && selectedStrategy.value === strategyId) {
-                const timeLevels = Object.keys(strategyIndicators.value[strategyId]);
-                if (timeLevels.length > 0) {
-                    selectedTimeLevel.value = timeLevels[0];
+            if (data.data && data.data.timeLevel && Array.isArray(data.data.indicators)) {
+                console.log('收到指标数据更新:', data.data);
+                if (!strategyIndicators.value[strategyId]) {
+                    strategyIndicators.value[strategyId] = {};
                 }
+                strategyIndicators.value[strategyId][data.data.timeLevel] = data.data.indicators;
+
+                // 强制更新视图
+                strategyIndicators.value = { ...strategyIndicators.value };
             }
             break
 
@@ -832,6 +804,14 @@ const handleWorkerMessage = (strategyId, data) => {
             console.log(`未处理的消息类型: ${data.type}`, data)
     }
 }
+
+// 监听策略选择变化
+watch(selectedStrategy, (newVal) => {
+    if (newVal) {
+        console.log('选中策略:', newVal);
+        console.log('当前指标数据:', strategyIndicators.value[newVal]);
+    }
+});
 
 // 处理订阅K线数据
 const handleSubscribeKlines = async (data) => {
@@ -1392,5 +1372,19 @@ const handleClearStrategy = () => {
     max-height: 500px;
     overflow-y: auto;
     padding-right: 8px;
+}
+
+.indicator-card {
+    transition: all 0.3s ease;
+}
+
+.indicator-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.indicator-card .text-dark-100 {
+    font-size: 1.1em;
+    letter-spacing: 0.5px;
 }
 </style>
