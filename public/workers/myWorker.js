@@ -780,6 +780,7 @@ class StrategyWorker extends self.BaseWorker {
    * @param {string} expression - 原始表达式
    */
   calculateExpression(strategyExpression, expression) {
+    // 检查空值
     for (const timeLevel in strategyExpression) {
       for (const item of strategyExpression[timeLevel]) {
         if (item.value === "") {
@@ -788,6 +789,7 @@ class StrategyWorker extends self.BaseWorker {
         }
       }
     }
+
     try {
       // 创建时间级别映射表（从 exchange 格式转换为 Name 格式）
       const timeLevelMap = {};
@@ -840,15 +842,29 @@ class StrategyWorker extends self.BaseWorker {
         });
       });
 
+      // 处理逻辑运算符
+      calculatedExpression = calculatedExpression
+        .replace(/\band\b/g, "&&") // 将 and 替换为 &&
+        .replace(/\bor\b/g, "||") // 将 or 替换为 ||
+        .replace(/！=/g, "!=") // 处理全角不等号
+        .replace(/＝=/g, "==") // 处理全角等号
+        .replace(/！/g, "!") // 处理全角感叹号
+        .replace(/（/g, "(") // 处理全角左括号
+        .replace(/）/g, ")") // 处理全角右括号
+        .replace(/＞=/g, ">=") // 处理全角大于等于
+        .replace(/＜=/g, "<=") // 处理全角小于等于
+        .replace(/＞/g, ">") // 处理全角大于号
+        .replace(/＜/g, "<"); // 处理全角小于号
+
       // 记录转换后的表达式
-      console.log("原始表达式:", expression);
-      console.log("转换后的表达式:", calculatedExpression);
+      //   console.log("原始表达式:", expression);
+      //   console.log("转换后的表达式:", calculatedExpression);
 
       // 尝试计算表达式
       try {
         // eslint-disable-next-line no-eval
         const result = eval(calculatedExpression);
-        console.log("表达式计算结果:", result);
+        // console.log("表达式计算结果:", result);
 
         // 发送计算结果
         this.postMessage({
