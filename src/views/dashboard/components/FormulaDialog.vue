@@ -27,6 +27,17 @@
                             <span>CJ - 成交量</span>
                         </div>
                     </div>
+                    <!-- 指标 -->
+                    <div class="rule-item">
+                        <div class="rule-title">指标说明：</div>
+                        <div class="rule-content rule-times">
+                            <span>MA - 移动平均线</span>
+                            <span>EMA - 指数移动平均线</span>
+                            <span>BOLL - 布林带</span>
+                            <span>MACD - 移动平均线收敛/发散指标</span>
+                            <span>KDJ - 随机指标</span>
+                        </div>
+                    </div>
                     <div class="rule-item">
                         <div class="rule-title">时间周期说明：</div>
                         <div class="rule-content rule-times">
@@ -279,7 +290,14 @@ const dataTypeCollection = [
     { Name: 'ZD', dis: '最低价' },
     { Name: 'CJ', dis: '成交量' },
 ]
-
+// 指标集合 
+const indicatorCollection = [
+    { Name: 'MA', dis: '移动平均线' },
+    { Name: 'EMA', dis: '指数移动平均线' },
+    { Name: 'BOLL', dis: '布林带' },
+    { Name: 'MACD', dis: '移动平均线收敛/发散指标' },
+    { Name: 'KDJ', dis: '随机指标' },
+]
 // 运算符列表
 const operators = ref([
     { Name: '(', value: '(', type: 'operator' },
@@ -319,6 +337,7 @@ const generateBasicData = () => {
             value: `${dataType.Name}_${time.Name}`,
             type: 'basic'
         }))
+
         // 循环 300次 生成数据
         for (let i = 0; i < 300; i++) {
             const newDataItems = dataTypeCollection.map(dataType => ({
