@@ -15,6 +15,10 @@
                             <div class="format-item">
                                 <span class="code">LS_数据类型_时间周期_序号</span>
                             </div>
+                            <span class="divider" />
+                            <div class="format-item">
+                                <span class="code">指标类型_时间周期_参数值</span>
+                            </div>
                         </div>
                     </div>
                     <div class="rule-item">
@@ -93,6 +97,8 @@
                                     size="small" style="width: 120px">
                                     <el-option v-for="type in dataTypeCollection" :key="type.Name" :label="type.dis"
                                         :value="type.Name" />
+                                    <el-option v-for="indicator in indicatorCollection" :key="indicator.Name"
+                                        :label="indicator.dis" :value="indicator.Name" />
                                 </el-select>
                                 <div class="ls-filter">
                                     <span class="ls-label">LS范围:</span>
@@ -487,9 +493,20 @@ const filteredBasicParameterList = computed(() => {
     if (filterConditions.value.selectedType) {
         filteredData = filteredData.filter(item => {
             if (item.Name.startsWith('LS_')) {
+                // 对于历史数据，使用包含匹配
                 return item.Name.includes(`_${filterConditions.value.selectedType}_`)
             }
-            return item.Name.startsWith(filterConditions.value.selectedType)
+
+            // 检查是否是指标类型
+            const isIndicator = indicatorCollection.some(ind => ind.Name === filterConditions.value.selectedType)
+            if (isIndicator) {
+                // 使用精确的指标类型匹配，确保不会匹配到其他指标
+                const parts = item.Name.split('_')
+                return parts[0] === filterConditions.value.selectedType
+            }
+
+            // 对于基础数据类型，使用精确的前缀匹配
+            return item.Name.startsWith(`${filterConditions.value.selectedType}_`)
         })
     }
 
