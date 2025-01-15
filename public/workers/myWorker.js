@@ -537,16 +537,28 @@ class StrategyWorker extends self.BaseWorker {
       }
       switch (item[0]) {
         case "LS":
-          arr[item[2]].push(item[0] + "_" + item[1] + "_" + item[3]);
+          arr[item[2]].push({
+            name: item[0] + "_" + item[1] + "_" + item[3],
+            value: "",
+          });
           break;
         case "EMA":
-          arr[item[1]].push(item[0] + "_" + item[2]);
+          arr[item[1]].push({
+            name: item[0] + "_" + item[2],
+            value: "",
+          });
           break;
         case "MA":
-          arr[item[1]].push(item[0] + "_" + item[2]);
+          arr[item[1]].push({
+            name: item[0] + "_" + item[2],
+            value: "",
+          });
           break;
         default:
-          arr[item[1]].push(item[0]);
+          arr[item[1]].push({
+            name: item[0],
+            value: "",
+          });
           break;
       }
     });
@@ -560,9 +572,13 @@ class StrategyWorker extends self.BaseWorker {
    */
   calculateIndicators(strategyExpression, timeLevel) {
     try {
-      console.log("时间级别", timeLevel, "需要计算的指标", strategyExpression);
-      // 时间级别 1m 需要计算的指标 (8) ['KP', 'SP', 'ZD', 'EMA_6', 'EMA_5', 'LS_CJ_1', 'BOLL', 'MA_52']
-
+      console.log(
+        "时间级别",
+        timeLevel,
+        "需要计算的指标",
+        JSON.stringify(strategyExpression)
+      );
+      // 时间级别 1m 需要计算的指标 [{"name":"KP","value":""},{"name":"SP","value":""},{"name":"ZD","value":""},{"name":"EMA_6","value":""},{"name":"EMA_5","value":""},{"name":"LS_CJ_1","value":""},{"name":"BOLL","value":""},{"name":"MA_52","value":""}]
       // 获取完整的K线数据
       //   const currentKlines = this.klines.get(timeLevel) || [];
       //   const historyKlines = this.historyKlines.get(timeLevel) || [];
