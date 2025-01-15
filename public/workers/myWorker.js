@@ -776,11 +776,10 @@ class StrategyWorker extends self.BaseWorker {
 
   /**
    * 计算表达式
-   * @param {Array} strategyExpression - 策略表达式参数
-   * @param {string} Expression - 表达式
+   * @param {Object} strategyExpression - 策略表达式对象，包含各个时间级别的指标值
+   * @param {string} expression - 原始表达式
    */
-  calculateExpression(strategyExpression, Expression) {
-    //  循环 strategyExpression 内 所有时间级别下的所有值
+  calculateExpression(strategyExpression, expression) {
     for (const timeLevel in strategyExpression) {
       for (const item of strategyExpression[timeLevel]) {
         if (item.value === "") {
@@ -789,10 +788,89 @@ class StrategyWorker extends self.BaseWorker {
         }
       }
     }
-    // Expression=(( MACD_DEA_1F + EMA_1F_5 + MA_1F_9 - BOLL_UPPER_1F + BOLL_LOWER_1F - BOLL_MIDDLE_1F + MACD_DIF_1F + MACD_MACD_1F - KDJ_K_1F - KDJ_D_1F - KDJ_J_1F + ZG_1F + SP_1F + ZD_3F ) + LS_CJ_1F_2 - LS_ZG_1F_2 - LS_CJ_5F_3) != 1
-    // Expression=(( SP_3F + ZD_1F - CJ_15F + SP_1T - LS_CJ_1F_1 ) + ( KP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) == 0 and (SP_1F + ( SP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) != 1
-    // strategyExpression={"1m":[{"name":"MACD_DEA","value":-0.0086},{"name":"EMA_5","value":4.5261},{"name":"MA_9","value":4.5237},{"name":"BOLL_UPPER","value":4.5508},{"name":"BOLL_LOWER","value":4.5096},{"name":"BOLL_MIDDLE","value":4.5302},{"name":"MACD_DIF","value":-0.0072},{"name":"MACD_MACD","value":0.0028},{"name":"KDJ_K","value":58.6502},{"name":"KDJ_D","value":46.1457},{"name":"KDJ_J","value":83.6592},{"name":"ZG","value":4.5275},{"name":"SP","value":4.5274},{"name":"LS_CJ_2","value":56080},{"name":"LS_ZG_2","value":4.5335}],"3m":[{"name":"ZD","value":4.5257}],"5m":[{"name":"LS_CJ_3","value":472915}]}
+    try {
+      // 创建时间级别映射表（从 exchange 格式转换为 Name 格式）
+      const timeLevelMap = {};
+      this.timeLevel.forEach((level) => {
+        timeLevelMap[level.exchange] = level.Name;
+      });
+
+      // 复制一份表达式用于替换
+      let calculatedExpression = expression;
+
+      // 遍历所有时间级别的指标
+      Object.entries(strategyExpression).forEach(([timeLevel, indicators]) => {
+        // 获取对应的时间级别格式（例如：将 "1m" 转换为 "1F"）
+        const formattedTimeLevel = timeLevelMap[timeLevel];
+        if (!formattedTimeLevel) return;
+
+        // 遍历该时间级别下的所有指标
+        indicators.forEach((indicator) => {
+          let searchPattern;
+          if (indicator.name.startsWith("LS_")) {
+            // 处理历史数据指标（例如：LS_CJ_2）
+            const [prefix, type, index] = indicator.name.split("_");
+            searchPattern = `${prefix}_${type}_${formattedTimeLevel}_${index}`;
+          } else if (
+            indicator.name.startsWith("MA_") ||
+            indicator.name.startsWith("EMA_")
+          ) {
+            // 处理 MA 和 EMA 指标（例如：MA_5）
+            const [type, period] = indicator.name.split("_");
+            searchPattern = `${type}_${formattedTimeLevel}_${period}`;
+          } else if (
+            indicator.name.startsWith("MACD_") ||
+            indicator.name.startsWith("KDJ_") ||
+            indicator.name.startsWith("BOLL_")
+          ) {
+            // 处理其他复合指标（例如：MACD_DIF, KDJ_K, BOLL_UPPER）
+            const [type, subType] = indicator.name.split("_");
+            searchPattern = `${type}_${subType}_${formattedTimeLevel}`;
+          } else {
+            // 处理基础指标（例如：SP, ZG）
+            searchPattern = `${indicator.name}_${formattedTimeLevel}`;
+          }
+
+          // 在表达式中查找并替换匹配的指标
+          const regex = new RegExp(searchPattern, "g");
+          calculatedExpression = calculatedExpression.replace(
+            regex,
+            indicator.value
+          );
+        });
+      });
+
+      // 记录转换后的表达式
+      console.log("原始表达式:", expression);
+      console.log("转换后的表达式:", calculatedExpression);
+
+      // 尝试计算表达式
+      try {
+        // eslint-disable-next-line no-eval
+        const result = eval(calculatedExpression);
+        console.log("表达式计算结果:", result);
+
+        // 发送计算结果
+        this.postMessage({
+          type: "expression_result",
+          data: {
+            expression: calculatedExpression,
+            result: result,
+            timestamp: Date.now(),
+          },
+        });
+
+        return result;
+      } catch (evalError) {
+        console.error("表达式计算错误:", evalError);
+        return null;
+      }
+    } catch (error) {
+      this.handleError(error, "表达式计算失败");
+      return null;
+    }
   }
+
   /**
    * 格式化数字到指定精度
    * @param {number} value - 要格式化的数值
