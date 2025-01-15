@@ -209,7 +209,6 @@ class StrategyWorker extends self.BaseWorker {
       // 原子性更新数据
       this.klines.set(timeLevel, tempKlines);
       this.historyKlines.set(timeLevel, tempHistoryKlines);
-      console.log(timeLevel);
       // 计算指标
       this.calculateIndicators(this.strategyExpression[timeLevel], timeLevel);
     } catch (error) {
@@ -560,35 +559,37 @@ class StrategyWorker extends self.BaseWorker {
    */
   calculateIndicators(strategyExpression, timeLevel) {
     try {
-      console.log("需要计算的指标", strategyExpression);
+      console.log("时间级别", timeLevel, "需要计算的指标", strategyExpression);
+      // 时间级别 1m 需要计算的指标 (8) ['KP', 'SP', 'ZD', 'EMA_6', 'EMA_5', 'LS_CJ_1', 'BOLL', 'MA_52']
+
       // 获取完整的K线数据
-      const currentKlines = this.klines.get(timeLevel) || [];
-      const historyKlines = this.historyKlines.get(timeLevel) || [];
-      const allKlines = [...historyKlines, ...currentKlines].sort(
-        (a, b) => a.timestamp - b.timestamp
-      );
+      //   const currentKlines = this.klines.get(timeLevel) || [];
+      //   const historyKlines = this.historyKlines.get(timeLevel) || [];
+      //   const allKlines = [...historyKlines, ...currentKlines].sort(
+      //     (a, b) => a.timestamp - b.timestamp
+      //   );
 
       // 计算各类指标
-      const indicators = {
-        ma: this.calculateMA(allKlines),
-        ema: this.calculateEMA(allKlines),
-        macd: this.calculateMACD(allKlines),
-        kdj: this.calculateKDJ(allKlines),
-        boll: this.calculateBOLL(allKlines),
-        customIndicators: this.calculateCustomIndicators(allKlines),
-      };
+      //   const indicators = {
+      //     ma: this.calculateMA(allKlines),
+      //     ema: this.calculateEMA(allKlines),
+      //     macd: this.calculateMACD(allKlines),
+      //     kdj: this.calculateKDJ(allKlines),
+      //     boll: this.calculateBOLL(allKlines),
+      //     customIndicators: this.calculateCustomIndicators(allKlines),
+      //   };
 
       // 发送指标计算结果
-      this.postMessage({
-        type: "indicators_updated",
-        data: {
-          timeLevel,
-          indicators,
-          timestamp: Date.now(),
-        },
-      });
+      //   this.postMessage({
+      //     type: "indicators_updated",
+      //     data: {
+      //       timeLevel,
+      //       indicators,
+      //       timestamp: Date.now(),
+      //     },
+      //   });
 
-      return indicators;
+      //   return indicators;
     } catch (error) {
       this.handleError(error, "指标计算失败");
       return null;
@@ -615,11 +616,12 @@ class StrategyWorker extends self.BaseWorker {
   /**
    * 计算移动平均线
    * @param {Array} klines - K线数据
+   * @param {Array} periods - 计算周期 [5, 10, 20, 30, 60]
    * @returns {Object} MA指标数据
    */
-  calculateMA(klines) {
+  calculateMA(klines, periods) {
     try {
-      const periods = [5, 10, 20, 30, 60];
+      //   const periods = [5, 10, 20, 30, 60];
       const result = {};
 
       periods.forEach((period) => {
@@ -647,11 +649,12 @@ class StrategyWorker extends self.BaseWorker {
   /**
    * 计算指数移动平均线
    * @param {Array} klines - K线数据
+   * @param {Array} periods - 计算周期 [5, 10, 20, 30, 60]
    * @returns {Object} EMA指标数据
    */
-  calculateEMA(klines) {
+  calculateEMA(klines, periods) {
     try {
-      const periods = [5, 10, 20, 30, 60];
+      //   const periods = [5, 10, 20, 30, 60];
       const result = {};
 
       periods.forEach((period) => {
