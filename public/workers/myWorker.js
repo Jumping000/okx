@@ -616,7 +616,7 @@ class StrategyWorker extends self.BaseWorker {
         "需要计算的指标",
         JSON.stringify(strategyExpression)
       );
-      // 时间级别 1m 需要计算的指标 [{"name":"KP","value":""},{"name":"SP","value":""},{"name":"ZD","value":""},{"name":"EMA_6","value":""},{"name":"EMA_5","value":""},{"name":"LS_CJ_1","value":""},{"name":"BOLL","value":""},{"name":"MA_52","value":""}]
+      // 时间级别 1m 需要计算的指标 [{"name":"MACD_DEA","value":""},{"name":"EMA_5","value":""},{"name":"MA_9","value":""},{"name":"BOLL_UPPER","value":""},{"name":"BOLL_LOWER","value":""},{"name":"BOLL_MIDDLE","value":""},{"name":"MACD_DIF","value":""},{"name":"MACD_MACD","value":""},{"name":"KDJ_K","value":""},{"name":"KDJ_D","value":""},{"name":"KDJ_J","value":""},{"name":"ZG","value":""},{"name":"SP","value":""}]
       // 获取完整的K线数据
       //   const currentKlines = this.klines.get(timeLevel) || [];
       //   const historyKlines = this.historyKlines.get(timeLevel) || [];
