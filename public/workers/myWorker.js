@@ -605,7 +605,7 @@ class StrategyWorker extends self.BaseWorker {
 
   /**
    * 计算指标入口
-   * @param {Array} strategyExpression - 策略表达式
+   * @param {Array} strategyExpression - 策略表达式数组，包含需要计算的指标
    * @param {string} timeLevel - 时间级别
    */
   calculateIndicators(strategyExpression, timeLevel) {
@@ -616,35 +616,161 @@ class StrategyWorker extends self.BaseWorker {
         "需要计算的指标",
         JSON.stringify(strategyExpression)
       );
-      // 时间级别 1m 需要计算的指标 [{"name":"MACD_DEA","value":""},{"name":"EMA_5","value":""},{"name":"MA_9","value":""},{"name":"BOLL_UPPER","value":""},{"name":"BOLL_LOWER","value":""},{"name":"BOLL_MIDDLE","value":""},{"name":"MACD_DIF","value":""},{"name":"MACD_MACD","value":""},{"name":"KDJ_K","value":""},{"name":"KDJ_D","value":""},{"name":"KDJ_J","value":""},{"name":"ZG","value":""},{"name":"SP","value":""}]
-      // 获取完整的K线数据
-      //   const currentKlines = this.klines.get(timeLevel) || [];
-      //   const historyKlines = this.historyKlines.get(timeLevel) || [];
-      //   const allKlines = [...historyKlines, ...currentKlines].sort(
-      //     (a, b) => a.timestamp - b.timestamp
-      //   );
 
-      // 计算各类指标
-      //   const indicators = {
-      //     ma: this.calculateMA(allKlines,[5]),
-      //     ema: this.calculateEMA(allKlines,[5]),
-      //     macd: this.calculateMACD(allKlines),
-      //     kdj: this.calculateKDJ(allKlines),
-      //     boll: this.calculateBOLL(allKlines),
-      //     customIndicators: this.calculateCustomIndicators(allKlines),
-      //   };
+      // 获取当前和历史K线数据
+      const currentKlines = this.klines.get(timeLevel) || [];
+      const historyKlines = this.historyKlines.get(timeLevel) || [];
+
+      // 合并并按时间排序（从旧到新）
+      const allKlines = [...historyKlines, ...currentKlines].sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
+
+      // 如果没有K线数据，直接返回
+      if (allKlines.length === 0) {
+        console.warn(`${timeLevel} 没有K线数据`);
+        return;
+      }
+
+      // 计算所有需要的指标
+      const indicators = {};
+      const maPeriods = [];
+      const emaPeriods = [];
+
+      // 遍历策略表达式，预处理需要计算的指标
+      strategyExpression.forEach((item) => {
+        const { name } = item;
+
+        // 处理历史数据 (LS_类型_序号)
+        if (name.startsWith("LS_")) {
+          const [, type, index] = name.split("_");
+          const position = parseInt(index) - 1;
+          // 获取指定位置的历史数据
+          const targetKline = allKlines[allKlines.length - 1 - position];
+          if (targetKline) {
+            switch (type) {
+              case "KP":
+                indicators[name] = targetKline.open;
+                break;
+              case "SP":
+                indicators[name] = targetKline.close;
+                break;
+              case "ZG":
+                indicators[name] = targetKline.high;
+                break;
+              case "ZD":
+                indicators[name] = targetKline.low;
+                break;
+              case "CJ":
+                indicators[name] = targetKline.volume;
+                break;
+            }
+          }
+        }
+        // 处理当前K线数据
+        else if (["KP", "SP", "ZG", "ZD", "CJ"].includes(name)) {
+          const currentKline = allKlines[allKlines.length - 1];
+          if (currentKline) {
+            switch (name) {
+              case "KP":
+                indicators[name] = currentKline.open;
+                break;
+              case "SP":
+                indicators[name] = currentKline.close;
+                break;
+              case "ZG":
+                indicators[name] = currentKline.high;
+                break;
+              case "ZD":
+                indicators[name] = currentKline.low;
+                break;
+              case "CJ":
+                indicators[name] = currentKline.volume;
+                break;
+            }
+          }
+        }
+        // 处理MA指标
+        else if (name.startsWith("MA_")) {
+          const period = parseInt(name.split("_")[1]);
+          if (!isNaN(period)) {
+            maPeriods.push(period);
+          }
+        }
+        // 处理EMA指标
+        else if (name.startsWith("EMA_")) {
+          const period = parseInt(name.split("_")[1]);
+          if (!isNaN(period)) {
+            emaPeriods.push(period);
+          }
+        }
+      });
+
+      // 计算MA指标（如果需要）
+      if (maPeriods.length > 0) {
+        const maResults = this.calculateMA(allKlines, maPeriods);
+        for (const period of maPeriods) {
+          const maValues = maResults[`ma${period}`];
+          if (maValues && maValues.length > 0) {
+            indicators[`MA_${period}`] = maValues[maValues.length - 1];
+          }
+        }
+      }
+
+      // 计算EMA指标（如果需要）
+      if (emaPeriods.length > 0) {
+        const emaResults = this.calculateEMA(allKlines, emaPeriods);
+        for (const period of emaPeriods) {
+          const emaValues = emaResults[`ema${period}`];
+          if (emaValues && emaValues.length > 0) {
+            indicators[`EMA_${period}`] = emaValues[emaValues.length - 1];
+          }
+        }
+      }
+
+      // 检查是否需要计算MACD
+      if (strategyExpression.some((item) => item.name.startsWith("MACD_"))) {
+        const macdResult = this.calculateMACD(allKlines);
+        indicators["MACD_DIF"] = macdResult.dif[macdResult.dif.length - 1];
+        indicators["MACD_DEA"] = macdResult.dea[macdResult.dea.length - 1];
+        indicators["MACD_MACD"] = macdResult.macd[macdResult.macd.length - 1];
+      }
+
+      // 检查是否需要计算KDJ
+      if (strategyExpression.some((item) => item.name.startsWith("KDJ_"))) {
+        const kdjResult = this.calculateKDJ(allKlines);
+        indicators["KDJ_K"] = kdjResult.k[kdjResult.k.length - 1];
+        indicators["KDJ_D"] = kdjResult.d[kdjResult.d.length - 1];
+        indicators["KDJ_J"] = kdjResult.j[kdjResult.j.length - 1];
+      }
+
+      // 检查是否需要计算BOLL
+      if (strategyExpression.some((item) => item.name.startsWith("BOLL_"))) {
+        const bollResult = this.calculateBOLL(allKlines);
+        indicators["BOLL_UPPER"] =
+          bollResult.upper[bollResult.upper.length - 1];
+        indicators["BOLL_MIDDLE"] =
+          bollResult.middle[bollResult.middle.length - 1];
+        indicators["BOLL_LOWER"] =
+          bollResult.lower[bollResult.lower.length - 1];
+      }
+
+      // 更新策略表达式中的值
+      strategyExpression.forEach((item) => {
+        item.value = this.formatNumber(indicators[item.name]);
+      });
 
       // 发送指标计算结果
-      //   this.postMessage({
-      //     type: "indicators_updated",
-      //     data: {
-      //       timeLevel,
-      //       indicators,
-      //       timestamp: Date.now(),
-      //     },
-      //   });
+      this.postMessage({
+        type: "indicators_updated",
+        data: {
+          timeLevel,
+          indicators: strategyExpression,
+          timestamp: Date.now(),
+        },
+      });
 
-      //   return indicators;
+      return indicators;
     } catch (error) {
       this.handleError(error, "指标计算失败");
       return null;
