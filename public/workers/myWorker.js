@@ -346,14 +346,14 @@ class StrategyWorker extends self.BaseWorker {
               timeLevel,
               percentage: 0,
               current: 0,
-              total: 800,
+              total: 500,
             },
           });
 
           const klines = await this.getHistoryKlines(
             this.strategy.currency,
             timeLevel,
-            800
+            500
           );
 
           // 存储K线数据并按时间排序
@@ -392,7 +392,7 @@ class StrategyWorker extends self.BaseWorker {
   /**
    * 获取历史K线数据
    */
-  async getHistoryKlines(instId, bar, limit = 800) {
+  async getHistoryKlines(instId, bar, limit = 500) {
     let allKlines = [];
     let retryCount = 0;
 

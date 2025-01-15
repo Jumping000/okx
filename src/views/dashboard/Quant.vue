@@ -199,11 +199,23 @@
                         </div>
                         <div class="p-4">
                             <template v-if="selectedStrategy && strategyIndicators[selectedStrategy]">
-                                <div v-for="(indicators, timeLevel) in strategyIndicators[selectedStrategy]"
-                                    :key="timeLevel" class="mb-4">
-                                    <div class="text-dark-100 font-medium mb-2">{{ getTimeLevelName(timeLevel) }}</div>
+                                <div class="mb-4">
+                                    <a-radio-group v-model:value="selectedTimeLevel" size="small"
+                                        class="time-level-tabs">
+                                        <a-radio-button
+                                            v-for="timeLevel in Object.keys(strategyIndicators[selectedStrategy])"
+                                            :key="timeLevel" :value="timeLevel">
+                                            {{ getTimeLevelName(timeLevel) }}
+                                        </a-radio-button>
+                                    </a-radio-group>
+                                </div>
+
+                                <template
+                                    v-if="selectedTimeLevel && strategyIndicators[selectedStrategy][selectedTimeLevel]">
                                     <div class="grid grid-cols-4 gap-4">
-                                        <template v-for="(indicator, index) in indicators" :key="index">
+                                        <template
+                                            v-for="(indicator, index) in strategyIndicators[selectedStrategy][selectedTimeLevel]"
+                                            :key="index">
                                             <div v-if="indicator && indicator.name"
                                                 class="indicator-card bg-dark-300 p-3 rounded">
                                                 <div class="text-dark-200 text-sm mb-1">
@@ -213,7 +225,7 @@
                                             </div>
                                         </template>
                                     </div>
-                                </div>
+                                </template>
                             </template>
                             <template v-else>
                                 <div class="flex flex-col items-center justify-center py-8">
@@ -633,7 +645,7 @@ const handleStrategyAction = async (record) => {
                 strategyList.value[index].loading = true
 
                 // 等待时间窗口
-                // await waitForTimeWindow(record.name)
+                await waitForTimeWindow(record.name)
 
                 // 启动策略时创建新的 Worker
                 await workerManager.start(record.id, '/workers/worker-entry.js')
@@ -810,6 +822,15 @@ watch(selectedStrategy, (newVal) => {
     if (newVal) {
         console.log('选中策略:', newVal);
         console.log('当前指标数据:', strategyIndicators.value[newVal]);
+        // 如果有数据，默认选中第一个时间级别
+        if (strategyIndicators.value[newVal]) {
+            const timeLevels = Object.keys(strategyIndicators.value[newVal]);
+            if (timeLevels.length > 0) {
+                selectedTimeLevel.value = timeLevels[0];
+            }
+        }
+    } else {
+        selectedTimeLevel.value = null;
     }
 });
 
