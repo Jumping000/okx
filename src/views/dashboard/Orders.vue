@@ -43,10 +43,10 @@
                             <template v-else-if="column.dataIndex === 'side'">
                                 <template v-if="record.instId.includes('SWAP')">
                                     <span class="font-medium text-sm"
-                                        :class="text === 'buy' ? 'buy-color' : 'sell-color'">
+                                        :class="record.posSide === 'long' ? 'buy-color' : 'sell-color'">
                                         {{ text === 'buy' ?
-                                            (record.posSide === 'long' ? '开多' : '开空') :
-                                            (record.posSide === 'long' ? '平多' : '平空') 
+                                            (record.posSide === 'long' ? '开多' : '平空') :
+                                            (record.posSide === 'long' ? '平多' : '开空') 
                                         }}
                                     </span>
                                 </template>

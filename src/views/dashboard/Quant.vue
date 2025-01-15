@@ -324,7 +324,7 @@
                             </div>
                             <a-button type="link" size="small" @click="handleClearLogs">清空日志</a-button>
                         </div>
-                        <div class="p-4 h-[300px] overflow-y-auto">
+                        <div class="p-4 h-[400px] overflow-y-auto">
                             <template v-if="strategyLogs.length">
                                 <div v-for="(log, index) in strategyLogs" :key="index" class="log-item">
                                     <span class="log-time">{{ formatTime(log.time) }}</span>
@@ -379,7 +379,7 @@ import { defineOptions } from 'vue'
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
-    PlusOutlined,
+    // PlusOutlined,
     LineChartOutlined,
     FileTextOutlined,
     PieChartOutlined

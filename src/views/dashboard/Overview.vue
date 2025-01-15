@@ -83,7 +83,7 @@
                 </div>
 
                 <!-- 最近交易 -->
-                <div class="bg-dark-400 rounded-lg border border-dark-300">
+                <!-- <div class="bg-dark-400 rounded-lg border border-dark-300">
                     <div class="flex justify-between items-center p-4 border-b border-dark-300">
                         <h3 class="text-base font-medium text-dark-100">最近交易</h3>
                         <a-button type="link" size="small" @click="router.push('/dashboard/orders')">查看更多</a-button>
@@ -92,7 +92,6 @@
                         <a-table :dataSource="filteredOrders.slice(0, 50)" :columns="columns" :loading="loading"
                             :pagination="false" size="small" :scroll="{ y: 160 }">
                             <template #bodyCell="{ column, text, record }">
-                                <!-- 产品 -->
                                 <template v-if="column.dataIndex === 'instId'">
                                     <div class="flex items-center gap-1">
                                         <span class="font-medium text-sm">{{ text.split('-')[0] }}</span>
@@ -103,101 +102,32 @@
                                     </div>
                                 </template>
 
-                                <!-- 订单方向 -->
-                                <template v-else-if="column.dataIndex === 'side'">
+<template v-else-if="column.dataIndex === 'side'">
                                     <span :class="text === 'buy' ? 'text-success' : 'text-danger'">
                                         {{ text === 'buy' ? '买入' : '卖出' }}
                                     </span>
                                 </template>
 
-                                <!-- 价格 -->
-                                <template v-else-if="column.dataIndex === 'px'">
+<template v-else-if="column.dataIndex === 'px'">
                                     <span
                                         class="font-mono">{{ !text || text === '0' ? '市价' : formatNumber(text) }}</span>
                                 </template>
 
-                                <!-- 数量 -->
-                                <template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
+<template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
                                     <span class="font-mono">{{ formatNumber(text) }}</span>
                                 </template>
 
-                                <!-- 创建时间 -->
-                                <template v-else-if="column.dataIndex === 'cTime'">
+<template v-else-if="column.dataIndex === 'cTime'">
                                     <span>{{ formatTime(text) }}</span>
                                 </template>
 
-                                <!-- 默认显示 -->
-                                <template v-else>
+<template v-else>
                                     <span>{{ text }}</span>
                                 </template>
-                            </template>
-                        </a-table>
-                    </div>
-                </div>
-
-                <!-- 账户统计 -->
-                <div class="bg-dark-400 rounded-lg border border-dark-300">
-                    <div class="flex justify-between items-center p-4 border-b border-dark-300">
-                        <h3 class="text-base font-medium text-dark-100">账户统计</h3>
-                        <div class="flex items-center gap-2">
-                            <a-radio-group v-model:value="statsPeriod" size="small" class="bg-dark-500 p-[1px] rounded"
-                                @change="handlePeriodChange">
-                                <a-radio-button value="today">今日</a-radio-button>
-                                <a-radio-button value="week">本周</a-radio-button>
-                                <a-radio-button value="month">本月</a-radio-button>
-                            </a-radio-group>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">交易次数</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg text-dark-100 font-mono">{{ stats.tradeCount }}</span>
-                                    <span class="text-xs text-dark-200">次</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">交易金额</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg text-dark-100 font-mono">{{ stats.tradeVolume }}</span>
-                                    <span class="text-xs text-dark-200">USDT</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">盈亏金额</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg font-mono"
-                                        :class="stats.pnl >= 0 ? 'text-primary' : 'text-red-500'">
-                                        {{ stats.pnl >= 0 ? '+' : '' }}{{ stats.pnl }}
-                                    </span>
-                                    <span class="text-xs text-dark-200">USDT</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">胜率</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg text-dark-100 font-mono">{{ stats.winRate }}</span>
-                                    <span class="text-xs text-dark-200">%</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">平均持仓时间</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg text-dark-100 font-mono">{{ stats.avgHoldTime }}</span>
-                                    <span class="text-xs text-dark-200">分钟</span>
-                                </div>
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                <span class="text-sm text-dark-200">手续费支出</span>
-                                <div class="flex items-baseline gap-2">
-                                    <span class="text-lg text-dark-100 font-mono">{{ stats.fees }}</span>
-                                    <span class="text-xs text-dark-200">USDT</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+</template>
+</a-table>
+</div>
+</div> -->
             </div>
 
             <!-- 币种信息区 -->
