@@ -232,13 +232,13 @@ class StrategyWorker extends self.BaseWorker {
    */
   normalizeKlineData(item) {
     return {
-          timestamp: parseInt(item.ts),
-          open: parseFloat(item.o),
-          high: parseFloat(item.h),
-          low: parseFloat(item.l),
-          close: parseFloat(item.c),
-          volume: parseFloat(item.vol),
-          volCcy: parseFloat(item.volCcy),
+      timestamp: parseInt(item.ts),
+      open: parseFloat(item.o),
+      high: parseFloat(item.h),
+      low: parseFloat(item.l),
+      close: parseFloat(item.c),
+      volume: parseFloat(item.vol),
+      volCcy: parseFloat(item.volCcy),
       confirm: item.confirm === "1",
     };
   }
@@ -247,7 +247,7 @@ class StrategyWorker extends self.BaseWorker {
    * 处理单个K线
    */
   processKline(kline, timeLevel, tempKlines, tempHistoryKlines) {
-        if (kline.confirm) {
+    if (kline.confirm) {
       this.handleConfirmedKline(
         kline,
         timeLevel,
@@ -273,7 +273,7 @@ class StrategyWorker extends self.BaseWorker {
 
     // 从当前数据中移除
     const index = tempKlines.findIndex((k) => k.timestamp === kline.timestamp);
-          if (index !== -1) {
+    if (index !== -1) {
       tempKlines.splice(index, 1);
     }
   }
@@ -283,9 +283,9 @@ class StrategyWorker extends self.BaseWorker {
    */
   handleUnconfirmedKline(kline, timeLevel, tempKlines) {
     const index = tempKlines.findIndex((k) => k.timestamp === kline.timestamp);
-          if (index !== -1) {
+    if (index !== -1) {
       tempKlines[index] = kline;
-          } else {
+    } else {
       tempKlines.push(kline);
     }
 
@@ -393,7 +393,7 @@ class StrategyWorker extends self.BaseWorker {
    * 获取历史K线数据
    */
   async getHistoryKlines(instId, bar, limit = 800) {
-      let allKlines = [];
+    let allKlines = [];
     let retryCount = 0;
 
     while (retryCount < this.config.retryCount) {
@@ -401,20 +401,20 @@ class StrategyWorker extends self.BaseWorker {
         let lastTs = "";
         const batchCount = Math.ceil(limit / this.config.batchSize);
 
-      for (let i = 0; i < batchCount; i++) {
+        for (let i = 0; i < batchCount; i++) {
           let url = `https://www.okx.com/api/v5/market/history-candles?instId=${instId}&bar=${bar}&limit=${this.config.batchSize}`;
-        if (lastTs) {
-          url += `&after=${lastTs}`;
-        }
+          if (lastTs) {
+            url += `&after=${lastTs}`;
+          }
 
-        const data = await this.fetchData(url);
+          const data = await this.fetchData(url);
 
-        if (
-          data.code === "0" &&
-          Array.isArray(data.data) &&
-          data.data.length > 0
-        ) {
-          const klines = data.data.map((item) => ({
+          if (
+            data.code === "0" &&
+            Array.isArray(data.data) &&
+            data.data.length > 0
+          ) {
+            const klines = data.data.map((item) => ({
               timestamp: parseInt(item[0]),
               open: parseFloat(item[1]),
               high: parseFloat(item[2]),
@@ -425,39 +425,39 @@ class StrategyWorker extends self.BaseWorker {
               confirm: true,
             }));
 
-          lastTs = data.data[data.data.length - 1][0];
-          allKlines = allKlines.concat(klines);
+            lastTs = data.data[data.data.length - 1][0];
+            allKlines = allKlines.concat(klines);
 
-          this.postMessage({
-            type: "history_kline_progress",
-            data: {
-              timeLevel: bar,
-              percentage: Math.round((allKlines.length / limit) * 100),
-              current: allKlines.length,
-              total: limit,
-            },
-          });
+            this.postMessage({
+              type: "history_kline_progress",
+              data: {
+                timeLevel: bar,
+                percentage: Math.round((allKlines.length / limit) * 100),
+                current: allKlines.length,
+                total: limit,
+              },
+            });
 
             if (data.data.length < this.config.batchSize) {
-            break;
+              break;
+            }
+
+            await new Promise((resolve) => setTimeout(resolve, 100));
+          } else {
+            throw new Error("获取K线数据失败: " + JSON.stringify(data));
           }
 
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        } else {
-          throw new Error("获取K线数据失败: " + JSON.stringify(data));
-        }
-
-        if (allKlines.length >= limit) {
+          if (allKlines.length >= limit) {
             allKlines = allKlines.slice(0, limit);
-          break;
+            break;
+          }
         }
-      }
 
-      return allKlines;
-    } catch (error) {
+        return allKlines;
+      } catch (error) {
         retryCount++;
         if (retryCount === this.config.retryCount) {
-      throw error;
+          throw error;
         }
         await new Promise((resolve) =>
           setTimeout(resolve, this.config.retryDelay * retryCount)
@@ -472,19 +472,19 @@ class StrategyWorker extends self.BaseWorker {
    * 发送HTTP请求的包装方法
    */
   async fetchData(url, options = {}) {
-      const response = await fetch(url, {
-        method: options.method || "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...options.headers,
-        },
-        body: options.data ? JSON.stringify(options.data) : undefined,
-        ...options,
-      });
+    const response = await fetch(url, {
+      method: options.method || "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      body: options.data ? JSON.stringify(options.data) : undefined,
+      ...options,
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
 
     return await response.json();
   }
@@ -578,7 +578,7 @@ class StrategyWorker extends self.BaseWorker {
         "需要计算的指标",
         JSON.stringify(strategyExpression)
       );
-// 时间级别 1m 需要计算的指标 [{"name":"KP","value":""},{"name":"SP","value":""},{"name":"ZD","value":""},{"name":"EMA_6","value":""},{"name":"EMA_5","value":""},{"name":"LS_CJ_1","value":""},{"name":"BOLL","value":""},{"name":"MA_52","value":""}]
+      // 时间级别 1m 需要计算的指标 [{"name":"KP","value":""},{"name":"SP","value":""},{"name":"ZD","value":""},{"name":"EMA_6","value":""},{"name":"EMA_5","value":""},{"name":"LS_CJ_1","value":""},{"name":"BOLL","value":""},{"name":"MA_52","value":""}]
       // 获取完整的K线数据
       //   const currentKlines = this.klines.get(timeLevel) || [];
       //   const historyKlines = this.historyKlines.get(timeLevel) || [];
@@ -588,8 +588,8 @@ class StrategyWorker extends self.BaseWorker {
 
       // 计算各类指标
       //   const indicators = {
-      //     ma: this.calculateMA(allKlines),
-      //     ema: this.calculateEMA(allKlines),
+      //     ma: this.calculateMA(allKlines,[5]),
+      //     ema: this.calculateEMA(allKlines,[5]),
       //     macd: this.calculateMACD(allKlines),
       //     kdj: this.calculateKDJ(allKlines),
       //     boll: this.calculateBOLL(allKlines),
