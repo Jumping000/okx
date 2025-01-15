@@ -2,8 +2,11 @@
     <Teleport to="body">
         <Transition name="dialog-fade">
             <div v-if="modelValue" class="custom-dialog-container" :class="{ 'no-mask': !showMask }"
-                @click="handleMaskClick">
-                <div class="custom-dialog" :style="{ width: width + 'px' }" @click.stop>
+                :style="{ zIndex: zIndex }" @click="handleMaskClick">
+                <div class="custom-dialog" :style="{
+                    width: typeof props.width === 'number' ? `${props.width}px` : props.width,
+                    zIndex: typeof props.zIndex === 'number' ? props.zIndex + 1 : Number(props.zIndex) + 1
+                }" @click.stop>
                     <!-- 头部 -->
                     <div class="dialog-header">
                         <h3 class="dialog-title">{{ title }}</h3>
@@ -16,7 +19,8 @@
                         </button>
                     </div>
                     <!-- 内容区 -->
-                    <div class="dialog-body">
+                    <div class="dialog-body"
+                        :style="props.height ? { height: typeof props.height === 'number' ? `${props.height}px` : props.height } : {}">
                         <slot></slot>
                     </div>
                     <!-- 底部 -->
@@ -42,8 +46,16 @@ const props = defineProps({
         default: ''
     },
     width: {
-        type: Number,
-        default: 500
+        type: [Number, String],
+        default: 520
+    },
+    height: {
+        type: [Number, String],
+        default: ''  // 默认为空，表示自适应高度
+    },
+    zIndex: {
+        type: [Number, String],
+        default: 2000  // 默认层级
     },
     showClose: {
         type: Boolean,
@@ -85,7 +97,6 @@ const handleMaskClick = () => {
     justify-content: center;
     align-items: flex-start;
     padding-top: 100px;
-    z-index: 2000;
 }
 
 .custom-dialog-container.no-mask {
@@ -102,7 +113,6 @@ const handleMaskClick = () => {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    height: 80vh;
 }
 
 .dialog-header {
@@ -141,10 +151,15 @@ const handleMaskClick = () => {
 }
 
 .dialog-body {
-    padding: 20px;
+    padding: 16px 24px;
     overflow-y: auto;
-    flex: 1;
-    background: var(--bg-color);
+    max-height: calc(90vh - 110px);
+    /* 减去header和footer的高度 */
+}
+
+/* 当设置了固定高度时的样式 */
+.dialog-body[style*="height"] {
+    max-height: none;
 }
 
 .dialog-footer {

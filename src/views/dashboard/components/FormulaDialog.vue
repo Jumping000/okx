@@ -1,5 +1,5 @@
 <template>
-    <CustomDialog :model-value="visible" :title="title" :width="900" :close-on-click-mask="false"
+    <CustomDialog :model-value="visible" :title="title" :width="900" :z-index="2000" :close-on-click-mask="false"
         @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
         <div class="formula-dialog">
             <!-- 基础数据展示区 -->
@@ -60,15 +60,16 @@
             <!-- 拖拽算区 -->
             <div class="expression-area">
                 <div class="section-header">拖拽区域</div>
-                <draggable v-model="expression" v-bind="dropzoneOptions" class="expression-list"
-                    @change="handleExpressionChange">
+                <draggable v-model="expression" v-bind="dropzoneOptions" @change="handleExpressionChange" item-key="id">
                     <template #item="{ element, index }">
-                        <div v-if="!element.isInput" class="dragged-item" :class="element.type"
+                        <div :class="['dragged-item', element?.type]" :data-is-input="!!element?.isInput"
                             @dblclick="removeExpressionItem(index)">
-                            {{ element.Name }}
-                        </div>
-                        <div v-else class="dragged-item input" @dblclick="removeExpressionItem(index)">
-                            <a-input v-model:value="element.value" size="small" @blur="handleInputBlur" />
+                            <template v-if="element?.type === 'input'">
+                                <a-input v-model:value="element.value" style="width: 100%" @blur="handleInputBlur" />
+                            </template>
+                            <template v-else>
+                                {{ element?.Name || '' }}
+                            </template>
                         </div>
                     </template>
                 </draggable>
@@ -83,26 +84,23 @@
                         <div class="section-header">
                             <span>基础数据</span>
                             <div class="filter-group">
-                                <a-select v-model:value="filterConditions.selectedTime" placeholder="选择时间" allowClear
+                                <el-select v-model="filterConditions.selectedTime" placeholder="选择时间" clearable
                                     size="small" style="width: 120px">
-                                    <a-select-option v-for="time in timeCollection" :key="time.Name" :value="time.Name">
-                                        {{ time.dis }}
-                                    </a-select-option>
-                                </a-select>
-                                <a-select v-model:value="filterConditions.selectedType" placeholder="选择类型" allowClear
+                                    <el-option v-for="time in timeCollection" :key="time.Name" :label="time.dis"
+                                        :value="time.Name" />
+                                </el-select>
+                                <el-select v-model="filterConditions.selectedType" placeholder="选择类型" clearable
                                     size="small" style="width: 120px">
-                                    <a-select-option v-for="type in dataTypeCollection" :key="type.Name"
-                                        :value="type.Name">
-                                        {{ type.dis }}
-                                    </a-select-option>
-                                </a-select>
+                                    <el-option v-for="type in dataTypeCollection" :key="type.Name" :label="type.dis"
+                                        :value="type.Name" />
+                                </el-select>
                                 <div class="ls-filter">
                                     <span class="ls-label">LS范围:</span>
-                                    <a-input-number v-model:value="filterConditions.lsStart" :min="0" :max="300"
-                                        size="small" style="width: 80px" />
+                                    <el-input-number v-model="filterConditions.lsStart" :min="0" :max="300" size="small"
+                                        style="width: 80px" />
                                     <span class="ls-separator">-</span>
-                                    <a-input-number v-model:value="filterConditions.lsEnd" :min="0" :max="300"
-                                        size="small" style="width: 80px" />
+                                    <el-input-number v-model="filterConditions.lsEnd" :min="0" :max="300" size="small"
+                                        style="width: 80px" />
                                 </div>
                                 <a-button type="primary" size="small" ghost @click="resetFilter">重置</a-button>
                             </div>
@@ -184,7 +182,8 @@
 
     <!-- 保存弹窗 -->
     <CustomDialog :model-value="saveDialogVisible" :title="type === 'parameter' ? '保存参数' : '保存表达式'" :width="600"
-        @update:model-value="(val) => saveDialogVisible = val" @close="saveDialogVisible = false">
+        :height="400" :z-index="2100" @update:model-value="(val) => saveDialogVisible = val"
+        @close="saveDialogVisible = false">
         <a-form :model="saveForm" label-width="120px">
             <a-form-item :label="type === 'parameter' ? '参数名称' : '表达式名称'" required>
                 <a-input v-model:value="saveForm.name" :placeholder="type === 'parameter' ? '请输入参数名称' : '请输入表达式名称'"
@@ -214,12 +213,32 @@
             </div>
         </template>
     </CustomDialog>
+
+    <!-- 周期输入弹窗 -->
+    <CustomDialog :model-value="periodInputVisible" :title="`请输入${currentIndicator?.dis || ''}的周期值`" :width="400"
+        :z-index="2200" @update:model-value="(val) => periodInputVisible = val" @close="periodInputVisible = false">
+        <div class="period-input-content">
+            <a-input-number v-model:value="periodInputValue" :min="1" :max="1000" style="width: 100%"
+                placeholder="请输入周期值" @pressEnter="handlePeriodInputConfirm" />
+            <div class="period-input-tip">
+                请输入1-1000之间的整数
+            </div>
+        </div>
+        <template #footer>
+            <div class="dialog-footer">
+                <a-button @click="periodInputVisible = false">取 消</a-button>
+                <a-button type="primary" :loading="periodInputLoading" @click="handlePeriodInputConfirm">
+                    确 定
+                </a-button>
+            </div>
+        </template>
+    </CustomDialog>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted, defineProps, defineEmits } from 'vue'
 import draggable from 'vuedraggable'
-import { message } from 'ant-design-vue'
+import { ElMessage } from 'element-plus'
 import CustomDialog from '@/components/common/CustomDialog.vue'
 
 // 本地存储的键名
@@ -260,6 +279,10 @@ const saveForm = ref({
     description: ''
 })
 const hoverItemInfo = ref('')
+const periodInputVisible = ref(false)
+const periodInputValue = ref('5')
+const currentIndicator = ref(null)
+const periodInputLoading = ref(false)
 
 // 时间集合
 const timeCollection = [
@@ -290,23 +313,25 @@ const dataTypeCollection = [
     { Name: 'ZD', dis: '最低价' },
     { Name: 'CJ', dis: '成交量' },
 ]
+
 // 指标集合 
 const indicatorCollection = [
-    { Name: 'MA', dis: '移动平均线' },
-    { Name: 'EMA', dis: '指数移动平均线' },
+    { Name: 'MA', dis: '移动平均线', isCustomPeriod: true },
+    { Name: 'EMA', dis: '指数移动平均线', isCustomPeriod: true },
     { Name: 'BOLL', dis: '布林带' },
     { Name: 'MACD', dis: '移动平均线收敛/发散指标' },
     { Name: 'KDJ', dis: '随机指标' },
 ]
+
 // 运算符列表
 const operators = ref([
-    { Name: '(', value: '(', type: 'operator' },
-    { Name: ')', value: ')', type: 'operator' },
-    { Name: '+', value: '+', type: 'operator' },
-    { Name: '-', value: '-', type: 'operator' },
-    { Name: '*', value: '*', type: 'operator' },
-    { Name: '/', value: '/', type: 'operator' }
-])
+    { Name: '(', value: '(', type: 'operator', isInput: false },
+    { Name: ')', value: ')', type: 'operator', isInput: false },
+    { Name: '+', value: '+', type: 'operator', isInput: false },
+    { Name: '-', value: '-', type: 'operator', isInput: false },
+    { Name: '*', value: '*', type: 'operator', isInput: false },
+    { Name: '/', value: '/', type: 'operator', isInput: false }
+].map(op => ({ ...op, id: `operator-${op.Name}` })))
 
 // 自定义输入按钮
 const customInputBtn = ref({
@@ -314,7 +339,8 @@ const customInputBtn = ref({
     value: '',
     dis: '自定义输入',
     type: 'input',
-    isInput: true
+    isInput: true,
+    id: 'custom-input'
 })
 
 // 筛选条件
@@ -331,23 +357,49 @@ const basicParameterList = ref([])
 // 生成基础数据
 const generateBasicData = () => {
     basicParameterList.value = timeCollection.map(time => {
-        const data = dataTypeCollection.map(dataType => ({
+        let data = []
+
+        // 添加基础数据类型
+        data.push(...dataTypeCollection.map(dataType => ({
             Name: `${dataType.Name}_${time.Name}`,
             dis: `${time.dis}${dataType.dis}`,
             value: `${dataType.Name}_${time.Name}`,
             type: 'basic'
+        })))
+
+        // 添加指标数据
+        data.push(...indicatorCollection.map(indicator => {
+            if (indicator.isCustomPeriod) {
+                // 对于 MA 和 EMA，添加输入框组合
+                return {
+                    Name: `${indicator.Name}_${time.Name}`,
+                    dis: `${time.dis}${indicator.dis}`,
+                    value: `${indicator.Name}_${time.Name}`,
+                    type: 'indicator',
+                    needInput: true,
+                    baseIndicator: indicator.Name
+                }
+            } else {
+                // 其他普通指标
+                return {
+                    Name: `${indicator.Name}_${time.Name}`,
+                    dis: `${time.dis}${indicator.dis}`,
+                    value: `${indicator.Name}_${time.Name}`,
+                    type: 'indicator'
+                }
+            }
         }))
 
-        // 循环 300次 生成数据
+        // 循环 300次 生成历史数据
         for (let i = 0; i < 300; i++) {
-            const newDataItems = dataTypeCollection.map(dataType => ({
+            data.push(...dataTypeCollection.map(dataType => ({
                 Name: `LS_${dataType.Name}_${time.Name}_${i + 1}`,
                 dis: `${time.dis}历史${dataType.dis}`,
                 value: `LS_${dataType.Name}_${time.Name}_${i + 1}`,
                 type: 'basic'
-            }))
-            data.push(...newDataItems)
+            })))
         }
+
         return data
     }).flat()
 }
@@ -411,7 +463,7 @@ const saveToStorage = (type, data) => {
 
         // 通知父组件数据已更新
         emit('submit', { type, data: newData })
-        message.success('保存成功')
+        ElMessage.success('保存成功')
 
         return true
     } catch (error) {
@@ -505,14 +557,19 @@ const handleExpressionChange = () => {
 }
 
 const calculateExpression = () => {
-    result.value = expression.value.map(item => item.value).join(' ')
+    // 过滤掉无效的表达式项
+    const validExpressions = expression.value.filter(item => item && item.value !== undefined && item.value !== null);
+
+    // 计算结果表达式
+    result.value = validExpressions.map(item => item.value).join(' ');
+
     // 生成原始表达式，对于输入框类型直接使用其值
-    originalExpression.value = expression.value.map(item => {
+    originalExpression.value = validExpressions.map(item => {
         if (item.type === 'input') {
-            return item.value
+            return item.value || '';
         }
-        return item.Name
-    }).join(' ')
+        return item.Name || '';
+    }).join(' ');
 }
 
 const handleInputBlur = () => {
@@ -543,7 +600,7 @@ const resetFilter = () => {
 
 const handleSave = () => {
     if (!result.value) {
-        message.warning('请拖拽组合公式')
+        ElMessage.warning('请拖拽组合公式')
         return
     }
     // 先关闭主弹窗，再显示保存表单
@@ -556,7 +613,7 @@ const handleSave = () => {
 // 确认保存
 const confirmSave = () => {
     if (!saveForm.value.name || !saveForm.value.description) {
-        message.warning('请输入名称和描述')
+        ElMessage.warning('请输入名称和描述')
         return
     }
 
@@ -571,8 +628,9 @@ const confirmSave = () => {
     if (saveToStorage(props.type, formData)) {
         saveDialogVisible.value = false
         resetState()
+        ElMessage.success('保存成功')
     } else {
-        message.error('保存失败')
+        ElMessage.error('保存失败')
     }
 }
 
@@ -638,58 +696,107 @@ const dropzoneOptions = {
 
 // 添加克隆函数
 const cloneItem = (item) => {
-    return {
+    if (!item) return null;
+
+    const baseItem = {
         ...item,
-        id: Date.now()
+        id: Date.now(),
+        value: item.value || item.Name || '',
+        Name: item.Name || '',
+        type: item.type || 'basic',
+        isInput: item.type === 'input'
+    };
+
+    if (item.needInput) {
+        currentIndicator.value = item;
+        periodInputValue.value = '5';
+        periodInputVisible.value = true;
+        return null;
     }
+
+    return baseItem;
+}
+
+// 添加周期输入处理函数
+const handlePeriodInputConfirm = () => {
+    if (!currentIndicator.value) return;
+
+    periodInputLoading.value = true;
+    try {
+        const period = parseInt(periodInputValue.value);
+        if (isNaN(period) || period <= 0) {
+            ElMessage.error('请输入有效的周期值');
+            return;
+        }
+
+        const timePart = currentIndicator.value.Name.split('_')[1] || '';
+        if (!timePart) {
+            ElMessage.error('无效的时间周期');
+            return;
+        }
+
+        const newItem = {
+            ...currentIndicator.value,
+            Name: `${currentIndicator.value.baseIndicator}_${timePart}_${period}`,
+            value: `${currentIndicator.value.baseIndicator}_${timePart}_${period}`,
+            id: Date.now()
+        };
+
+        if (props.type === 'expression' && currentIndicator.value.type === 'param') {
+            expression.value.push(
+                { Name: '(', value: '(', type: 'operator', id: Date.now() },
+                newItem,
+                { Name: ')', value: ')', type: 'operator', id: Date.now() + 1 }
+            );
+        } else {
+            expression.value.push(newItem);
+        }
+
+        calculateExpression();
+        periodInputVisible.value = false;
+        currentIndicator.value = null;
+    } finally {
+        periodInputLoading.value = false;
+    }
+}
+
+// 修改点击处理方法
+const handleItemClick = (item) => {
+    if (!item) return;
+
+    if (item.needInput) {
+        currentIndicator.value = item;
+        periodInputValue.value = '5';
+        periodInputVisible.value = true;
+        return;
+    }
+
+    const newItem = {
+        ...item,
+        id: Date.now(),
+        value: item.value || item.Name || '',
+        Name: item.Name || '',
+        type: item.type || 'basic',
+        isInput: item.type === 'input'
+    };
+
+    if (props.type === 'expression' && item.type === 'param') {
+        expression.value.push(
+            { Name: '(', value: '(', type: 'operator', id: Date.now(), isInput: false },
+            newItem,
+            { Name: ')', value: ')', type: 'operator', id: Date.now() + 1, isInput: false }
+        );
+    } else {
+        expression.value.push(newItem);
+    }
+
+    calculateExpression();
 }
 
 // 组件挂载时加载数据
 onMounted(() => {
     loadFromStorage()
 })
-
-// 添加点击处理方法
-const handleItemClick = (item) => {
-    // 克隆一个新的对象，避免直接修改原对象
-    const newItem = {
-        ...item,
-        id: Date.now() // 确保每个项都有唯一的id
-    }
-
-    // 如果是在新增表达式时点击已有表达式，需要在两边添加括号
-    if (props.type === 'expression' && item.type === 'param') {
-        // 先添加左括号
-        expression.value.push({
-            Name: '(',
-            value: '(',
-            type: 'operator',
-            id: Date.now()
-        })
-
-        // 添加表达式
-        expression.value.push(newItem)
-
-        // 添加右括号
-        expression.value.push({
-            Name: ')',
-            value: ')',
-            type: 'operator',
-            id: Date.now() + 1
-        })
-    } else {
-        // 其他情况直接添加
-        expression.value.push(newItem)
-    }
-
-    // 如果是输入框类型，需要确保value属性存在
-    if (newItem.type === 'input') {
-        newItem.value = ''
-    }
-
-    // 更新表达式结果
-    calculateExpression()
-}
 </script>
 
 <style scoped>
@@ -844,17 +951,21 @@ const handleItemClick = (item) => {
 }
 
 .dragged-item {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2px 6px;
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 2px;
     border-radius: 4px;
-    cursor: move;
+    cursor: pointer;
     user-select: none;
     font-size: 12px;
-    min-width: 24px;
-    text-align: center;
-    height: 28px;
+    background: var(--primary-color);
+    color: white;
+}
+
+.dragged-item[data-is-input="true"] {
+    padding: 0;
+    width: 80px;
+    background: transparent;
 }
 
 .dragged-item.basic {
@@ -1035,5 +1146,124 @@ const handleItemClick = (item) => {
     font-size: 14px;
     flex: 1;
     word-break: break-all;
+}
+
+/* 添加周期输入弹窗样式 */
+.period-input-content {
+    padding: 20px 0;
+}
+
+.period-input-tip {
+    margin-top: 8px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+:deep(.ant-input-number) {
+    background-color: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+:deep(.ant-input-number:hover),
+:deep(.ant-input-number:focus) {
+    border-color: var(--primary-color) !important;
+}
+
+:deep(.ant-input-number-input) {
+    background-color: transparent !important;
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-modal-content),
+:deep(.ant-modal-header) {
+    background-color: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+:deep(.ant-modal-title) {
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-modal-close-x) {
+    color: var(--text-color) !important;
+}
+
+/* 确保遮罩层样式正确 */
+:deep(.period-input-modal .ant-modal-mask) {
+    background-color: rgba(0, 0, 0, 0.45);
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+}
+
+/* 调整弹窗容器样式 */
+:deep(.period-input-modal .ant-modal-wrap) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    overflow: auto;
+    outline: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 100px;
+}
+
+/* 添加 Element Plus 组件的样式覆盖 */
+:deep(.el-select) {
+    --el-select-border-color-hover: var(--primary-color);
+}
+
+:deep(.el-select .el-input__wrapper) {
+    background-color: var(--bg-color);
+    border-color: var(--border-color);
+}
+
+:deep(.el-select .el-input__wrapper:hover) {
+    border-color: var(--primary-color);
+}
+
+:deep(.el-select .el-input__inner) {
+    color: var(--text-color);
+}
+
+:deep(.el-select .el-input__inner::placeholder) {
+    color: var(--text-secondary);
+}
+
+:deep(.el-input-number) {
+    --el-input-number-border-color: var(--border-color);
+    --el-input-number-hover-border-color: var(--primary-color);
+}
+
+:deep(.el-input-number .el-input__wrapper) {
+    background-color: var(--bg-color);
+}
+
+:deep(.el-input-number .el-input__inner) {
+    color: var(--text-color);
+}
+
+:deep(.el-select-dropdown) {
+    background-color: var(--bg-color);
+    border-color: var(--border-color);
+}
+
+:deep(.el-select-dropdown__item) {
+    color: var(--text-color);
+}
+
+:deep(.el-select-dropdown__item.hover),
+:deep(.el-select-dropdown__item:hover) {
+    background-color: var(--bg-hover);
+}
+
+:deep(.el-select-dropdown__item.selected) {
+    color: var(--primary-color);
+    background-color: var(--bg-hover);
 }
 </style>
