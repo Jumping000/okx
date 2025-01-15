@@ -610,13 +610,6 @@ class StrategyWorker extends self.BaseWorker {
    */
   calculateIndicators(strategyExpression, timeLevel) {
     try {
-      console.log(
-        "时间级别",
-        timeLevel,
-        "需要计算的指标",
-        JSON.stringify(strategyExpression)
-      );
-
       // 获取当前和历史K线数据
       const currentKlines = this.klines.get(timeLevel) || [];
       const historyKlines = this.historyKlines.get(timeLevel) || [];
@@ -759,7 +752,7 @@ class StrategyWorker extends self.BaseWorker {
       strategyExpression.forEach((item) => {
         item.value = this.formatNumber(indicators[item.name]);
       });
-
+      this.strategyExpression[timeLevel] = strategyExpression;
       // 发送指标计算结果
       this.postMessage({
         type: "indicators_updated",
