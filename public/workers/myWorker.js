@@ -11,6 +11,8 @@ class StrategyWorker extends self.BaseWorker {
     this.klines = new Map();
     this.historyKlines = new Map();
     this.klineTimeLevels = [];
+    // 策略表达式数组
+    this.strategyExpression = [];
     // 价格精度
     this.priceDecimalPlaces = 0;
     // 配置参数
@@ -29,7 +31,26 @@ class StrategyWorker extends self.BaseWorker {
       processCount: 0,
       errorCount: 0,
     };
-
+    // 时间级别
+    this.timeLevel = [
+      { Name: "1F", dis: "1分钟", exchange: "1m" },
+      { Name: "3F", dis: "3分钟", exchange: "3m" },
+      { Name: "5F", dis: "5分钟", exchange: "5m" },
+      { Name: "15F", dis: "15分钟", exchange: "15m" },
+      { Name: "30F", dis: "30分钟", exchange: "30m" },
+      { Name: "1S", dis: "1小时", exchange: "1H" },
+      { Name: "2S", dis: "2小时", exchange: "2H" },
+      { Name: "4S", dis: "4小时", exchange: "4H" },
+      { Name: "6S", dis: "6小时", exchange: "6H" },
+      { Name: "12S", dis: "12小时", exchange: "12H" },
+      { Name: "1T", dis: "1天", exchange: "1D" },
+      { Name: "2T", dis: "2天", exchange: "2D" },
+      { Name: "3T", dis: "3天", exchange: "3D" },
+      { Name: "5T", dis: "5天", exchange: "5D" },
+      { Name: "1Z", dis: "1周", exchange: "1W" },
+      { Name: "1Y", dis: "1月", exchange: "1M" },
+      { Name: "3Y", dis: "3月", exchange: "3M" },
+    ];
     this.initErrorHandlers();
     this.startPeriodicCleanup();
 
@@ -116,6 +137,7 @@ class StrategyWorker extends self.BaseWorker {
 
       this.strategy = payload.strategy;
       this.priceDecimalPlaces = payload.strategy.priceDecimalPlaces;
+      // 分解表达式
       this.klineTimeLevels = await this.handleKlineTimeLevel(
         this.strategy.fullExpression
       );
@@ -187,9 +209,9 @@ class StrategyWorker extends self.BaseWorker {
       // 原子性更新数据
       this.klines.set(timeLevel, tempKlines);
       this.historyKlines.set(timeLevel, tempHistoryKlines);
-
+      console.log(timeLevel);
       // 计算指标
-      this.calculateIndicators(timeLevel);
+      this.calculateIndicators(this.strategyExpression[timeLevel], timeLevel);
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
     }
@@ -279,39 +301,29 @@ class StrategyWorker extends self.BaseWorker {
     //   expression((SP_1F + ( SP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) >= 3 and (SP_1F + ( SP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) <= 2) or (SP_1F + ( SP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) != 1
     const improvedRegex = /\b([A-Z]+(?:_[A-Z0-9]+)*)\b/g;
     let matches = expression.match(improvedRegex);
+    this.strategyExpression = matches;
+
     let variables = matches ? [...new Set(matches)] : []; // Remove duplicates if there are any
-    let timeLevel = [
-      { Name: "1F", dis: "1分钟", exchange: "1m" },
-      { Name: "3F", dis: "3分钟", exchange: "3m" },
-      { Name: "5F", dis: "5分钟", exchange: "5m" },
-      { Name: "15F", dis: "15分钟", exchange: "15m" },
-      { Name: "30F", dis: "30分钟", exchange: "30m" },
-      { Name: "1S", dis: "1小时", exchange: "1H" },
-      { Name: "2S", dis: "2小时", exchange: "2H" },
-      { Name: "4S", dis: "4小时", exchange: "4H" },
-      { Name: "6S", dis: "6小时", exchange: "6H" },
-      { Name: "12S", dis: "12小时", exchange: "12H" },
-      { Name: "1T", dis: "1天", exchange: "1D" },
-      { Name: "2T", dis: "2天", exchange: "2D" },
-      { Name: "3T", dis: "3天", exchange: "3D" },
-      { Name: "5T", dis: "5天", exchange: "5D" },
-      { Name: "1Z", dis: "1周", exchange: "1W" },
-      { Name: "1Y", dis: "1月", exchange: "1M" },
-      { Name: "3Y", dis: "3月", exchange: "3M" },
-    ];
     let klineTimeLevels = [];
+    let formatText = [];
     variables.forEach(async (variable) => {
       const klineTimeLevel = variable.split("_");
       // 查找是否存在相同的时间级别 klineTimeLevel = ['LS', 'SP', '1F', '3'] timeLevel
       // 循环 klineTimeLevel
-      klineTimeLevel.forEach((item) => {
+      klineTimeLevel.forEach((item, index) => {
         // item 匹配 timeLevel 的 Name
-        const isExist = timeLevel.find((items) => items.Name === item);
+        const isExist = this.timeLevel.find((items) => items.Name === item);
         if (isExist) {
+          //   将时间单位存起来
           klineTimeLevels.push(isExist.exchange);
+          klineTimeLevel[index] = isExist.exchange;
         }
       });
+      // klineTimeLevel 将当前的 使用 exchange 拼成一个新的
+      formatText.push(klineTimeLevel);
     });
+    this.strategyExpression = this.classificationOfStrategyValues(formatText);
+    console.log(this.strategyExpression);
 
     klineTimeLevels = [...new Set(klineTimeLevels)];
     return klineTimeLevels;
@@ -515,13 +527,40 @@ class StrategyWorker extends self.BaseWorker {
       this.handleError(error, "停止策略失败");
     }
   }
+  /**
+   * 策略值归类
+   */
+  classificationOfStrategyValues(value) {
+    let arr = {};
+    value.forEach((item) => {
+      if (arr[item[item[0] == "LS" ? 2 : 1]] == undefined) {
+        arr[item[item[0] == "LS" ? 2 : 1]] = [];
+      }
+      switch (item[0]) {
+        case "LS":
+          arr[item[2]].push(item[0] + "_" + item[1] + "_" + item[3]);
+          break;
+        case "EMA":
+          arr[item[1]].push(item[0] + "_" + item[2]);
+          break;
+        case "MA":
+          arr[item[1]].push(item[0] + "_" + item[2]);
+          break;
+        default:
+          arr[item[1]].push(item[0]);
+          break;
+      }
+    });
+    return arr;
+  }
 
   /**
    * 计算指标入口
    * @param {string} timeLevel - 时间级别
    */
-  calculateIndicators(timeLevel) {
+  calculateIndicators(strategyExpression, timeLevel) {
     try {
+      console.log("需要计算的指标", strategyExpression);
       // 获取完整的K线数据
       const currentKlines = this.klines.get(timeLevel) || [];
       const historyKlines = this.historyKlines.get(timeLevel) || [];

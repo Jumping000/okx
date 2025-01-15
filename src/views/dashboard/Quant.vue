@@ -658,7 +658,7 @@ const handleStrategyAction = async (record) => {
                 strategyList.value[index].loading = true
 
                 // 等待时间窗口
-                await waitForTimeWindow(record.name)
+                // await waitForTimeWindow(record.name)
 
                 // 启动策略时创建新的 Worker
                 await workerManager.start(record.id, '/workers/worker-entry.js')
