@@ -22,9 +22,9 @@
                                 <h3 class="text-base font-medium text-dark-100">参数列表</h3>
                             </div>
                             <a-button type="primary" size="small" @click="showAddDialog('parameter')">
-                                <template #icon>
+                                <!-- <template #icon>
                                     <plus-outlined />
-                                </template>
+                                </template> -->
                                 新建参数
                             </a-button>
                         </div>
@@ -56,9 +56,9 @@
                                 <h3 class="text-base font-medium text-dark-100">表达式列表</h3>
                             </div>
                             <a-button type="primary" size="small" @click="showAddDialog('expression')">
-                                <template #icon>
+                                <!-- <template #icon>
                                     <plus-outlined />
-                                </template>
+                                </template> -->
                                 新建表达式
                             </a-button>
                         </div>
@@ -101,9 +101,9 @@
                                 <h3 class="text-base font-medium text-dark-100">策略列表</h3>
                             </div>
                             <a-button type="primary" size="small" @click="showAddStrategyDialog">
-                                <template #icon>
+                                <!-- <template #icon>
                                     <plus-outlined />
-                                </template>
+                                </template> -->
                                 新建策略
                             </a-button>
                         </div>
