@@ -977,12 +977,7 @@ watch([selectedStrategy, () => strategyIndicators.value], ([newStrategyId, indic
     }
 }, { deep: true });
 
-// 在 script setup 中添加处理清空的方法
-const handleClearStrategy = () => {
-    selectedStrategy.value = null;
-    selectedTimeLevel.value = null;
-    // 可以在这里添加其他需要清空的状态
-}
+
 </script>
 
 <style scoped>
