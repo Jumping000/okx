@@ -532,8 +532,28 @@ class StrategyWorker extends self.BaseWorker {
   classificationOfStrategyValues(value) {
     let arr = {};
     value.forEach((item) => {
-      if (arr[item[item[0] == "LS" ? 2 : 1]] == undefined) {
-        arr[item[item[0] == "LS" ? 2 : 1]] = [];
+      if (
+        arr[
+          item[
+            item[0] == "LS" ||
+            item[0] == "BOLL" ||
+            item[0] == "MACD" ||
+            item[0] == "KDJ"
+              ? 2
+              : 1
+          ]
+        ] == undefined
+      ) {
+        arr[
+          item[
+            item[0] == "LS" ||
+            item[0] == "BOLL" ||
+            item[0] == "MACD" ||
+            item[0] == "KDJ"
+              ? 2
+              : 1
+          ]
+        ] = [];
       }
       switch (item[0]) {
         case "LS":
@@ -551,6 +571,24 @@ class StrategyWorker extends self.BaseWorker {
         case "MA":
           arr[item[1]].push({
             name: item[0] + "_" + item[2],
+            value: "",
+          });
+          break;
+        case "MACD":
+          arr[item[2]].push({
+            name: item[0] + "_" + item[1],
+            value: "",
+          });
+          break;
+        case "KDJ":
+          arr[item[2]].push({
+            name: item[0] + "_" + item[1],
+            value: "",
+          });
+          break;
+        case "BOLL":
+          arr[item[2]].push({
+            name: item[0] + "_" + item[1],
             value: "",
           });
           break;
