@@ -190,7 +190,7 @@ class StrategyWorker extends self.BaseWorker {
   /**
    * 处理K线数据
    */
-  handleKlineData(data) {
+  async handleKlineData(data) {
     try {
       const { timeLevel, klineData } = data;
       if (!this.validateKlineData(timeLevel, klineData)) {
@@ -211,6 +211,11 @@ class StrategyWorker extends self.BaseWorker {
       this.historyKlines.set(timeLevel, tempHistoryKlines);
       // 计算指标
       this.calculateIndicators(this.strategyExpression[timeLevel], timeLevel);
+      // 计算表达式
+      this.calculateExpression(
+        this.strategyExpression,
+        this.strategy.fullExpression
+      );
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
     }
@@ -762,7 +767,6 @@ class StrategyWorker extends self.BaseWorker {
           timestamp: Date.now(),
         },
       });
-
       return indicators;
     } catch (error) {
       this.handleError(error, "指标计算失败");
@@ -770,6 +774,26 @@ class StrategyWorker extends self.BaseWorker {
     }
   }
 
+  /**
+   * 计算表达式
+   * @param {Array} strategyExpression - 策略表达式参数
+   * @param {string} Expression - 表达式
+   */
+  calculateExpression(strategyExpression, Expression) {
+    //  循环 strategyExpression 内 所有时间级别下的所有值
+    for (const timeLevel in strategyExpression) {
+      for (const item of strategyExpression[timeLevel]) {
+        if (item.value === "") {
+          console.log(JSON.stringify(item), "有空值");
+          return false;
+        }
+      }
+    }
+    // Expression=(( MACD_DEA_1F + EMA_1F_5 + MA_1F_9 - BOLL_UPPER_1F + BOLL_LOWER_1F - BOLL_MIDDLE_1F + MACD_DIF_1F + MACD_MACD_1F - KDJ_K_1F - KDJ_D_1F - KDJ_J_1F + ZG_1F + SP_1F + ZD_3F ) + LS_CJ_1F_2 - LS_ZG_1F_2 - LS_CJ_5F_3) != 1
+    // (( SP_3F + ZD_1F - CJ_15F + SP_1T - LS_CJ_1F_1 ) + ( KP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) == 0 and (SP_1F + ( SP_1F + ZD_1F ) + ( SP_1F + ZD_1F )) != 1
+
+    // strategyExpression={"1m":[{"name":"MACD_DEA","value":-0.0086},{"name":"EMA_5","value":4.5261},{"name":"MA_9","value":4.5237},{"name":"BOLL_UPPER","value":4.5508},{"name":"BOLL_LOWER","value":4.5096},{"name":"BOLL_MIDDLE","value":4.5302},{"name":"MACD_DIF","value":-0.0072},{"name":"MACD_MACD","value":0.0028},{"name":"KDJ_K","value":58.6502},{"name":"KDJ_D","value":46.1457},{"name":"KDJ_J","value":83.6592},{"name":"ZG","value":4.5275},{"name":"SP","value":4.5274},{"name":"LS_CJ_2","value":56080},{"name":"LS_ZG_2","value":4.5335}],"3m":[{"name":"ZD","value":4.5257}],"5m":[{"name":"LS_CJ_3","value":472915}]}
+  }
   /**
    * 格式化数字到指定精度
    * @param {number} value - 要格式化的数值
