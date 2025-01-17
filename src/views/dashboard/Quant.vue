@@ -1327,6 +1327,36 @@ const formatPercent = (value) => {
     if (!value) return '0%'
     return (parseFloat(value) * 100).toFixed(2) + '%'
 }
+// 检查特定币种的仓位信息
+const checkPositionExists = (instId, posSide) => {
+    try {
+        const positionsData = wsStore.positionsData?.SWAP || []
+        const position = positionsData.find(pos =>
+            pos.instId === instId &&
+            pos.posSide === posSide
+        )
+
+        if (!position) {
+            return false
+        }
+
+        return {
+            pos: position.pos, // 持仓数量
+            avgPx: position.avgPx, // 开仓均价
+            upl: position.upl, // 未实现收益
+            uplRatio: position.uplRatio, // 收益率
+            lever: position.lever, // 杠杆倍数
+            mgnMode: position.mgnMode, // 保证金模式
+            liqPx: position.liqPx, // 预估强平价
+            margin: position.margin, // 保证金
+            mgnRatio: position.mgnRatio, // 保证金率
+            notionalUsd: position.notionalUsd // 以美金价值
+        }
+    } catch (error) {
+        console.error('检查仓位信息失败:', error)
+        return false
+    }
+}
 
 </script>
 
