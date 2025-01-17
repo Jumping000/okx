@@ -577,7 +577,7 @@ class WebSocketClient {
    */
   addMessageHandler(key, handler) {
     this.messageHandlers.set(key, handler);
-    console.log(`添加消息处理函数: ${key}`, this.messageHandlers);
+    // console.log(`添加消息处理函数: ${key}`, this.messageHandlers);
   }
 
   /**
@@ -586,7 +586,7 @@ class WebSocketClient {
    */
   removeMessageHandler(key) {
     this.messageHandlers.delete(key);
-    console.log(`移除消息处理函数: ${key}`, this.messageHandlers);
+    // console.log(`移除消息处理函数: ${key}`, this.messageHandlers);
   }
 
   /**

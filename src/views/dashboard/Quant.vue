@@ -105,12 +105,15 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略列表</h3>
                             </div>
-                            <a-button type="primary" size="small" @click="showAddStrategyDialog">
-                                <!-- <template #icon>
-                                    <plus-outlined />
-                                </template> -->
-                                新建策略
-                            </a-button>
+                            <div class="flex items-center gap-2">
+                                <a-button type="primary" size="small" @click="handleTestFunction"
+                                    :loading="testLoading">
+                                    测试功能
+                                </a-button>
+                                <a-button type="primary" size="small" @click="showAddStrategyDialog">
+                                    新建策略
+                                </a-button>
+                            </div>
                         </div>
                         <div class="p-4">
                             <a-table :dataSource="strategyList" :columns="strategyColumns" :loading="loading"
@@ -1268,7 +1271,8 @@ onMounted(async () => {
         await wsStore.subscribeOrders({
             instType: 'SWAP',
             onData: (message) => {
-                console.log('永续合约订单数据更新:', message)
+                // 处理订单数据
+                // console.log('永续合约订单数据更新:', message)
             }
         })
     } catch (error) {
@@ -1355,6 +1359,129 @@ const checkPositionExists = (instId, posSide) => {
     } catch (error) {
         console.error('检查仓位信息失败:', error)
         return false
+    }
+}
+
+/**
+ * 市价下单函数
+ * @param {string} instId 币种ID，如 'BTC-USDT-SWAP'
+ * @param {string} positionAction 'open'-开仓 'close'-平仓
+ * @param {string} posSide 'long'-多单 'short'-空单
+ * @param {string} marginMode 'cross'-全仓 'isolated'-逐仓
+ * @param {number} size 下单数量
+ * @returns {Promise<boolean>} 下单结果，true-成功 false-失败
+ */
+const placeMarketOrder = async (instId, positionAction, posSide, marginMode, size) => {
+    try {
+        // 1. 参数校验
+        if (!instId || !positionAction || !posSide || !marginMode || !size) {
+            throw new Error('参数不完整')
+        }
+
+        // 2. 获取币种信息
+        const currentCurrency = currencyStore.getCurrencyByName('SWAP', instId)
+        if (!currentCurrency) {
+            throw new Error('未找到币种信息')
+        }
+
+        // 3. 检查数量精度
+        const minSz = parseFloat(currentCurrency.minSz) // 最小下单数量
+        if (size < minSz) {
+            throw new Error(`下单数量不能小于 ${minSz} 张`)
+        }
+
+        // 4. 确定买卖方向
+        let side = positionAction === 'open' ? 'buy' : 'sell'
+        // 如果是空单，买卖方向需要反转
+        if (posSide === 'short') {
+            side = side === 'buy' ? 'sell' : 'buy'
+        }
+
+        // 5. 构建订单参数
+        const orderParams = {
+            instId: instId,
+            tdMode: marginMode,
+            side: side,
+            posSide: posSide,
+            ordType: 'market',
+            sz: String(size),
+            reduceOnly: positionAction === 'close' // 平仓时设置为只减仓
+        }
+
+        // 6. 发送订单
+        console.log('发送市价单:', orderParams)
+        const response = await wsStore.placeOrder(orderParams)
+        console.log('下单响应:', response)
+
+        // 7. 处理响应
+        if (response.code === '0') {
+            // 添加成功日志
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'success',
+                content: `${instId} ${positionAction === 'open' ? '开仓' : '平仓'}${posSide === 'long' ? '多单' : '空单'} ${size}张 成功`
+            })
+            return true
+        } else {
+            throw new Error(response.msg || '下单失败')
+        }
+    } catch (error) {
+        // 添加错误日志
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'error',
+            content: `下单失败: ${error.message}`
+        })
+        console.error('下单失败:', error)
+        return false
+    }
+}
+
+// 在 script setup 中添加
+const testLoading = ref(false)
+
+// 测试功能
+const handleTestFunction = async () => {
+    if (testLoading.value) return
+    testLoading.value = true
+    try {
+        // 1. 调用下单函数
+        console.log('开始下单测试...')
+        const orderResult = await placeMarketOrder(
+            'SUI-USDT-SWAP',  // 币种
+            'open',           // 开仓
+            'long',           // 多单
+            'cross',          // 全仓
+            2                 // 2张
+        )
+        console.log('下单结果:', orderResult)
+
+        // 2. 立即检查仓位
+        const position1 = checkPositionExists('SUI-USDT-SWAP', 'long')
+        console.log('下单后立即检查仓位:', position1)
+
+        // 3. 三秒后再次检查仓位
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        const position2 = checkPositionExists('SUI-USDT-SWAP', 'long')
+        console.log('3秒后检查仓位:', position2)
+
+        // 4. 添加日志
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'info',
+            content: `测试结果: 下单${orderResult ? '成功' : '失败'}, 立即检查:${JSON.stringify(position1)}, 3秒后:${JSON.stringify(position2)}`
+        })
+    } catch (error) {
+        console.error('测试功能执行失败:', error)
+        message.error('测试功能执行失败')
+        // 添加错误日志
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'error',
+            content: `测试功能执行失败: ${error.message}`
+        })
+    } finally {
+        testLoading.value = false
     }
 }
 
