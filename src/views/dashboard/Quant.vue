@@ -273,11 +273,55 @@
                             </div>
                         </div>
                         <div class="p-4">
-                            <!-- 统计数据将在这里实现 -->
-                            <div class="flex flex-col items-center justify-center py-8">
-                                <pie-chart-outlined class="text-4xl text-dark-200 mb-3" />
-                                <p class="text-dark-200">暂无统计数据</p>
-                            </div>
+                            <!-- 订单表格 -->
+                            <a-table :dataSource="swapOrders" :columns="orderColumns" :loading="loading"
+                                :pagination="{ pageSize: 5, showSizeChanger: false }" size="small">
+                                <template #bodyCell="{ column, text, record }">
+                                    <!-- 产品名称 -->
+                                    <template v-if="column.dataIndex === 'instId'">
+                                        <span class="font-medium">{{ text.split('-')[0].toUpperCase() }}</span>
+                                    </template>
+
+                                    <!-- 订单方向 -->
+                                    <template v-if="column.dataIndex === 'side'">
+                                        <a-tag :color="text === 'buy' ?
+                                            (record.posSide === 'long' ? 'success' : 'error') :
+                                            (record.posSide === 'long' ? 'error' : 'success')">
+                                            {{ text === 'buy' ?
+                                                (record.posSide === 'long' ? '开多' : '平空') :
+                                                (record.posSide === 'long' ? '平多' : '开空') 
+                                            }}
+                                        </a-tag>
+                                    </template>
+
+                                    <!-- 杠杆倍数 -->
+                                    <template v-else-if="column.dataIndex === 'lever'">
+                                        <span class="font-mono">{{ parseInt(text) }}X</span>
+                                    </template>
+
+                                    <!-- 保证金模式 -->
+                                    <template v-else-if="column.dataIndex === 'tdMode'">
+                                        <a-tag :color="text === 'cross' ? 'blue' : 'purple'">
+                                            {{ text === 'cross' ? '全仓' : '逐仓' }}
+                                        </a-tag>
+                                    </template>
+
+                                    <!-- 订单状态 -->
+                                    <template v-else-if="column.dataIndex === 'state'">
+                                        <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text) }}</a-tag>
+                                    </template>
+
+                                    <!-- 数量 -->
+                                    <template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
+                                        <span class="font-mono">{{ formatNumber(text) }}</span>
+                                    </template>
+
+                                    <!-- 创建时间 -->
+                                    <template v-else-if="column.dataIndex === 'cTime'">
+                                        <span>{{ formatTime(text) }}</span>
+                                    </template>
+                                </template>
+                            </a-table>
                         </div>
                     </div>
                 </div>
@@ -302,8 +346,7 @@ import { message, Modal } from 'ant-design-vue'
 import {
     // PlusOutlined,
     LineChartOutlined,
-    FileTextOutlined,
-    PieChartOutlined
+    FileTextOutlined
 } from '@ant-design/icons-vue'
 import FormulaDialog from './components/FormulaDialog.vue'
 import StrategyDialog from './components/StrategyDialog.vue'
@@ -985,8 +1028,13 @@ const handleClearLogs = () => {
     strategyLogs.value = []
 }
 
+// 格式化时间
 const formatTime = (timestamp) => {
-    return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss')
+    if (!timestamp) return '-'
+    // OKX API 返回的时间戳是字符串格式，需要转换为数字并处理为毫秒级时间戳
+    const timeMs = Number(timestamp)
+    if (isNaN(timeMs)) return '-'
+    return dayjs(timeMs).format('YYYY-MM-DD HH:mm:ss')
 }
 
 // 添加加载策略列表的方法
@@ -1038,6 +1086,103 @@ watch([selectedStrategy, () => strategyIndicators.value], ([newStrategyId, indic
     }
 }, { deep: true });
 
+// 在 script setup 中添加订单相关的状态和方法
+// 订单列定义
+const orderColumns = [
+    {
+        title: '产品',
+        dataIndex: 'instId',
+        key: 'instId',
+        width: 100,
+    },
+    {
+        title: '方向',
+        dataIndex: 'side',
+        key: 'side',
+        width: 80,
+    },
+    {
+        title: '杠杆',
+        dataIndex: 'lever',
+        key: 'lever',
+        width: 80,
+    },
+    {
+        title: '模式',
+        dataIndex: 'tdMode',
+        key: 'tdMode',
+        width: 100,
+    },
+    {
+        title: '数量',
+        dataIndex: 'sz',
+        key: 'sz',
+        width: 100,
+    },
+    {
+        title: '状态',
+        dataIndex: 'state',
+        key: 'state',
+        width: 100,
+    },
+    {
+        title: '创建时间',
+        dataIndex: 'cTime',
+        key: 'cTime',
+        width: 160,
+    },
+]
+
+// 获取永续合约订单数据
+const swapOrders = computed(() => {
+    const ordersData = wsStore.getOrdersData('SWAP')
+    return [...(ordersData.active || []), ...(ordersData.history || [])]
+})
+
+// 获取订单状态颜色
+const getOrderStateColor = (state) => {
+    const colors = {
+        live: 'processing',
+        filled: 'success',
+        canceled: 'default',
+        partially_filled: 'warning'
+    }
+    return colors[state] || 'default'
+}
+
+// 获取订单状态文本
+const getOrderStateText = (state) => {
+    const texts = {
+        live: '活跃',
+        filled: '已完成',
+        canceled: '已取消',
+        partially_filled: '部分成交'
+    }
+    return texts[state] || state
+}
+
+// 格式化数字
+const formatNumber = (value) => {
+    if (!value) return '0'
+    return Number(value).toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 8
+    })
+}
+
+// 在组件挂载时订阅永续合约订单数据
+onMounted(async () => {
+    try {
+        await wsStore.subscribeOrders({
+            instType: 'SWAP',
+            onData: (message) => {
+                console.log('永续合约订单数据更新:', message)
+            }
+        })
+    } catch (error) {
+        console.error('订阅永续合约订单数据失败:', error)
+    }
+})
 
 </script>
 
@@ -1370,6 +1515,10 @@ watch([selectedStrategy, () => strategyIndicators.value], ([newStrategyId, indic
 
     .ant-select-item {
         color: var(--text-color);
+
+        &:hover {
+            background-color: var(--bg-hover);
+        }
     }
 
     .ant-select-item-option-selected {
