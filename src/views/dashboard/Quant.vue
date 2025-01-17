@@ -410,6 +410,7 @@ import dayjs from 'dayjs'
 import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
+import { setLeverage } from '@/api/module/Basics'
 
 // 定义组件选项
 defineOptions({
@@ -728,6 +729,37 @@ const waitForTimeWindow = async (strategyName) => {
     return false
 }
 
+// 设置策略杠杆倍数
+const setStrategyLeverage = async (currency, leverage, positionType) => {
+    try {
+        const params = {
+            instId: currency,
+            lever: String(leverage),
+            mgnMode: positionType
+        }
+
+        // 如果是逐仓模式，需要分别设置多空方向的杠杆
+        if (positionType === 'isolated') {
+            // 设置多仓杠杆
+            await setLeverage({
+                ...params,
+                posSide: 'long'
+            })
+            // 设置空仓杠杆
+            await setLeverage({
+                ...params,
+                posSide: 'short'
+            })
+        } else {
+            // 全仓模式直接设置
+            await setLeverage(params)
+        }
+    } catch (error) {
+        console.error('设置杠杆倍数失败:', error)
+        throw new Error(`设置杠杆倍数失败: ${error.message}`)
+    }
+}
+
 // 初始化策略
 const handleStrategyAction = async (record) => {
     try {
@@ -742,6 +774,9 @@ const handleStrategyAction = async (record) => {
             if (newStatus === 'running') {
                 // 设置加载状态
                 strategyList.value[index].loading = true
+
+                // 设置杠杆倍数
+                await setStrategyLeverage(record.currency, record.leverage, record.positionType)
 
                 // 等待时间窗口
                 await waitForTimeWindow(record.name)

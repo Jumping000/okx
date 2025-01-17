@@ -44,7 +44,7 @@
                                         <span class="text-xl font-medium text-dark-100">
                                             {{ selectedCurrency.replace('-SWAP', '').replace('-USDT', '') }}
                                         </span>
-                                        <span class="text-sm px-2 py-0.5 rounded bg-dark-300 text-dark-200">
+                                        <span class="text-sm px-2 py-0.5 rounded bg-[#00b96b] text-white">
                                             {{ selectedCurrency.includes('-SWAP') ? '永续' : '现货' }}
                                         </span>
                                     </div>
