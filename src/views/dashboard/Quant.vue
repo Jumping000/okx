@@ -271,57 +271,113 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略统计</h3>
                             </div>
+                            <div class="flex items-center gap-2">
+                                <a-radio-group v-model:value="selectedStatType" size="small" class="stat-type-tabs">
+                                    <a-radio-button value="orders">
+                                        <span class="px-4">订单</span>
+                                    </a-radio-button>
+                                    <a-radio-button value="positions">
+                                        <span class="px-4">持仓</span>
+                                    </a-radio-button>
+                                </a-radio-group>
+                            </div>
                         </div>
                         <div class="p-4">
                             <!-- 订单表格 -->
-                            <a-table :dataSource="swapOrders" :columns="orderColumns" :loading="loading"
-                                :pagination="{ pageSize: 5, showSizeChanger: false }" size="small">
-                                <template #bodyCell="{ column, text, record }">
-                                    <!-- 产品名称 -->
-                                    <template v-if="column.dataIndex === 'instId'">
-                                        <span class="font-medium">{{ text.split('-')[0].toUpperCase() }}</span>
-                                    </template>
+                            <template v-if="selectedStatType === 'orders'">
+                                <a-table :dataSource="swapOrders" :columns="orderColumns" :loading="loading"
+                                    :pagination="{ pageSize: 5, showSizeChanger: false }" size="small">
+                                    <template #bodyCell="{ column, text, record }">
+                                        <!-- 产品名称 -->
+                                        <template v-if="column.dataIndex === 'instId'">
+                                            <span class="font-medium">{{ text.split('-')[0].toUpperCase() }}</span>
+                                        </template>
 
-                                    <!-- 订单方向 -->
-                                    <template v-if="column.dataIndex === 'side'">
-                                        <a-tag :color="text === 'buy' ?
-                                            (record.posSide === 'long' ? 'success' : 'error') :
-                                            (record.posSide === 'long' ? 'error' : 'success')">
-                                            {{ text === 'buy' ?
-                                                (record.posSide === 'long' ? '开多' : '平空') :
-                                                (record.posSide === 'long' ? '平多' : '开空') 
-                                            }}
-                                        </a-tag>
-                                    </template>
+                                        <!-- 订单方向 -->
+                                        <template v-if="column.dataIndex === 'side'">
+                                            <a-tag :color="text === 'buy' ?
+                                                (record.posSide === 'long' ? 'success' : 'error') :
+                                                (record.posSide === 'long' ? 'error' : 'success')">
+                                                {{ text === 'buy' ?
+                                                    (record.posSide === 'long' ? '开多' : '平空') :
+                                                    (record.posSide === 'long' ? '平多' : '开空') 
+                                                }}
+                                            </a-tag>
+                                        </template>
 
-                                    <!-- 杠杆倍数 -->
-                                    <template v-else-if="column.dataIndex === 'lever'">
-                                        <span class="font-mono">{{ parseInt(text) }}X</span>
-                                    </template>
+                                        <!-- 杠杆倍数 -->
+                                        <template v-else-if="column.dataIndex === 'lever'">
+                                            <span class="font-mono">{{ parseInt(text) }}X</span>
+                                        </template>
 
-                                    <!-- 保证金模式 -->
-                                    <template v-else-if="column.dataIndex === 'tdMode'">
-                                        <a-tag :color="text === 'cross' ? 'blue' : 'purple'">
-                                            {{ text === 'cross' ? '全仓' : '逐仓' }}
-                                        </a-tag>
-                                    </template>
+                                        <!-- 保证金模式 -->
+                                        <template v-else-if="column.dataIndex === 'tdMode'">
+                                            <a-tag :color="text === 'cross' ? 'blue' : 'purple'">
+                                                {{ text === 'cross' ? '全仓' : '逐仓' }}
+                                            </a-tag>
+                                        </template>
 
-                                    <!-- 订单状态 -->
-                                    <template v-else-if="column.dataIndex === 'state'">
-                                        <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text) }}</a-tag>
-                                    </template>
+                                        <!-- 订单状态 -->
+                                        <template v-else-if="column.dataIndex === 'state'">
+                                            <a-tag
+                                                :color="getOrderStateColor(text)">{{ getOrderStateText(text) }}</a-tag>
+                                        </template>
 
-                                    <!-- 数量 -->
-                                    <template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
-                                        <span class="font-mono">{{ formatNumber(text) }}</span>
-                                    </template>
+                                        <!-- 数量 -->
+                                        <template v-else-if="['sz', 'accFillSz'].includes(column.dataIndex)">
+                                            <span class="font-mono">{{ formatNumber(text) }}</span>
+                                        </template>
 
-                                    <!-- 创建时间 -->
-                                    <template v-else-if="column.dataIndex === 'cTime'">
-                                        <span>{{ formatTime(text) }}</span>
+                                        <!-- 创建时间 -->
+                                        <template v-else-if="column.dataIndex === 'cTime'">
+                                            <span>{{ formatTime(text) }}</span>
+                                        </template>
                                     </template>
-                                </template>
-                            </a-table>
+                                </a-table>
+                            </template>
+
+                            <!-- 持仓表格 -->
+                            <template v-else>
+                                <a-table :dataSource="swapPositions" :columns="positionColumns" :loading="loading"
+                                    :pagination="{ pageSize: 5, showSizeChanger: false }" size="small">
+                                    <template #bodyCell="{ column, text }">
+                                        <!-- 币种列 -->
+                                        <template v-if="column.dataIndex === 'instId'">
+                                            <span class="font-medium">{{ text.split('-')[0].toUpperCase() }}</span>
+                                        </template>
+
+                                        <!-- 持仓方向列 -->
+                                        <template v-if="column.dataIndex === 'posSide'">
+                                            <a-tag :color="text === 'long' ? 'success' : 'error'">
+                                                {{ text === 'long' ? '多' : '空' }}
+                                            </a-tag>
+                                        </template>
+
+                                        <!-- 持仓数量列 -->
+                                        <template v-if="column.dataIndex === 'pos'">
+                                            <span class="font-mono">{{ formatNumber(text) }}</span>
+                                        </template>
+
+                                        <!-- 开仓均价列 -->
+                                        <template v-if="column.dataIndex === 'avgPx'">
+                                            <span class="font-mono">{{ formatNumber(text, 4) }}</span>
+                                        </template>
+
+                                        <!-- 收益率列 -->
+                                        <template v-if="column.dataIndex === 'uplRatio'">
+                                            <span class="font-mono"
+                                                :class="parseFloat(text) >= 0 ? 'text-success' : 'text-error'">
+                                                {{ formatPercent(text) }}
+                                            </span>
+                                        </template>
+
+                                        <!-- 杠杆倍数列 -->
+                                        <template v-if="column.dataIndex === 'lever'">
+                                            <span class="font-mono">{{ parseInt(text) }}X</span>
+                                        </template>
+                                    </template>
+                                </a-table>
+                            </template>
                         </div>
                     </div>
                 </div>
@@ -388,6 +444,7 @@ const STORAGE_KEYS = {
 const selectedStrategy = ref(null); // 当前选中的策略
 const strategyIndicators = ref({}); // 存储策略指标数据
 const selectedTimeLevel = ref(null); // 当前选中的时间周期
+const selectedStatType = ref('positions') // 默认显示持仓
 
 // 添加计算属性：运行中的策略列表
 const runningStrategies = computed(() => {
@@ -1034,7 +1091,7 @@ const formatTime = (timestamp) => {
     // OKX API 返回的时间戳是字符串格式，需要转换为数字并处理为毫秒级时间戳
     const timeMs = Number(timestamp)
     if (isNaN(timeMs)) return '-'
-    return dayjs(timeMs).format('YYYY-MM-DD HH:mm:ss')
+    return dayjs(timeMs).format('MM-DD HH:mm:ss')
 }
 
 // 添加加载策略列表的方法
@@ -1183,6 +1240,58 @@ onMounted(async () => {
         console.error('订阅永续合约订单数据失败:', error)
     }
 })
+
+// 持仓列定义
+const positionColumns = [
+    {
+        title: '币种',
+        dataIndex: 'instId',
+        key: 'instId',
+        width: 100,
+    },
+    {
+        title: '方向',
+        dataIndex: 'posSide',
+        key: 'posSide',
+        width: 80,
+    },
+    {
+        title: '持仓数量',
+        dataIndex: 'pos',
+        key: 'pos',
+        width: 100,
+    },
+    {
+        title: '开仓均价',
+        dataIndex: 'avgPx',
+        key: 'avgPx',
+        width: 100,
+    },
+    {
+        title: '收益率',
+        dataIndex: 'uplRatio',
+        key: 'uplRatio',
+        width: 100,
+    },
+    {
+        title: '杠杆',
+        dataIndex: 'lever',
+        key: 'lever',
+        width: 80,
+    }
+]
+
+// 获取永续合约持仓数据
+const swapPositions = computed(() => {
+    const positionsData = wsStore.positionsData
+    return positionsData?.SWAP || []
+})
+
+// 格式化百分比
+const formatPercent = (value) => {
+    if (!value) return '0%'
+    return (parseFloat(value) * 100).toFixed(2) + '%'
+}
 
 </script>
 
@@ -1636,6 +1745,57 @@ onMounted(async () => {
 :deep(.ant-switch:not(.ant-switch-checked)) {
     .ant-switch-inner {
         color: var(--text-secondary);
+    }
+}
+
+/* 在 style 部分添加选项卡样式 */
+:deep(.stat-type-tabs) {
+    .ant-radio-group {
+        display: flex;
+        border: 1px solid var(--primary-color);
+        border-radius: 2px;
+        padding: 0;
+    }
+
+    .ant-radio-button-wrapper {
+        height: 24px;
+        line-height: 22px;
+        padding: 0;
+        background: transparent;
+        border: none !important;
+        color: var(--primary-color);
+
+        &::before {
+            display: none;
+        }
+
+        &:hover {
+            color: var(--primary-color-light);
+        }
+
+        &:first-child {
+            border-radius: 1px 0 0 1px;
+        }
+
+        &:last-child {
+            border-radius: 0 1px 1px 0;
+        }
+    }
+
+    .ant-radio-button-wrapper-checked {
+        background-color: var(--primary-color) !important;
+        color: #fff !important;
+        box-shadow: none;
+
+        &:hover {
+            color: #fff !important;
+        }
+    }
+
+    .ant-radio-button-wrapper:not(:first-child)::before {
+        background-color: var(--primary-color);
+        width: 1px;
+        height: 100%;
     }
 }
 </style>
