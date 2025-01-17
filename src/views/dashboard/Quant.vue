@@ -1331,7 +1331,12 @@ const formatPercent = (value) => {
     if (!value) return '0%'
     return (parseFloat(value) * 100).toFixed(2) + '%'
 }
-// 检查特定币种的仓位信息
+/**
+ * 检查特定币种的仓位信息
+ * @param {string} instId 币种ID
+ * @param {string} posSide 持仓方向
+ * @returns {Object|boolean} 仓位信息或 false
+ */
 const checkPositionExists = (instId, posSide) => {
     try {
         const positionsData = wsStore.positionsData?.SWAP || []
