@@ -29,7 +29,7 @@ export default defineComponent({
     setup() {
         const visible = ref(false)
         const settings = reactive({
-            theme: 'dark'
+            theme: 'light'
         })
 
         // 加载保存的设置

@@ -96,7 +96,7 @@
                                 <a-tag v-if="text?.includes('YAN')" class="source-tag" color="primary">
                                     <span class="px-1">本平台</span>
                                 </a-tag>
-                                <a-tag v-else class="source-tag" color="default">
+                                <a-tag v-else class="source-tag">
                                     <span class="px-1">其他</span>
                                 </a-tag>
                             </template>
@@ -561,16 +561,14 @@ onMounted(() => {
 :deep(.source-tag) {
     padding: 0;
     line-height: 20px;
-    background-color: var(--dark-400) !important;
+    background-color: var(--bg-color) !important;
     border-color: var(--border-color) !important;
-
-    span {
-        color: var(--text-color);
-        font-weight: 500;
-    }
+    color: var(--text-color) !important;
 
     &.ant-tag-primary {
         border-color: var(--primary-color) !important;
+        background-color: var(--primary-color) !important;
+        color: #fff !important;
     }
 }
 

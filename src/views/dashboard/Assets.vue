@@ -11,7 +11,7 @@
             <div class="bg-dark-400 rounded-lg border border-dark-300 p-4">
                 <div class="flex flex-col gap-1">
                     <span class="text-sm text-dark-200">总资产 (USDT)</span>
-                    <span class="text-2xl font-mono">{{ formatNumber(assets.total) }}</span>
+                    <span class="text-2xl font-mono text-dark-100">{{ formatNumber(assets.total) }}</span>
                 </div>
             </div>
 
@@ -19,7 +19,7 @@
             <div class="bg-dark-400 rounded-lg border border-dark-300 p-4">
                 <div class="flex flex-col gap-1">
                     <span class="text-sm text-dark-200">可用余额 (USDT)</span>
-                    <span class="text-2xl font-mono">{{ formatNumber(assets.available) }}</span>
+                    <span class="text-2xl font-mono text-dark-100">{{ formatNumber(assets.available) }}</span>
                 </div>
             </div>
 
@@ -28,7 +28,7 @@
                 <div class="flex flex-col gap-1">
                     <span class="text-sm text-dark-200">资产数量</span>
                     <div class="flex items-baseline gap-2">
-                        <span class="text-2xl font-mono">{{ positionsData.count || 0 }}</span>
+                        <span class="text-2xl font-mono text-dark-100">{{ positionsData.count || 0 }}</span>
                         <span class="text-xs text-dark-200">个</span>
                     </div>
                 </div>
