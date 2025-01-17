@@ -7,6 +7,11 @@
                 <div class="flex items-center gap-4">
                     <h2 class="text-dark-100">量化</h2>
                 </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-dark-200 text-sm">公式列表</span>
+                    <a-switch v-model:checked="showFormulaLists" size="small" :checked-children="'开'"
+                        :un-checked-children="'关'" />
+                </div>
             </div>
         </div>
 
@@ -16,7 +21,7 @@
                 <!-- 网格布局 -->
                 <div class="grid gap-4 grid-cols-1 lg:grid-cols-2">
                     <!-- 参数列表 -->
-                    <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <div class="bg-dark-400 rounded-lg border border-dark-300" v-show="showFormulaLists">
                         <div class="flex justify-between items-center p-4 border-b border-dark-300">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">参数列表</h3>
@@ -50,7 +55,7 @@
                     </div>
 
                     <!-- 表达式列表 -->
-                    <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <div class="bg-dark-400 rounded-lg border border-dark-300" v-show="showFormulaLists">
                         <div class="flex justify-between items-center p-4 border-b border-dark-300">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">表达式列表</h3>
@@ -326,6 +331,7 @@ const dialogLoading = ref(false)
 const formulaDialogVisible = ref(false)
 const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
+const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
 
 // 监控和统计周期
 const statsPeriod = ref('today')
@@ -1402,5 +1408,30 @@ watch([selectedStrategy, () => strategyIndicators.value], ([newStrategyId, indic
 .indicator-card .text-dark-100 {
     font-size: 1.1em;
     letter-spacing: 0.5px;
+}
+
+/* Switch 组件样式 */
+:deep(.ant-switch) {
+    background-color: var(--border-color);
+
+    &.ant-switch-checked {
+        background-color: var(--primary-color);
+    }
+
+    &:hover:not(.ant-switch-disabled) {
+        background-color: var(--primary-color);
+    }
+}
+
+:deep(.ant-switch-checked) {
+    .ant-switch-inner {
+        color: #fff;
+    }
+}
+
+:deep(.ant-switch:not(.ant-switch-checked)) {
+    .ant-switch-inner {
+        color: var(--text-secondary);
+    }
 }
 </style>
