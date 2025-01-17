@@ -895,13 +895,7 @@ const handleWorkerMessage = (strategyId, data) => {
             })
             break
 
-        case 'process_complete':
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'info',
-                content: `策略 ${strategy.name} 执行完成: ${JSON.stringify(data.data)}`
-            })
-            break
+
 
         case 'history_kline_progress':
             strategyLogs.value.unshift({
@@ -1487,6 +1481,7 @@ const handleTestFunction = async () => {
         testLoading.value = false
     }
 }
+
 
 </script>
 
