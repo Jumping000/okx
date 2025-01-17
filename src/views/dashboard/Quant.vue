@@ -1458,7 +1458,7 @@ const handleTestFunction = async () => {
             'open',           // 开仓
             'long',           // 多单
             'cross',          // 全仓
-            2                 // 2张
+            1                 // 2张
         )
         console.log('下单结果:', orderResult)
 
