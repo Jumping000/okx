@@ -1462,20 +1462,17 @@ const handleTestFunction = async () => {
         )
         console.log('下单结果:', orderResult)
 
-        // 2. 立即检查仓位
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 2. 检查仓位
         const position1 = checkPositionExists('SUI-USDT-SWAP', 'long')
-        console.log('下单后立即检查仓位:', position1)
+        console.log('下单后检查仓位:', position1)
 
-        // 3. 三秒后再次检查仓位
-        await new Promise(resolve => setTimeout(resolve, 3000))
-        const position2 = checkPositionExists('SUI-USDT-SWAP', 'long')
-        console.log('3秒后检查仓位:', position2)
 
         // 4. 添加日志
         strategyLogs.value.unshift({
             time: new Date(),
             type: 'info',
-            content: `测试结果: 下单${orderResult ? '成功' : '失败'}, 立即检查:${JSON.stringify(position1)}, 3秒后:${JSON.stringify(position2)}`
+            content: `测试结果: 下单${orderResult ? '成功' : '失败'}, 检查:${JSON.stringify(position1)}}`
         })
     } catch (error) {
         console.error('测试功能执行失败:', error)
