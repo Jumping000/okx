@@ -302,7 +302,8 @@
 <script setup>
 import { defineOptions } from 'vue'
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
-import { message } from 'ant-design-vue'
+import { useRouter } from 'vue-router'
+import { message, Modal } from 'ant-design-vue'
 import {
     // PlusOutlined,
     LineChartOutlined,
@@ -921,8 +922,70 @@ const handleSubscribeKlines = async (data) => {
     }
 }
 
-// 组件卸载时清理所有 Worker
+// 在组件卸载前停止所有策略的方法
+const stopAllStrategies = async () => {
+    try {
+        const runningStrategies = strategyList.value.filter(strategy => strategy.status === 'running')
+        for (const strategy of runningStrategies) {
+            await handleStrategyAction(strategy)
+        }
+        return true
+    } catch (error) {
+        console.error('停止所有策略失败:', error)
+        message.error('停止所有策略失败')
+        return false
+    }
+}
+
+// 在 script setup 中添加路由实例
+const router = useRouter()
+
+// 添加路由守卫
+router.beforeEach(async (to, from, next) => {
+    // 只有当从量化页面离开时才进行检查
+    if (from.path === '/dashboard/quant') {
+        const runningStrategies = strategyList.value.filter(strategy => strategy.status === 'running')
+
+        if (runningStrategies.length > 0) {
+            try {
+                await new Promise((resolve, reject) => {
+                    Modal.confirm({
+                        title: '确认离开',
+                        content: '当前有正在运行的策略，离开页面将停止所有策略，是否确认离开？',
+                        okText: '确认',
+                        cancelText: '取消',
+                        async onOk() {
+                            try {
+                                const success = await stopAllStrategies()
+                                if (success) {
+                                    resolve()
+                                } else {
+                                    reject(new Error('停止策略失败'))
+                                }
+                            } catch (error) {
+                                reject(error)
+                            }
+                        },
+                        onCancel() {
+                            reject(new Error('用户取消'))
+                        }
+                    })
+                })
+                next()
+            } catch (error) {
+                next(false)
+            }
+        } else {
+            next()
+        }
+    } else {
+        next()
+    }
+})
+
+// 修改原有的组件卸载逻辑
 onUnmounted(() => {
+    // 由于已经在路由守卫中处理了策略停止，这里只需要清理 Worker
     workerManager.stopAll()
 })
 
