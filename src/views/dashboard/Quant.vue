@@ -271,11 +271,6 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略统计</h3>
                             </div>
-                            <a-radio-group v-model:value="statsPeriod" size="small" class="stats-tabs">
-                                <a-radio-button value="today">今日</a-radio-button>
-                                <a-radio-button value="week">本周</a-radio-button>
-                                <a-radio-button value="month">本月</a-radio-button>
-                            </a-radio-group>
                         </div>
                         <div class="p-4">
                             <!-- 统计数据将在这里实现 -->
@@ -333,9 +328,6 @@ const formulaDialogVisible = ref(false)
 const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
-
-// 监控和统计周期
-const statsPeriod = ref('today')
 
 // 列表数据
 const parameterList = ref([]) // 参数列表
