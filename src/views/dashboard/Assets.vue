@@ -40,7 +40,8 @@
             <div class="flex justify-between items-center p-4 border-b border-dark-300">
                 <h3 class="text-base font-medium text-dark-100">资产列表</h3>
                 <div class="flex items-center gap-2">
-                    <a-input-search v-model:value="assetSearchText" placeholder="搜索币种" class="w-40" size="small" />
+                    <a-input-search v-model:value="assetSearchText" placeholder="搜索币种" class="w-40 search-btn"
+                        size="small" />
                 </div>
             </div>
 
@@ -83,7 +84,8 @@
             <div class="flex justify-between items-center p-4 border-b border-dark-300">
                 <h3 class="text-base font-medium text-dark-100">永续合约持仓</h3>
                 <div class="flex items-center gap-2">
-                    <a-input-search v-model:value="searchText" placeholder="搜索币种" class="w-40" size="small" />
+                    <a-input-search v-model:value="searchText" placeholder="搜索币种" class="w-40 search-btn"
+                        size="small" />
                     <a-button type="link" size="small" @click="handleRefresh" class="refresh-btn">
                         <template #icon>
                             <sync-outlined :spin="isRefreshing" />
@@ -446,6 +448,20 @@ export default defineComponent({
 
         &:hover {
             @apply bg-dark-200 border-dark-200;
+        }
+    }
+}
+
+/* 搜索按钮样式 */
+:deep(.search-btn) {
+    .ant-input-search-button {
+        background-color: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        color: #fff !important;
+
+        &:hover {
+            background-color: var(--primary-color-light) !important;
+            border-color: var(--primary-color-light) !important;
         }
     }
 }
