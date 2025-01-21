@@ -951,7 +951,6 @@ const handleWorkerMessage = (strategyId, data) => {
 watch(selectedStrategy, (newVal) => {
     if (newVal) {
         console.log('选中策略:', newVal);
-        console.log('当前指标数据:', strategyIndicators.value[newVal]);
         // 如果有数据，默认选中第一个时间级别
         if (strategyIndicators.value[newVal]) {
             const timeLevels = Object.keys(strategyIndicators.value[newVal]);
