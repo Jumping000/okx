@@ -437,12 +437,11 @@ const wsStatus = reactive({
     public: false,
     private: false,
     business: false,
-    allConnected: false // 新增：所有通道连接状态
+    allConnected: false
 })
 
 // 监听 WebSocket 连接状态
 const watchWebSocketStatus = () => {
-    // 同时监听所有通道状态
     watch(
         [
             () => wsStore.getConnectionState(WebSocketType.PUBLIC),
@@ -454,42 +453,56 @@ const watchWebSocketStatus = () => {
             wsStatus.public = publicState === WebSocketState.OPEN
             wsStatus.private = privateState === WebSocketState.OPEN
             wsStatus.business = businessState === WebSocketState.OPEN
-
-            // 更新整体连接状态
             wsStatus.allConnected = wsStatus.public && wsStatus.private && wsStatus.business
+
+            // 处理连接断开情况
             if (!wsStatus.allConnected) {
-                const runningStrategies = strategyList.value.filter(strategy => strategy.status === 'running')
-                if (runningStrategies.length > 0) {
-                    for (const strategy of runningStrategies) {
-                        handleStrategyAction(strategy)
-                    }
-                    // 将当前状态为已运行的策略记录保存在本地
-                    localStorage.setItem('runningStrategies', JSON.stringify(runningStrategies))
-                    // 刷新页面
-                    window.location.reload()
-                }
+                handleDisconnection()
             } else {
-                // 如果所有通道都连接成功，从本地读取已运行的策略记录 并 启动之前没有启动的这些策略
-                const runningStrategies = JSON.parse(localStorage.getItem('runningStrategies'))
-                if (runningStrategies?.length > 0) {
-                    // 五秒后执行
-                    setTimeout(() => {
-                        // stopped 状态的策略
-                        const stoppedStrategies = strategyList.value.filter(strategy => strategy.status === 'stopped')
-                        // 将 stopped 状态的策略 和 本地已运行的策略进行对比 保证 本地已运行的策略都运行起来
-                        for (const strategy of stoppedStrategies) {
-                            if (runningStrategies.some(running => running.id === strategy.id) && strategy.status === 'stopped') {
-                                handleStrategyAction(strategy)
-                            }
-                        }
-                        // 删除
-                        localStorage.removeItem('runningStrategies')
-                    }, 5000)
-                }
+                handleReconnection()
             }
         },
         { immediate: true }
     )
+}
+
+// 处理连接断开
+const handleDisconnection = () => {
+    // 获取正在运行的策略
+    const runningStrategies = strategyList.value.filter(strategy => strategy.status === 'running')
+    if (runningStrategies.length === 0) return
+
+    // 停止所有运行中的策略
+    runningStrategies.forEach(strategy => handleStrategyAction(strategy))
+
+    // 保存运行中的策略到本地
+    localStorage.setItem('runningStrategies', JSON.stringify(runningStrategies))
+
+    // 刷新页面以重新初始化
+    window.location.reload()
+}
+
+// 处理重新连接
+const handleReconnection = () => {
+    // 从本地获取之前运行的策略
+    const savedStrategies = JSON.parse(localStorage.getItem('runningStrategies'))
+    if (!savedStrategies?.length) return
+
+    // 延迟5秒后重启策略
+    setTimeout(() => {
+        // 获取当前已停止的策略
+        const stoppedStrategies = strategyList.value.filter(strategy => strategy.status === 'stopped')
+
+        // 重启之前运行的策略
+        stoppedStrategies.forEach(strategy => {
+            if (savedStrategies.some(saved => saved.id === strategy.id)) {
+                handleStrategyAction(strategy)
+            }
+        })
+
+        // 清除本地存储
+        localStorage.removeItem('runningStrategies')
+    }, 5000)
 }
 
 // 在组件挂载时启动监听
