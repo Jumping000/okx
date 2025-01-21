@@ -398,7 +398,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
@@ -413,6 +413,7 @@ import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
 import { setLeverage } from '@/api/module/Basics'
+import { WebSocketType, WebSocketState } from '@/utils/websocket'
 
 // 定义组件选项
 defineOptions({
@@ -430,6 +431,71 @@ const formulaDialogVisible = ref(false)
 const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
+
+// WebSocket 连接状态
+const wsStatus = reactive({
+    public: false,
+    private: false,
+    business: false,
+    allConnected: false // 新增：所有通道连接状态
+})
+
+// 监听 WebSocket 连接状态
+const watchWebSocketStatus = () => {
+    // 同时监听所有通道状态
+    watch(
+        [
+            () => wsStore.getConnectionState(WebSocketType.PUBLIC),
+            () => wsStore.getConnectionState(WebSocketType.PRIVATE),
+            () => wsStore.getConnectionState(WebSocketType.BUSINESS)
+        ],
+        ([publicState, privateState, businessState]) => {
+            // 更新各个通道状态
+            wsStatus.public = publicState === WebSocketState.OPEN
+            wsStatus.private = privateState === WebSocketState.OPEN
+            wsStatus.business = businessState === WebSocketState.OPEN
+
+            // 更新整体连接状态
+            wsStatus.allConnected = wsStatus.public && wsStatus.private && wsStatus.business
+            if (!wsStatus.allConnected) {
+                const runningStrategies = strategyList.value.filter(strategy => strategy.status === 'running')
+                if (runningStrategies.length > 0) {
+                    for (const strategy of runningStrategies) {
+                        handleStrategyAction(strategy)
+                    }
+                    // 将当前状态为已运行的策略记录保存在本地
+                    localStorage.setItem('runningStrategies', JSON.stringify(runningStrategies))
+                    // 刷新页面
+                    window.location.reload()
+                }
+            } else {
+                // 如果所有通道都连接成功，从本地读取已运行的策略记录 并 启动之前没有启动的这些策略
+                const runningStrategies = JSON.parse(localStorage.getItem('runningStrategies'))
+                if (runningStrategies?.length > 0) {
+                    // 五秒后执行
+                    setTimeout(() => {
+                        // stopped 状态的策略
+                        const stoppedStrategies = strategyList.value.filter(strategy => strategy.status === 'stopped')
+                        // 将 stopped 状态的策略 和 本地已运行的策略进行对比 保证 本地已运行的策略都运行起来
+                        for (const strategy of stoppedStrategies) {
+                            if (runningStrategies.some(running => running.id === strategy.id) && strategy.status === 'stopped') {
+                                handleStrategyAction(strategy)
+                            }
+                        }
+                        // 删除
+                        localStorage.removeItem('runningStrategies')
+                    }, 5000)
+                }
+            }
+        },
+        { immediate: true }
+    )
+}
+
+// 在组件挂载时启动监听
+onMounted(() => {
+    watchWebSocketStatus()
+})
 
 // 列表数据
 const parameterList = ref([]) // 参数列表
@@ -660,6 +726,8 @@ const handleFormulaSubmit = ({ type, data }) => {
 }
 
 const handleStrategySubmit = async (formData) => {
+    // 设置状态 stopped
+    formData.status = 'stopped'
     dialogLoading.value = true
     try {
         strategyList.value.push(formData)
