@@ -120,7 +120,6 @@
 </template>
 
 <script setup>
-import { defineOptions } from 'vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useWebSocketStore } from '@/store/websocket'
 import dayjs from 'dayjs'

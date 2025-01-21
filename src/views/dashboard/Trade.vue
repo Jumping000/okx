@@ -485,7 +485,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, defineOptions } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
 import { useOverviewStore } from '@/store/overview'
