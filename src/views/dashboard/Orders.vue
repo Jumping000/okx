@@ -60,7 +60,8 @@
 
                             <!-- 杠杆倍数 -->
                             <template v-else-if="column.dataIndex === 'lever'">
-                                <span v-if="record.instId.includes('SWAP')" class="font-mono">{{ text }}X</span>
+                                <span v-if="record.instId.includes('SWAP')"
+                                    class="font-mono">{{ parseInt(text) }}X</span>
                                 <span v-else>-</span>
                             </template>
 

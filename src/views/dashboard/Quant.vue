@@ -895,8 +895,6 @@ const handleWorkerMessage = (strategyId, data) => {
             })
             break
 
-
-
         case 'history_kline_progress':
             strategyLogs.value.unshift({
                 time: new Date(),
@@ -942,7 +940,10 @@ const handleWorkerMessage = (strategyId, data) => {
                 strategyIndicators.value = { ...strategyIndicators.value };
             }
             break
+        case 'expression_result':
 
+            handleExpressionResult(strategyId, data.data)
+            break
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)
     }
@@ -1481,6 +1482,17 @@ const handleTestFunction = async () => {
         testLoading.value = false
     }
 }
+const strategyResultExecutionQueue = ref({})
+
+// handleExpressionResult 处理策略结果
+const handleExpressionResult = (strategyId, data) => {
+    // strategyResultExecutionQueue 
+    console.log(strategyId, data)
+    strategyResultExecutionQueue.value[strategyId] = { ...data, "state": 0 }
+
+    console.log(strategyResultExecutionQueue.value);
+}
+
 
 
 </script>
