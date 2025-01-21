@@ -29,3 +29,7 @@ export const getHistoryOrders = async (data) => {
 export const getPendingOrders = async (data) => {
   return await request.get("/api/v5/trade/orders-pending", data);
 };
+// POST /api/v5/trade/order-algo 策略订单
+export const postOrderAlgo = async (data) => {
+  return await request.post("/api/v5/trade/order-algo", data);
+};

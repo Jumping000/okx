@@ -412,7 +412,7 @@ import dayjs from 'dayjs'
 import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
-import { setLeverage } from '@/api/module/Basics'
+import { setLeverage, postOrderAlgo } from '@/api/module/Basics'
 import { WebSocketType, WebSocketState } from '@/utils/websocket'
 
 // 定义组件选项
@@ -1348,7 +1348,6 @@ onMounted(async () => {
         await wsStore.subscribeOrders({
             instType: 'SWAP',
             onData: (message) => {
-                // 处理订单数据
                 // console.log('永续合约订单数据更新:', message)
             }
         })
@@ -1520,6 +1519,7 @@ const placeMarketOrder = async (instId, positionAction, posSide, marginMode, siz
     }
 }
 
+
 // 在 script setup 中添加
 const testLoading = ref(false)
 
@@ -1535,21 +1535,44 @@ const handleTestFunction = async () => {
             'open',           // 开仓
             'long',           // 多单
             'cross',          // 全仓
-            1                 // 2张
+            1                 // 1张
         )
         console.log('下单结果:', orderResult)
 
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        // 2. 检查仓位
-        const position1 = checkPositionExists('SUI-USDT-SWAP', 'long')
-        console.log('下单后检查仓位:', position1)
+        if (!orderResult) {
+            throw new Error('下单失败')
+        }
 
+        // 等待2秒，确保订单完成
+        await new Promise(resolve => setTimeout(resolve, 2000))
+
+        // 2. 检查仓位
+        const position = checkPositionExists('SUI-USDT-SWAP', 'long')
+        console.log('下单后检查仓位:', position)
+
+        if (!position) {
+            throw new Error('未检测到仓位')
+        }
+
+        // 3. 设置止损单（假设止损比例为2%）
+        const stopLossPercent = 0.02
+        const openPrice = parseFloat(position.avgPx)
+        const stopLossPrice = (openPrice * (1 - stopLossPercent)).toFixed(4) // 多单，价格下跌2%止损
+
+        // 发送止损单
+        const stopLossResult = await placeStopLossOrder({
+            instId: 'SUI-USDT-SWAP',
+            posSide: 'long',
+            marginMode: 'cross',
+            size: 1,
+            stopLossPrice: stopLossPrice
+        })
 
         // 4. 添加日志
         strategyLogs.value.unshift({
             time: new Date(),
             type: 'info',
-            content: `测试结果: 下单${orderResult ? '成功' : '失败'}, 检查:${JSON.stringify(position1)}}`
+            content: `测试结果: 开仓${orderResult ? '成功' : '失败'}, 持仓均价:${openPrice}, 止损价:${stopLossPrice}, 止损单${stopLossResult ? '成功' : '失败'}`
         })
     } catch (error) {
         console.error('测试功能执行失败:', error)
@@ -1565,31 +1588,141 @@ const handleTestFunction = async () => {
     }
 }
 
+/**
+ * 下止损单函数
+ * @param {Object} params 止损单参数
+ * @param {string} params.instId 币种ID，如 'BTC-USDT-SWAP'
+ * @param {string} params.posSide 持仓方向 'long'-多单 'short'-空单
+ * @param {string} params.marginMode 保证金模式 'cross'-全仓 'isolated'-逐仓
+ * @param {number} params.size 下单数量
+ * @param {number} params.stopLossPrice 止损价格
+ * @returns {Promise<boolean>} 下单结果，true-成功 false-失败
+ */
+const placeStopLossOrder = async (params) => {
+    try {
+        // 1. 参数校验
+        const { instId, posSide, marginMode, size, stopLossPrice } = params
+        if (!instId || !posSide || !marginMode || !size || !stopLossPrice) {
+            throw new Error('参数不完整')
+        }
+
+        // 2. 获取币种信息
+        const currentCurrency = currencyStore.getCurrencyByName('SWAP', instId)
+        if (!currentCurrency) {
+            throw new Error('未找到币种信息')
+        }
+
+        // 3. 检查数量精度
+        const minSz = parseFloat(currentCurrency.minSz) // 最小下单数量
+        if (size < minSz) {
+            throw new Error(`下单数量不能小于 ${minSz} 张`)
+        }
+
+        // 4. 确定买卖方向
+        // 多单止损 -> 触发价格 <= 设定价格时 卖出平多
+        // 空单止损 -> 触发价格 >= 设定价格时 买入平空
+        const side = posSide === 'long' ? 'sell' : 'buy'
+
+        // 5. 构建止损单参数
+        const algoParams = {
+            instId: instId,
+            tdMode: marginMode,
+            side: side,
+            posSide: posSide,
+            ordType: 'conditional',
+            sz: String(size),
+            tpTriggerPx: '', // 止盈触发价，空字符串代表不设置止盈
+            tpOrdPx: '', // 止盈委托价，空字符串代表不设置止盈
+            slTriggerPx: String(stopLossPrice), // 止损触发价
+            slOrdPx: '-1', // 止损委托价，-1代表市价
+            reduceOnly: true // 只减仓
+        }
+
+        // 6. 发送止损单
+        console.log('发送止损单:', algoParams)
+        const response = await postOrderAlgo(algoParams)
+        console.log('止损单响应:', response)
+
+        // 7. 处理响应
+        if (response.code === '0' && response.data.sCode === '0') {
+            // 添加成功日志
+            strategyLogs.value.unshift({
+                time: new Date(),
+                type: 'success',
+                content: `${instId} ${posSide === 'long' ? '多单' : '空单'} 设置止损价 ${stopLossPrice} 成功`
+            })
+            return true
+        } else {
+            return false
+        }
+    } catch (error) {
+        // 添加错误日志
+        strategyLogs.value.unshift({
+            time: new Date(),
+            type: 'error',
+            content: `下止损单失败: ${error.message}`
+        })
+        console.error('下止损单失败:', error)
+        return false
+    }
+}
 // handleExpressionResult 处理策略结果
-const handleExpressionResult = (strategyId, data) => {
+const handleExpressionResult = async (strategyId, data) => {
     // strategyResultExecutionQueue  state == 0 表示未执行  state == 1 表示执行中  state == 2 表示执行完成
     if (strategyResultExecutionQueue.value[strategyId] == undefined || strategyResultExecutionQueue.value[strategyId].state != 1) {
+        // strategyResultExecutionQueue.value[strategyId].lastTimeCalculationTime 验证是否上一次是否在五秒以内 在的话 拒绝继续执行
+        if (strategyResultExecutionQueue.value[strategyId].lastTimeCalculationTime && new Date().getTime() - strategyResultExecutionQueue.value[strategyId].lastTimeCalculationTime < 5000) {
+            // console.log("五秒内不允许重复执行计算结果");
+            return
+        }
+        strategyResultExecutionQueue.value[strategyId].state = 1
         strategyResultExecutionQueue.value[strategyId] = {
             ...strategyResultExecutionQueue.value[strategyId],
             ...data,
-            "state": 0
+            "state": 0,
+            "lastTimeCalculationTime": new Date().getTime()
         }
         // 执行中
-        strategyResultExecutionQueue.value[strategyId].state = 1
+        const strategyInformation = data.strategy;
         try {
-            // console.log(strategyResultExecutionQueue.value[strategyId]);
-            /**
-             * 策略结果执行步骤
-             * 1.结果为true 为多单 2.结果为false 为空单
-             * 2.多单时清空空单 空单时清空多单
-             * 3.多单时已存在择不进行操作 空单时已存在择不进行操作
-             */
+            // 清理反仓位
+            clearOppositePosition(strategyInformation, data.result ? 'long' : 'short')
+            await new Promise(resolve => setTimeout(resolve, 2000))
+
+            // 方向 结果为true 为多单 结果为false 为空单
+            if (!checkPositionExists(strategyInformation.currency, data.result ? 'long' : 'short')) {
+                // 下单目标仓位
+                placeMarketOrder(strategyInformation.currency, 'open', data.result ? 'long' : 'short', 'cross', strategyInformation.quantity)
+                // 延时  2秒
+                await new Promise(resolve => setTimeout(resolve, 2000))
+                const position = checkPositionExists(strategyInformation.currency, data.result ? 'long' : 'short')
+                // const stopLossPrice = (position.avgPx * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                const stopLossPrice = data.result ?
+                    (position.avgPx * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                    : (position.avgPx * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                // 下止损单
+                placeStopLossOrder({
+                    instId: strategyInformation.currency,
+                    posSide: data.result ? 'long' : 'short',
+                    marginMode: 'cross',
+                    size: strategyInformation.quantity,
+                    stopLossPrice: stopLossPrice
+                })
+            }
             // 执行完成
             strategyResultExecutionQueue.value[strategyId].state = 2
         } catch (error) {
             // 执行完成
             strategyResultExecutionQueue.value[strategyId].state = 2
         }
+    }
+}
+// 清理反仓位
+const clearOppositePosition = (strategyInformation, posSide) => {
+    const oppositePosition = checkPositionExists(strategyInformation.currency, posSide === 'long' ? 'short' : 'long')
+    if (oppositePosition) {
+        // 存在相反仓位 平仓
+        placeMarketOrder(strategyInformation.currency, 'close', posSide === 'long' ? 'short' : 'long', 'cross', oppositePosition.pos)
     }
 }
 

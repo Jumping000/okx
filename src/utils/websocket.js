@@ -374,7 +374,10 @@ class WebSocketClient {
           channel === AccountChannelType.ACCOUNT ||
           channel === AccountChannelType.POSITIONS
             ? channel
-            : `${channel}_${message.arg.instId}`;
+            : `${channel}_${
+                channel === "orders" ? message.arg.instType : message.arg.instId
+              }`;
+
         const handler = this.messageHandlers.get(subscriptionKey);
         if (handler) {
           try {

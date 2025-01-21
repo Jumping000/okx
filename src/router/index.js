@@ -263,8 +263,8 @@ router.beforeEach(async (to, from, next) => {
                     message?.arg?.instType === "SWAP" &&
                     Array.isArray(message?.data)
                   ) {
-                    console.log("永续合约持仓数据更新:", message.data);
-                    console.log("当前持仓数量:", message.positionsCount);
+                    // console.log("永续合约持仓数据更新:", message.data);
+                    // console.log("当前持仓数量:", message.positionsCount);
 
                     // 更新到 overview store 中
                     overviewStore.$patch({

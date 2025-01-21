@@ -867,6 +867,7 @@ class StrategyWorker extends self.BaseWorker {
           type: "expression_result",
           data: {
             expression: calculatedExpression,
+            strategy: this.strategy,
             result: result,
             timestamp: Date.now(),
           },

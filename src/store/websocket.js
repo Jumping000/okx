@@ -1439,7 +1439,7 @@ export const useWebSocketStore = defineStore("websocket", {
                 };
               } else {
                 // 添加新订单
-                currentActive.push(newOrder);
+                currentActive.unshift(newOrder);
               }
             } else {
               // 处理历史订单
@@ -1455,7 +1455,7 @@ export const useWebSocketStore = defineStore("websocket", {
                 };
               } else {
                 // 添加新订单
-                currentHistory.push(newOrder);
+                currentHistory.unshift(newOrder);
 
                 // 如果这个订单之前在活跃订单中，需要从活跃订单中移除
                 const activeIndex = currentActive.findIndex(
