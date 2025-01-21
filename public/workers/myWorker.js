@@ -141,7 +141,6 @@ class StrategyWorker extends self.BaseWorker {
       this.klineTimeLevels = await this.handleKlineTimeLevel(
         this.strategy.fullExpression
       );
-
       // 初始化数据存储
       this.initializeDataStructures();
 
@@ -327,7 +326,6 @@ class StrategyWorker extends self.BaseWorker {
       formatText.push(klineTimeLevel);
     });
     this.strategyExpression = this.classificationOfStrategyValues(formatText);
-    console.log(this.strategyExpression);
 
     klineTimeLevels = [...new Set(klineTimeLevels)];
     return klineTimeLevels;
@@ -745,12 +743,10 @@ class StrategyWorker extends self.BaseWorker {
       // 检查是否需要计算BOLL
       if (strategyExpression.some((item) => item.name.startsWith("BOLL_"))) {
         const bollResult = this.calculateBOLL(allKlines);
-        indicators["BOLL_UPPER"] =
-          bollResult.upper[bollResult.upper.length - 1];
-        indicators["BOLL_MIDDLE"] =
+        indicators["BOLL_UP"] = bollResult.upper[bollResult.upper.length - 1];
+        indicators["BOLL_MID"] =
           bollResult.middle[bollResult.middle.length - 1];
-        indicators["BOLL_LOWER"] =
-          bollResult.lower[bollResult.lower.length - 1];
+        indicators["BOLL_LOW"] = bollResult.lower[bollResult.lower.length - 1];
       }
 
       // 更新策略表达式中的值
@@ -825,7 +821,7 @@ class StrategyWorker extends self.BaseWorker {
             indicator.name.startsWith("KDJ_") ||
             indicator.name.startsWith("BOLL_")
           ) {
-            // 处理其他复合指标（例如：MACD_DIF, KDJ_K, BOLL_UPPER）
+            // 处理其他复合指标（例如：MACD_DIF, KDJ_K, BOLL_UP）
             const [type, subType] = indicator.name.split("_");
             searchPattern = `${type}_${subType}_${formattedTimeLevel}`;
           } else {

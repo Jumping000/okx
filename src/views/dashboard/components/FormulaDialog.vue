@@ -324,9 +324,15 @@ const dataTypeCollection = [
 const indicatorCollection = [
     { Name: 'MA', dis: '移动平均线', isCustomPeriod: true },
     { Name: 'EMA', dis: '指数移动平均线', isCustomPeriod: true },
-    { Name: 'BOLL', dis: '布林带' },
-    { Name: 'MACD', dis: '移动平均线收敛/发散指标' },
-    { Name: 'KDJ', dis: '随机指标' },
+    { Name: 'BOLL_UP', dis: '布林带' },
+    { Name: 'BOLL_MID', dis: '布林带' },
+    { Name: 'BOLL_LOW', dis: '布林带' },
+    { Name: 'MACD_DIF', dis: '移动平均线收敛/发散指标' },
+    { Name: 'MACD_DEA', dis: '移动平均线收敛/发散指标' },
+    { Name: 'MACD_MACD', dis: '移动平均线收敛/发散指标' },
+    { Name: 'KDJ_K', dis: '随机指标' },
+    { Name: 'KDJ_D', dis: '随机指标' },
+    { Name: 'KDJ_J', dis: '随机指标' },
 ]
 
 // 运算符列表

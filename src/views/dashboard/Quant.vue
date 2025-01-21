@@ -929,7 +929,6 @@ const handleWorkerMessage = (strategyId, data) => {
         case 'indicators_updated':
             // 更新指标数据
             if (data.data && data.data.timeLevel && Array.isArray(data.data.indicators)) {
-                console.log('收到指标数据更新:', data.data);
                 if (!strategyIndicators.value[strategyId]) {
                     strategyIndicators.value[strategyId] = {};
                 }
@@ -964,6 +963,7 @@ watch(selectedStrategy, (newVal) => {
         selectedTimeLevel.value = null;
     }
 });
+const strategyResultExecutionQueue = ref({})
 
 // 处理订阅K线数据
 const handleSubscribeKlines = async (data) => {
@@ -1010,7 +1010,10 @@ const handleSubscribeKlines = async (data) => {
                             volCcy: item[6],
                             confirm: item[8]
                         }))
-
+                        strategyResultExecutionQueue.value[strategyId] = {
+                            ...strategyResultExecutionQueue.value[strategyId],
+                            [timeLevel]: klineData
+                        }
                         // 推送数据给Worker
                         workerManager.postMessage(strategyId, {
                             type: 'kline_data',
@@ -1481,18 +1484,34 @@ const handleTestFunction = async () => {
         testLoading.value = false
     }
 }
-const strategyResultExecutionQueue = ref({})
 
 // handleExpressionResult 处理策略结果
 const handleExpressionResult = (strategyId, data) => {
-    // strategyResultExecutionQueue 
-    console.log(strategyId, data)
-    strategyResultExecutionQueue.value[strategyId] = { ...data, "state": 0 }
-
-    console.log(strategyResultExecutionQueue.value);
+    // strategyResultExecutionQueue  state == 0 表示未执行  state == 1 表示执行中  state == 2 表示执行完成
+    if (strategyResultExecutionQueue.value[strategyId] == undefined || strategyResultExecutionQueue.value[strategyId].state != 1) {
+        strategyResultExecutionQueue.value[strategyId] = {
+            ...strategyResultExecutionQueue.value[strategyId],
+            ...data,
+            "state": 0
+        }
+        // 执行中
+        strategyResultExecutionQueue.value[strategyId].state = 1
+        try {
+            // console.log(strategyResultExecutionQueue.value[strategyId]);
+            /**
+             * 策略结果执行步骤
+             * 1.结果为true 为多单 2.结果为false 为空单
+             * 2.多单时清空空单 空单时清空多单
+             * 3.多单时已存在择不进行操作 空单时已存在择不进行操作
+             */
+            // 执行完成
+            strategyResultExecutionQueue.value[strategyId].state = 2
+        } catch (error) {
+            // 执行完成
+            strategyResultExecutionQueue.value[strategyId].state = 2
+        }
+    }
 }
-
-
 
 </script>
 
