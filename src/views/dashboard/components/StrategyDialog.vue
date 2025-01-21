@@ -305,7 +305,7 @@ watch(() => props.visible, (newVal) => {
 currencyStore.fetchCurrencies()
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .strategy-dialog {
     padding: 20px;
     background-color: var(--bg-color);

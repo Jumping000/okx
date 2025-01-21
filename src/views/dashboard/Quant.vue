@@ -1515,7 +1515,7 @@ const handleExpressionResult = (strategyId, data) => {
 
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .quant {
     display: flex;
     flex-direction: column;

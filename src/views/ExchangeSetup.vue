@@ -109,7 +109,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .exchange-setup {
     min-height: 100vh;
     display: flex;

@@ -85,7 +85,7 @@ const handleMaskClick = () => {
 }
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .custom-dialog-container {
     position: fixed;
     top: 0;

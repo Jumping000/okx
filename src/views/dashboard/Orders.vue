@@ -309,7 +309,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .orders {
     display: flex;
     flex-direction: column;

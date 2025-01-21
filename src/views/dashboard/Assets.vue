@@ -334,7 +334,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 自定义滚动条样式 */
 .h-full {
     &::-webkit-scrollbar {

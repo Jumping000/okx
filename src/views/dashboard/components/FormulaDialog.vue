@@ -822,7 +822,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 /* 保存弹窗样式 */
 :deep(.ant-form-item:first-child .ant-input),
 :deep(.ant-form-item:first-child .ant-input-affix-wrapper) {

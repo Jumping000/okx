@@ -1068,7 +1068,7 @@ watch([leverage, longLeverage, shortLeverage], async (newValues, oldValues) => {
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .trade {
     display: flex;
     flex-direction: column;

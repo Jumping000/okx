@@ -481,7 +481,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 :deep(.ant-btn-link) {
     color: var(--text-secondary) !important;
 

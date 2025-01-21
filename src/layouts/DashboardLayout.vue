@@ -195,7 +195,7 @@ export default defineComponent({
 })
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
 .user-dropdown-menu {
     min-width: 140px;
 }
