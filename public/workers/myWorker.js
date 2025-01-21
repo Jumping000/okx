@@ -860,7 +860,7 @@ class StrategyWorker extends self.BaseWorker {
       try {
         // eslint-disable-next-line no-eval
         const result = eval(calculatedExpression);
-        console.log("表达式计算结果:", result);
+        // console.log("表达式计算结果:", result);
 
         // 发送计算结果
         this.postMessage({

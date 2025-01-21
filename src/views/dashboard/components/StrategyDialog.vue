@@ -52,7 +52,7 @@
                                         style="width: 100px" />
                                 </a-form-item>
                                 <a-form-item label="仓位类型" required>
-                                    <el-select v-model="form.positionType" style="width: 100px">
+                                    <el-select v-model="form.positionType" disabled style="width: 100px">
                                         <el-option value="cross" label="全仓" />
                                         <el-option value="isolated" label="逐仓" />
                                     </el-select>
@@ -61,7 +61,7 @@
                             <a-form-item label="止损比例" required>
                                 <a-input-number v-model:value="form.stopLoss" :min="0" :max="100" :step="0.1"
                                     style="width: 100px" />
-                                <span class="unit">%</span>
+                                <span class="unit"> (1%-100%=0.01-1)</span>
                             </a-form-item>
                         </div>
                     </div>
