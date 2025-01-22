@@ -851,13 +851,14 @@ class StrategyWorker extends self.BaseWorker {
         .replace(/＜=/g, "<=") // 处理全角小于等于
         .replace(/＞/g, ">") // 处理全角大于号
         .replace(/＜/g, "<"); // 处理全角小于号
-
+      calculatedExpression = calculatedExpression.replace(/LS_|_\d+/g, "");
       // 记录转换后的表达式
       //   console.log("原始表达式:", expression);
       //   console.log("转换后的表达式:", calculatedExpression);
 
       // 尝试计算表达式
       try {
+        console.log(calculatedExpression);
         // eslint-disable-next-line no-eval
         const result = eval(calculatedExpression);
         // console.log("表达式计算结果:", result);
