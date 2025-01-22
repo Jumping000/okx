@@ -46,18 +46,18 @@
                                 <a-input-number v-model:value="form.quantity" :min="0" :precision="4" :step="0.0001"
                                     style="width: 120px" />
                             </a-form-item>
-                            <template v-if="form.tradeType === 'SWAP'">
-                                <a-form-item label="杠杆倍数" required>
-                                    <a-input-number v-model:value="form.leverage" :min="1" :max="125"
-                                        style="width: 100px" />
-                                </a-form-item>
-                                <a-form-item label="仓位类型" required>
+                            <!-- <template v-if="form.tradeType === 'SWAP'"> -->
+                            <a-form-item label="杠杆倍数" required>
+                                <a-input-number v-model:value="form.leverage" :min="1" :max="125"
+                                    style="width: 100px" />
+                            </a-form-item>
+                            <!-- <a-form-item label="仓位类型" required>
                                     <el-select v-model="form.positionType" disabled style="width: 100px">
                                         <el-option value="cross" label="全仓" />
                                         <el-option value="isolated" label="逐仓" />
                                     </el-select>
-                                </a-form-item>
-                            </template>
+                                </a-form-item> -->
+                            <!-- </template> -->
                             <a-form-item label="止损比例" required>
                                 <a-input-number v-model:value="form.stopLoss" :min="0" :max="100" :step="0.1"
                                     style="width: 100px" />

@@ -213,7 +213,8 @@ class StrategyWorker extends self.BaseWorker {
       // 计算表达式
       this.calculateExpression(
         this.strategyExpression,
-        this.strategy.fullExpression
+        this.strategy.fullExpression,
+        tempKlines
       );
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
@@ -774,7 +775,7 @@ class StrategyWorker extends self.BaseWorker {
    * @param {Object} strategyExpression - 策略表达式对象，包含各个时间级别的指标值
    * @param {string} expression - 原始表达式
    */
-  calculateExpression(strategyExpression, expression) {
+  calculateExpression(strategyExpression, expression, tempKlines) {
     // 检查空值
     for (const timeLevel in strategyExpression) {
       for (const item of strategyExpression[timeLevel]) {
@@ -857,7 +858,7 @@ class StrategyWorker extends self.BaseWorker {
 
       // 尝试计算表达式
       try {
-        console.log(calculatedExpression);
+        // console.log(calculatedExpression);
         // eslint-disable-next-line no-eval
         const result = eval(calculatedExpression);
         // console.log("表达式计算结果:", result);
@@ -869,6 +870,7 @@ class StrategyWorker extends self.BaseWorker {
             expression: calculatedExpression,
             strategy: this.strategy,
             result: result,
+            tempKlines: tempKlines,
             timestamp: Date.now(),
           },
         });

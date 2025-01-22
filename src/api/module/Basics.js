@@ -33,3 +33,7 @@ export const getPendingOrders = async (data) => {
 export const postOrderAlgo = async (data) => {
   return await request.post("/api/v5/trade/order-algo", data);
 };
+// POST /api/v5/trade/cancel-algos 取消策略订单
+export const postCancelAlgos = async (data) => {
+  return await request.post("/api/v5/trade/cancel-algos", data);
+};
