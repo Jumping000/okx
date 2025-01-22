@@ -1703,7 +1703,7 @@ const handleExpressionResult = async (strategyId, data) => {
         }
         // 执行中
         const strategyInformation = data.strategy;
-        const tempKlines = data.tempKlines;
+        const tempKlines = data.tempKlines[0];
         // tempKlines.close //仓位信息.avgPx
         // console.log(JSON.stringify(tempKlines));
         try {
@@ -1734,8 +1734,9 @@ const handleExpressionResult = async (strategyId, data) => {
                 console.log(data.result ? '开多但是已有多仓不进行操作' : '开空但是已有空仓不进行操作');
                 // 移动委托价格初始化  
                 const stopLossPrice = data.result ?
-                    (tempKlines.close * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
-                    : (tempKlines.close * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
+                    (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                    : (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                // console.log(strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId);
                 // 检查是否存在移动止损单
                 if (strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId) {
                     // 存在移动止损单
@@ -1760,7 +1761,8 @@ const handleExpressionResult = async (strategyId, data) => {
                             })
                             // 挂止损单成功
                             if (stopLoss) {
-                                strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data?.algoId
+                                // console.log(stopLoss);
+                                strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data[0]?.algoId
                                 strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice = tempKlines.close
                                 console.log("挂移动止损单成功");
                                 // 取消原来的止损单
@@ -1786,7 +1788,7 @@ const handleExpressionResult = async (strategyId, data) => {
                         })
                         // 挂止损单成功
                         if (stopLoss) {
-                            strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data?.algoId
+                            strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data[0]?.algoId
                             strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice = tempKlines.close
                             console.log("挂移动止损单成功");
                         }

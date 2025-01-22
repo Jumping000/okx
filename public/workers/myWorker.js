@@ -852,7 +852,7 @@ class StrategyWorker extends self.BaseWorker {
       calculatedExpression = calculatedExpression.replace(/LS_|_\d+/g, "");
       // 记录转换后的表达式
       //   console.log("原始表达式:", expression);
-      console.log("转换后的表达式:", calculatedExpression);
+      //   console.log("转换后的表达式:", calculatedExpression);
       // strategyExpression;
       //   console.log("strategyExpression", strategyExpression);
       // 尝试计算表达式
