@@ -636,13 +636,12 @@ class StrategyWorker extends self.BaseWorker {
       // 遍历策略表达式，预处理需要计算的指标
       strategyExpression.forEach((item) => {
         const { name } = item;
-
         // 处理历史数据 (LS_类型_序号)
         if (name.startsWith("LS_")) {
-          const [, type, index] = name.split("_");
+          const [history, type, index] = name.split("_");
           const position = parseInt(index) - 1;
-          // 获取指定位置的历史数据
-          const targetKline = allKlines[allKlines.length - 1 - position];
+          // 获取指定位置的历史数据 拿到的长度是是从一开始的但是数组下标是从0开始的 所以 长度-1 等于最大下标 继续减一 是拿到历史数据最新一条
+          const targetKline = allKlines[allKlines.length - 2 - position];
           if (targetKline) {
             switch (type) {
               case "KP":
