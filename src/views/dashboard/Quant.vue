@@ -1740,8 +1740,8 @@ const handleExpressionResult = async (strategyId, data) => {
                 if (strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId) {
                     // 存在移动止损单
                     let mobileStopLossPrice = strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice
-                    // 比对价格 当前价格 是否大于 之前移动止损价格
-                    if (tempKlines.close >= mobileStopLossPrice) {
+                    // 比对价格   多单 当前价格 大于 移动止损价格 空单 当前价格 小于 移动止损价格
+                    if ((data.result && tempKlines.close >= mobileStopLossPrice) || (!data.result && tempKlines.close <= mobileStopLossPrice)) {
                         // 当前价格 大于 移动止损价格 
                         let stopLossAlgoId = strategyResultExecutionQueue.value[strategyId].stopLossAlgoId
                         // 计算当前价格移动止损价格
@@ -1749,7 +1749,7 @@ const handleExpressionResult = async (strategyId, data) => {
                             (mobileStopLossPrice * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                             : (mobileStopLossPrice * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                         // 比对价格 当前价格 是否大于 移动止损价格
-                        if (tempKlines.close >= profitLossPrice) {
+                        if ((data.result && tempKlines.close >= profitLossPrice) || (!data.result && tempKlines.close <= profitLossPrice)) {
                             // 当前价格 大于 移动止损价格 挂止损单
                             let stopLoss = placeStopLossOrder({
                                 instId: strategyInformation.currency,
@@ -1774,9 +1774,9 @@ const handleExpressionResult = async (strategyId, data) => {
                     let profitLossPrice = data.result ?
                         (position.avgPx * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                         : (position.avgPx * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
-                    // 比对价格
-                    if (tempKlines.close >= profitLossPrice) {
-                        // 当前价格 大于 移动止损价格 挂止损单
+                    // 比对价格 多单 当前价格 大于 移动止损价格 空单 当前价格 小于 移动止损价格
+                    if ((data.result && tempKlines.close >= profitLossPrice) || (!data.result && tempKlines.close <= profitLossPrice)) {
+                        //  多单 当前价格 小于 移动止损价格 空单 当前价格 大于 移动止损价格
                         let stopLoss = placeStopLossOrder({
                             instId: strategyInformation.currency,
                             posSide: data.result ? 'long' : 'short',

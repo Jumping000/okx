@@ -795,7 +795,6 @@ class StrategyWorker extends self.BaseWorker {
 
       // 复制一份表达式用于替换
       let calculatedExpression = expression;
-
       // 遍历所有时间级别的指标
       Object.entries(strategyExpression).forEach(([timeLevel, indicators]) => {
         // 获取对应的时间级别格式（例如：将 "1m" 转换为 "1F"）
@@ -826,14 +825,13 @@ class StrategyWorker extends self.BaseWorker {
             searchPattern = `${type}_${subType}_${formattedTimeLevel}`;
           } else {
             // 处理基础指标（例如：SP, ZG）
-            searchPattern = `${indicator.name}_${formattedTimeLevel}`;
+            searchPattern = ` ${indicator.name}_${formattedTimeLevel} `;
           }
-
           // 在表达式中查找并替换匹配的指标
           const regex = new RegExp(searchPattern, "g");
           calculatedExpression = calculatedExpression.replace(
             regex,
-            indicator.value
+            ` ${indicator.value} `
           );
         });
       });
@@ -854,8 +852,9 @@ class StrategyWorker extends self.BaseWorker {
       calculatedExpression = calculatedExpression.replace(/LS_|_\d+/g, "");
       // 记录转换后的表达式
       //   console.log("原始表达式:", expression);
-      //   console.log("转换后的表达式:", calculatedExpression);
-
+      console.log("转换后的表达式:", calculatedExpression);
+      // strategyExpression;
+      //   console.log("strategyExpression", strategyExpression);
       // 尝试计算表达式
       try {
         // console.log(calculatedExpression);
