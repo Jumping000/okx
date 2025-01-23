@@ -1734,15 +1734,15 @@ const handleExpressionResult = async (strategyId, data) => {
                 console.log(data.result ? '开多但是已有多仓不进行操作' : '开空但是已有空仓不进行操作');
                 // 移动委托价格初始化  
                 const stopLossPrice = data.result ?
-                    (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
-                    : (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                    (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                    : (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
                 // console.log(strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId);
                 // 检查是否存在移动止损单
                 if (strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId) {
                     // 存在移动止损单
                     let mobileStopLossPrice = strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice
-                    // 比对价格   多单 当前价格 大于 移动止损价格 空单 当前价格 小于 移动止损价格
-                    if ((data.result && tempKlines.close >= mobileStopLossPrice) || (!data.result && tempKlines.close <= mobileStopLossPrice)) {
+                    // 比对价格   多单 当前价格 大于 移动止损上一次当前价格 空单 当前价格 小于 移动止损上一次当前价格
+                    if ((data.result && tempKlines.close >= mobileStopLossPrice) || (data.result == false && tempKlines.close <= mobileStopLossPrice)) {
                         // 当前价格 大于 移动止损价格 
                         let stopLossAlgoId = strategyResultExecutionQueue.value[strategyId].stopLossAlgoId
                         // 计算当前价格移动止损价格
@@ -1764,7 +1764,8 @@ const handleExpressionResult = async (strategyId, data) => {
                                 // console.log(stopLoss);
                                 strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data[0]?.algoId
                                 strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice = tempKlines.close
-                                console.log("挂移动止损单成功");
+
+                                console.log("algoId:", stopLoss?.data[0]?.algoId, "价格：", stopLossPrice, "挂移动止损单成功");
                                 // 取消原来的止损单
                                 cancelStopLossOrder(stopLossAlgoId)
                             }
@@ -1777,7 +1778,7 @@ const handleExpressionResult = async (strategyId, data) => {
                         (position.avgPx * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                         : (position.avgPx * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                     // 比对价格 多单 当前价格 大于 移动止损价格 空单 当前价格 小于 移动止损价格
-                    if ((data.result && tempKlines.close >= profitLossPrice) || (!data.result && tempKlines.close <= profitLossPrice)) {
+                    if ((data.result && tempKlines.close >= profitLossPrice) || (data.result == false && tempKlines.close <= profitLossPrice)) {
                         //  多单 当前价格 小于 移动止损价格 空单 当前价格 大于 移动止损价格
                         let stopLoss = placeStopLossOrder({
                             instId: strategyInformation.currency,
@@ -1790,7 +1791,7 @@ const handleExpressionResult = async (strategyId, data) => {
                         if (stopLoss) {
                             strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data[0]?.algoId
                             strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice = tempKlines.close
-                            console.log("挂移动止损单成功");
+                            console.log("algoId:", stopLoss?.data[0]?.algoId, "价格：", stopLossPrice, "挂移动止损单成功");
                         }
                     }
                 }
