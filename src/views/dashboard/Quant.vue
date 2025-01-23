@@ -1732,10 +1732,11 @@ const handleExpressionResult = async (strategyId, data) => {
                 }
             } else {
                 console.log(data.result ? '开多但是已有多仓不进行操作' : '开空但是已有空仓不进行操作');
+                // return;
                 // 移动委托价格初始化  
                 const stopLossPrice = data.result ?
-                    (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
-                    : (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                    (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
+                    : (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
                 // console.log(strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId);
                 // 检查是否存在移动止损单
                 if (strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId) {
