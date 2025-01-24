@@ -1748,7 +1748,7 @@ const handleExpressionResult = async (strategyId, data) => {
             (!data.result && position.avgPx > tempKlines?.close))
     ) {
         strategyResultExecutionQueue.value[strategyId].isItProfitable = true;
-        console.log('存在盈利');
+        console.log(data.strategy.currency, '存在盈利');
     }
     // strategyResultExecutionQueue  state == 0 表示未执行  state == 1 表示执行中  state == 2 表示执行完成
     if (strategyResultExecutionQueue.value[strategyId] == undefined || strategyResultExecutionQueue.value[strategyId].state != 1) {
