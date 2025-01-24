@@ -1687,6 +1687,19 @@ const cancelStopLossOrder = async (algoId) => {
 
 // handleExpressionResult 处理策略结果
 const handleExpressionResult = async (strategyId, data) => {
+    // 获取 价格是否超过之前买入价格
+    if (
+        strategyResultExecutionQueue.value[strategyId] != undefined &&
+        strategyResultExecutionQueue.value[strategyId]?.purchasePrice &&
+        strategyResultExecutionQueue.value[strategyId]?.floatingUpwards == false &&
+        data.result == strategyResultExecutionQueue.value[strategyId].result
+    ) {
+        if ((data.result && data.tempKlines[0].close > strategyResultExecutionQueue.value[strategyId].purchasePrice) ||
+            (!data.result && data.tempKlines[0].close < strategyResultExecutionQueue.value[strategyId].purchasePrice)) {
+            // 价格超过之前买入价格 平仓
+            strategyResultExecutionQueue.value[strategyId].floatingUpwards = true
+        }
+    }
     // strategyResultExecutionQueue  state == 0 表示未执行  state == 1 表示执行中  state == 2 表示执行完成
     if (strategyResultExecutionQueue.value[strategyId] == undefined || strategyResultExecutionQueue.value[strategyId].state != 1) {
         // strategyResultExecutionQueue.value[strategyId].lastTimeCalculationTime 验证是否上一次是否在4秒以内 在的话 拒绝继续执行
@@ -1694,22 +1707,17 @@ const handleExpressionResult = async (strategyId, data) => {
             // console.log("4秒内不允许重复执行计算结果");
             return
         }
-        strategyResultExecutionQueue.value[strategyId].state = 1
+        const tempKlines = data.tempKlines[0];
+
         strategyResultExecutionQueue.value[strategyId] = {
             ...strategyResultExecutionQueue.value[strategyId],
             ...data,
-            "state": 0,
+            "state": 1,
             "lastTimeCalculationTime": new Date().getTime()
         }
-        // 执行中
         const strategyInformation = data.strategy;
-        const tempKlines = data.tempKlines[0];
-        // tempKlines.close //仓位信息.avgPx
-        // console.log(JSON.stringify(tempKlines));
         try {
             // 清理反仓位
-            // clearOppositePosition(strategyInformation, data.result ? 'long' : 'short')
-            // await new Promise(resolve => setTimeout(resolve, 2000))
             let position = checkPositionExists(strategyInformation.currency, data.result ? 'long' : 'short')
             if (!position) {
                 // 不存在 先检查是否存在相反仓位
@@ -1717,8 +1725,10 @@ const handleExpressionResult = async (strategyId, data) => {
                 if (oppositePosition) {
                     if (oppositePosition.upl > 0.001) {
                         // 存在相反仓位 且 相反仓位盈利 平仓
-                        clearOppositePosition(strategyInformation, data.result ? 'long' : 'short')
+                        clearOppositePosition(strategyInformation.currency, data.result ? 'long' : 'short')
                         await new Promise(resolve => setTimeout(resolve, 500))
+                        strategyResultExecutionQueue.value[strategyId].purchasePrice = tempKlines.close
+                        strategyResultExecutionQueue.value[strategyId]?.floatingUpwards = false
                         // 下单专属仓位
                         orderExclusiveStorageSpace(strategyInformation, data)
                         console.log(data.result ? '开多有空仓仓位且空仓盈利进行开多' : '开空有多仓仓位且多仓盈利进行开空');
@@ -1737,13 +1747,12 @@ const handleExpressionResult = async (strategyId, data) => {
                 const stopLossPrice = data.result ?
                     (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
                     : (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
-                // console.log(strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId);
                 // 检查是否存在移动止损单
                 if (strategyResultExecutionQueue.value[strategyId]?.stopLossAlgoId) {
                     // 存在移动止损单
                     let mobileStopLossPrice = strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice
                     // 比对价格   多单 当前价格 大于 移动止损上一次当前价格 空单 当前价格 小于 移动止损上一次当前价格
-                    if ((data.result && tempKlines.close >= mobileStopLossPrice) || (data.result == false && tempKlines.close <= mobileStopLossPrice)) {
+                    if ((data.result && tempKlines.close >= mobileStopLossPrice) || (!data.result && tempKlines.close <= mobileStopLossPrice)) {
                         // 当前价格 大于 移动止损价格 
                         let stopLossAlgoId = strategyResultExecutionQueue.value[strategyId].stopLossAlgoId
                         // 计算当前价格移动止损价格
@@ -1774,13 +1783,12 @@ const handleExpressionResult = async (strategyId, data) => {
                     }
                 } else {
                     // 不存在 
-                    // 计算移动止损价格
+                    // 计算移动止损价格阈值
                     let profitLossPrice = data.result ?
                         (position.avgPx * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                         : (position.avgPx * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
                     // 比对价格 多单 当前价格 大于 移动止损价格 空单 当前价格 小于 移动止损价格
-                    if ((data.result && tempKlines.close >= profitLossPrice) || (data.result == false && tempKlines.close <= profitLossPrice)) {
-                        //  多单 当前价格 小于 移动止损价格 空单 当前价格 大于 移动止损价格
+                    if ((data.result && tempKlines.close >= profitLossPrice) || (!data.result && tempKlines.close <= profitLossPrice)) {
                         let stopLoss = placeStopLossOrder({
                             instId: strategyInformation.currency,
                             posSide: data.result ? 'long' : 'short',
@@ -1824,11 +1832,12 @@ const orderExclusiveStorageSpace = async (strategyInformation, data) => {
     })
 }
 // 清理反仓位
-const clearOppositePosition = (strategyInformation, posSide) => {
-    const oppositePosition = checkPositionExists(strategyInformation.currency, posSide === 'long' ? 'short' : 'long')
+const clearOppositePosition = (currency, posSide) => {
+    const oppositePosSide = posSide === 'long' ? 'short' : 'long'
+    const oppositePosition = checkPositionExists(currency, oppositePosSide)
     if (oppositePosition) {
         // 存在相反仓位 平仓
-        placeMarketOrder(strategyInformation.currency, 'close', posSide === 'long' ? 'short' : 'long', 'cross', oppositePosition.pos)
+        placeMarketOrder(currency, 'close', oppositePosSide, 'cross', oppositePosition.pos)
     }
 }
 
