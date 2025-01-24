@@ -1733,7 +1733,17 @@ const loopSearchPosition = async (instId, posSide, timeoutPeriod) => {
 };
 // handleExpressionResult 处理策略结果
 const handleExpressionResult = async (strategyId, data) => {
-
+    let position = checkPositionExists(strategyInformation.currency, data.result ? 'long' : 'short');
+    // 判断是否存在盈利 
+    if (
+        strategyResultExecutionQueue.value[strategyId] != undefined &&
+        position &&
+        ((data.result && position.avgPx < data.tempKlines[0].close) ||
+            (!data.result && position.avgPx > data.tempKlines[0].close))
+    ) {
+        strategyResultExecutionQueue.value[strategyId].isItProfitable = true;
+        console.log('存在盈利');
+    }
     // strategyResultExecutionQueue  state == 0 表示未执行  state == 1 表示执行中  state == 2 表示执行完成
     if (strategyResultExecutionQueue.value[strategyId] == undefined || strategyResultExecutionQueue.value[strategyId].state != 1) {
         // strategyResultExecutionQueue.value[strategyId].lastTimeCalculationTime 验证是否上一次是否在4秒以内 在的话 拒绝继续执行
@@ -1752,23 +1762,25 @@ const handleExpressionResult = async (strategyId, data) => {
         const strategyInformation = data.strategy;
         try {
             // 查询 是否存在相应仓位 
-            let position = checkPositionExists(strategyInformation.currency, data.result ? 'long' : 'short')
             if (!position) {
                 // 不存在 先检查是否存在相反仓位
                 let oppositePosition = checkPositionExists(strategyInformation.currency, data.result ? 'short' : 'long')
                 if (oppositePosition) {
                     if (oppositePosition.upl > 0.0001) {
                         // 存在相反仓位 且 相反仓位盈利 平仓
-                        clearOppositePosition(strategyInformation.currency, data.result ? 'long' : 'short')
+                        await clearOppositePosition(strategyInformation.currency, data.result ? 'long' : 'short')
                         // 下单专属仓位
-                        orderExclusiveStorageSpace(strategyInformation, data)
+                        await orderExclusiveStorageSpace(strategyInformation, data)
+                        strategyResultExecutionQueue.value[strategyId].isItProfitable = false
                         console.log(data.result ? '开多有空仓仓位且空仓盈利进行开多' : '开空有多仓仓位且多仓盈利进行开空');
                     } else {
                         console.log(data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
                     }
                 } else {
                     // 不存在相反仓位 下单
-                    orderExclusiveStorageSpace(strategyInformation, data)
+                    await orderExclusiveStorageSpace(strategyInformation, data)
+                    strategyResultExecutionQueue.value[strategyId].isItProfitable = false
+
                     console.log(data.result ? '开多且无空仓仓位进行开多' : '开空且无多仓仓位进行开空');
                 }
             } else {
@@ -1847,13 +1859,13 @@ const handleExpressionResult = async (strategyId, data) => {
 
 // 下单专属仓位
 const orderExclusiveStorageSpace = async (strategyInformation, data) => {
-    placeMarketOrder(strategyInformation.currency, 'open', data.result ? 'long' : 'short', 'cross', strategyInformation.quantity)
+    await placeMarketOrder(strategyInformation.currency, 'open', data.result ? 'long' : 'short', 'cross', strategyInformation.quantity)
     const position = await loopSearchPosition(strategyInformation.currency, data.result ? 'long' : 'short', 3000);
     const stopLossPrice = data.result ?
         (position.avgPx * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
         : (position.avgPx * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
     // 下止损单
-    placeStopLossOrder({
+    await placeStopLossOrder({
         instId: strategyInformation.currency,
         posSide: data.result ? 'long' : 'short',
         marginMode: 'cross',
@@ -1862,12 +1874,12 @@ const orderExclusiveStorageSpace = async (strategyInformation, data) => {
     })
 }
 // 清理反仓位
-const clearOppositePosition = (currency, posSide) => {
+const clearOppositePosition = async (currency, posSide) => {
     const oppositePosSide = posSide === 'long' ? 'short' : 'long'
     const oppositePosition = checkPositionExists(currency, oppositePosSide)
     if (oppositePosition) {
         // 存在相反仓位 平仓
-        placeMarketOrder(currency, 'close', oppositePosSide, 'cross', oppositePosition.pos)
+        await placeMarketOrder(currency, 'close', oppositePosSide, 'cross', oppositePosition.pos)
     }
 }
 
