@@ -1733,13 +1733,16 @@ const loopSearchPosition = async (instId, posSide, timeoutPeriod) => {
 };
 // handleExpressionResult 处理策略结果
 const handleExpressionResult = async (strategyId, data) => {
-    let position = checkPositionExists(strategyInformation.currency, data.result ? 'long' : 'short');
+    let position = checkPositionExists(data.strategy.currency, data.result ? 'long' : 'short');
+    const tempKlines = data.tempKlines[0];
+
     // 判断是否存在盈利 
     if (
         strategyResultExecutionQueue.value[strategyId] != undefined &&
-        position &&
-        ((data.result && position.avgPx < data.tempKlines[0].close) ||
-            (!data.result && position.avgPx > data.tempKlines[0].close))
+        position && tempKlines?.close &&
+        strategyResultExecutionQueue.value[strategyId]?.isItProfitable == false &&
+        ((data.result && position.avgPx < tempKlines?.close) ||
+            (!data.result && position.avgPx > tempKlines?.close))
     ) {
         strategyResultExecutionQueue.value[strategyId].isItProfitable = true;
         console.log('存在盈利');
@@ -1751,7 +1754,6 @@ const handleExpressionResult = async (strategyId, data) => {
         //     // console.log("4秒内不允许重复执行计算结果");
         //     return
         // }
-        const tempKlines = data.tempKlines[0];
 
         strategyResultExecutionQueue.value[strategyId] = {
             ...strategyResultExecutionQueue.value[strategyId],
@@ -1774,7 +1776,20 @@ const handleExpressionResult = async (strategyId, data) => {
                         strategyResultExecutionQueue.value[strategyId].isItProfitable = false
                         console.log(data.result ? '开多有空仓仓位且空仓盈利进行开多' : '开空有多仓仓位且多仓盈利进行开空');
                     } else {
-                        console.log(data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
+                        // console.log(data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
+                        if (strategyResultExecutionQueue.value[strategyId]?.isItProfitable == false) {
+                            // 打印日志
+                            console.log(data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
+                        } else {
+                            // 存在相反仓位  清空相反仓位
+                            await clearOppositePosition(strategyInformation.currency, data.result ? 'long' : 'short')
+                            // 下单专属仓位 
+                            await orderExclusiveStorageSpace(strategyInformation, data)
+                            // 设置为不盈利
+                            strategyResultExecutionQueue.value[strategyId].isItProfitable = false
+                            // 打印日志
+                            console.log(data.result ? '开多有空仓仓位且空仓盈利过进行开多' : '开空有多仓仓位且多仓盈利过进行开空');
+                        }
                     }
                 } else {
                     // 不存在相反仓位 下单
@@ -1787,6 +1802,9 @@ const handleExpressionResult = async (strategyId, data) => {
                 console.log(data.result ? '开多但是已有多仓不进行操作' : '开空但是已有空仓不进行操作');
                 // return;
                 // 移动委托价格初始化  
+                // if (!tempKlines?.close) {
+                //     return;
+                // }
                 // const stopLossPrice = data.result ?
                 //     (tempKlines.close * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
                 //     : (tempKlines.close * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
