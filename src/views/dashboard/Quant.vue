@@ -1247,12 +1247,13 @@ const loadStrategies = () => {
 onMounted(() => {
     loadFromStorage()
     loadStrategies()
-    // 临时修改 本地存储的值  quant_strategies 循环 fullExpression =  ((( SP_1F + LS_SP_1F_1 ) / 2 - ( LS_SP_1F_1 + LS_SP_1F_2 ) / 2) >= 0 and (( SP_3F + LS_SP_3F_1 ) / 2 - ( LS_SP_3F_1 + LS_SP_3F_2 ) / 2) >= 0) or ((( SP_1F + LS_SP_1F_1 ) / 2 - ( LS_SP_1F_1 + LS_SP_1F_2 ) / 2) >= 0 and (( SP_5F + LS_SP_5F_1 ) / 2 - ( LS_SP_5F_1 + LS_SP_5F_2 ) / 2) >= 0) or ((( SP_3F + LS_SP_3F_1 ) / 2 - ( LS_SP_3F_1 + LS_SP_3F_2 ) / 2) >= 0 and (( SP_5F + LS_SP_5F_1 ) / 2 - ( LS_SP_5F_1 + LS_SP_5F_2 ) / 2) >= 0)
-    // 读取localStorage 的 quant_strategies 的值 
     // const strategies = JSON.parse(localStorage.getItem('quant_strategies'))
     // strategies.forEach(strategy => {
     //     strategy.fullExpression = '((( SP_1F + LS_SP_1F_1 ) / 2 - ( LS_SP_1F_1 + LS_SP_1F_2 ) / 2) >= 0 and (( SP_3F + LS_SP_3F_1 ) / 2 - ( LS_SP_3F_1 + LS_SP_3F_2 ) / 2) >= 0) or ((( SP_1F + LS_SP_1F_1 ) / 2 - ( LS_SP_1F_1 + LS_SP_1F_2 ) / 2) >= 0 and (( SP_5F + LS_SP_5F_1 ) / 2 - ( LS_SP_5F_1 + LS_SP_5F_2 ) / 2) >= 0) or ((( SP_3F + LS_SP_3F_1 ) / 2 - ( LS_SP_3F_1 + LS_SP_3F_2 ) / 2) >= 0 and (( SP_5F + LS_SP_5F_1 ) / 2 - ( LS_SP_5F_1 + LS_SP_5F_2 ) / 2) >= 0)'
-    //     strategy.stopLoss = 0.005
+    //     strategy.stopLoss = 0.001
+    //     if (strategy.currency == "ADA-USDT-SWAP") {
+    //         strategy.leverage = 10
+    //     }
     // })
     // localStorage.setItem('quant_strategies', JSON.stringify(strategies))
 
@@ -1776,12 +1777,12 @@ const handleExpressionResult = async (strategyId, data) => {
                         // 下单专属仓位
                         await orderExclusiveStorageSpace(strategyInformation, data)
                         strategyResultExecutionQueue.value[strategyId].isItProfitable = false
-                        console.log(data.result ? '开多有空仓仓位且空仓盈利进行开多' : '开空有多仓仓位且多仓盈利进行开空');
+                        console.log(strategyInformation.currency, data.result ? '开多有空仓仓位且空仓盈利进行开多' : '开空有多仓仓位且多仓盈利进行开空');
                     } else {
                         // console.log(data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
                         if (strategyResultExecutionQueue.value[strategyId]?.isItProfitable == false) {
                             // 打印日志
-                            console.log(data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
+                            console.log(strategyInformation.currency, data.result ? '开多有空仓仓位且空仓亏损不进行操作' : '开空有多仓仓位且多仓亏损不进行操作');
                         } else {
                             // 存在相反仓位  清空相反仓位
                             await clearOppositePosition(strategyInformation.currency, data.result ? 'long' : 'short')
@@ -1790,7 +1791,7 @@ const handleExpressionResult = async (strategyId, data) => {
                             // 设置为不盈利
                             strategyResultExecutionQueue.value[strategyId].isItProfitable = false
                             // 打印日志
-                            console.log(data.result ? '开多有空仓仓位且空仓盈利过进行开多' : '开空有多仓仓位且多仓盈利过进行开空');
+                            console.log(strategyInformation.currency, data.result ? '开多有空仓仓位且空仓盈利过进行开多' : '开空有多仓仓位且多仓盈利过进行开空');
                         }
                     }
                 } else {
@@ -1798,10 +1799,10 @@ const handleExpressionResult = async (strategyId, data) => {
                     await orderExclusiveStorageSpace(strategyInformation, data)
                     strategyResultExecutionQueue.value[strategyId].isItProfitable = false
 
-                    console.log(data.result ? '开多且无空仓仓位进行开多' : '开空且无多仓仓位进行开空');
+                    console.log(strategyInformation.currency, data.result ? '开多且无空仓仓位进行开多' : '开空且无多仓仓位进行开空');
                 }
             } else {
-                console.log(data.result ? '开多但是已有多仓不进行操作' : '开空但是已有空仓不进行操作');
+                console.log(strategyInformation.currency, data.result ? '开多但是已有多仓不进行操作' : '开空但是已有空仓不进行操作');
                 // 移动委托价格初始化  
                 if (!tempKlines?.close) {
                     strategyResultExecutionQueue.value[strategyId].state = 2
@@ -1821,8 +1822,8 @@ const handleExpressionResult = async (strategyId, data) => {
                         let stopLossAlgoId = strategyResultExecutionQueue.value[strategyId].stopLossAlgoId
                         // 计算当前价格移动止损价格
                         let profitLossPrice = data.result ?
-                            (mobileStopLossPrice * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
-                            : (mobileStopLossPrice * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
+                            (mobileStopLossPrice * (1 + 0.0005)).toFixed(strategyInformation.priceDecimalPlaces)
+                            : (mobileStopLossPrice * (1 - 0.0005)).toFixed(strategyInformation.priceDecimalPlaces)
                         // 比对价格 当前价格 是否大于 移动止损价格
                         if ((data.result && tempKlines.close >= profitLossPrice) || (!data.result && tempKlines.close <= profitLossPrice)) {
                             // 当前价格 大于 移动止损价格 挂止损单
@@ -1839,7 +1840,7 @@ const handleExpressionResult = async (strategyId, data) => {
                                 strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data[0]?.algoId
                                 strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice = tempKlines.close
 
-                                console.log("algoId:", stopLoss?.data[0]?.algoId, "价格：", stopLossPrice, "挂移动止损单成功");
+                                console.log(strategyInformation.currency, "algoId:", stopLoss?.data[0]?.algoId, "价格：", stopLossPrice, "挂移动止损单成功");
                                 // 取消原来的止损单
                                 // cancelStopLossOrder(stopLossAlgoId)
                             }
@@ -1849,8 +1850,8 @@ const handleExpressionResult = async (strategyId, data) => {
                     // 不存在 
                     // 计算移动止损价格阈值
                     let profitLossPrice = data.result ?
-                        (position.avgPx * (1 + 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
-                        : (position.avgPx * (1 - 0.001)).toFixed(strategyInformation.priceDecimalPlaces)
+                        (position.avgPx * (1 + 0.0005)).toFixed(strategyInformation.priceDecimalPlaces)
+                        : (position.avgPx * (1 - 0.0005)).toFixed(strategyInformation.priceDecimalPlaces)
                     // 比对价格 多单 当前价格 大于 移动止损价格 空单 当前价格 小于 移动止损价格
                     if ((data.result && tempKlines.close >= profitLossPrice) || (!data.result && tempKlines.close <= profitLossPrice)) {
                         let stopLoss = await placeStopLossOrder({
@@ -1864,7 +1865,7 @@ const handleExpressionResult = async (strategyId, data) => {
                         if (stopLoss) {
                             strategyResultExecutionQueue.value[strategyId].stopLossAlgoId = stopLoss?.data[0]?.algoId
                             strategyResultExecutionQueue.value[strategyId].mobileStopLossPrice = tempKlines.close
-                            console.log("algoId:", stopLoss?.data[0]?.algoId, "价格：", stopLossPrice, "挂移动止损单成功");
+                            console.log(strategyInformation.currency, "algoId:", stopLoss?.data[0]?.algoId, "价格：", stopLossPrice, "挂移动止损单成功");
                         }
                     }
                 }
