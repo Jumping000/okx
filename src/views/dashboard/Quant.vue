@@ -1249,11 +1249,11 @@ onMounted(() => {
     loadStrategies()
     // const strategies = JSON.parse(localStorage.getItem('quant_strategies'))
     // strategies.forEach(strategy => {
-    //     strategy.fullExpression = '((( SP_1F + LS_SP_1F_1 ) / 2 - ( LS_SP_1F_1 + LS_SP_1F_2 ) / 2) >= 0 and (( SP_3F + LS_SP_3F_1 ) / 2 - ( LS_SP_3F_1 + LS_SP_3F_2 ) / 2) >= 0) or ((( SP_1F + LS_SP_1F_1 ) / 2 - ( LS_SP_1F_1 + LS_SP_1F_2 ) / 2) >= 0 and (( SP_5F + LS_SP_5F_1 ) / 2 - ( LS_SP_5F_1 + LS_SP_5F_2 ) / 2) >= 0) or ((( SP_3F + LS_SP_3F_1 ) / 2 - ( LS_SP_3F_1 + LS_SP_3F_2 ) / 2) >= 0 and (( SP_5F + LS_SP_5F_1 ) / 2 - ( LS_SP_5F_1 + LS_SP_5F_2 ) / 2) >= 0)'
-    //     strategy.stopLoss = 0.001
-    //     if (strategy.currency == "ADA-USDT-SWAP") {
-    //         strategy.leverage = 10
-    //     }
+    //     strategy.fullExpression = '(EMA_1F_14 - SP_1F) > 0 and (EMA_3F_14 - SP_3F) > 0) or ((EMA_1F_14 - SP_1F) > 0 and (EMA_5F_14 - SP_5F) > 0) or ((EMA_3F_14 - SP_3F) > 0 and (EMA_5F_14 - SP_5F) > 0)'
+    //     // strategy.stopLoss = 0.001
+    //     // if (strategy.currency == "ADA-USDT-SWAP") {
+    //     //     strategy.leverage = 10
+    //     // }
     // })
     // localStorage.setItem('quant_strategies', JSON.stringify(strategies))
 
