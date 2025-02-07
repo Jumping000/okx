@@ -799,7 +799,6 @@ class StrategyWorker extends self.BaseWorker {
                 // 获取对应的时间级别格式（例如：将 "1m" 转换为 "1F"）
                 const formattedTimeLevel = timeLevelMap[timeLevel];
                 if (!formattedTimeLevel) return;
-                console.log(calculatedExpression);
                 // 遍历该时间级别下的所有指标
                 indicators.forEach((indicator) => {
                     let searchPattern;
@@ -828,13 +827,10 @@ class StrategyWorker extends self.BaseWorker {
                     }
                     // 在表达式中查找并替换匹配的指标
                     const regex = new RegExp(searchPattern, "g");
-                    console.log(searchPattern, regex, indicator.value);
-                    console.log(calculatedExpression);
                     calculatedExpression = calculatedExpression.replace(
                         regex,
-                        ` ${indicator.value} `
+                        `${indicator.value}`
                     );
-                    console.log(calculatedExpression);
                 });
             });
 
