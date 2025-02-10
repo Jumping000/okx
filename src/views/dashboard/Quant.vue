@@ -1499,12 +1499,12 @@ const placeMarketOrder = async (instId, positionAction, posSide, marginMode, siz
 
         // 5. 构建订单参数
         const orderParams = {
-            instId: instId,
-            tdMode: marginMode,
-            side: side,
-            posSide: posSide,
-            ordType: 'market',
-            sz: String(size),
+            instId: instId, // 币种ID
+            tdMode: marginMode, // 保证金模式
+            side: side, // 买卖方向
+            posSide: posSide, // 持仓方向
+            ordType: 'market', // 订单类型
+            sz: String(size), // 下单数量
             reduceOnly: positionAction === 'close' // 平仓时设置为只减仓
         }
 
