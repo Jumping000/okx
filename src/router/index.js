@@ -93,9 +93,27 @@ router.beforeEach(async (to, from, next) => {
       document.title = `${to.meta.title} - ${process.env.VUE_APP_TITLE}`;
     }
 
-    // 检查是否需要认证
     const userStore = useUserStore();
     const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
+    const isAuthRoute = to.name === 'Login' || to.name === 'Register';
+
+    // 如果有token但没有用户信息，尝试获取用户信息
+    if (userStore.token && !userStore.userInfo && !isAuthRoute) {
+      try {
+        const success = await userStore.getUserInfoAction();
+        if (!success) {
+          // 如果获取用户信息失败，清除所有存储并跳转到登录页
+          localStorage.clear();
+          next({ name: 'Login' });
+          return;
+        }
+      } catch (error) {
+        console.error('获取用户信息失败：', error);
+        localStorage.clear();
+        next({ name: 'Login' });
+        return;
+      }
+    }
 
     // 如果路由需要认证且用户未登录
     if (requiresAuth && !userStore.isLoggedIn) {
@@ -104,7 +122,7 @@ router.beforeEach(async (to, from, next) => {
     }
 
     // 如果用户已登录且尝试访问登录/注册页面
-    if (userStore.isLoggedIn && (to.name === 'Login' || to.name === 'Register')) {
+    if (userStore.isLoggedIn && isAuthRoute) {
       // 检查是否有API配置
       const hasConfig = storage.hasApiConfig();
       if (hasConfig) {
@@ -122,7 +140,7 @@ router.beforeEach(async (to, from, next) => {
         next({ name: "Overview" });
         return;
       }
-      if (!hasConfig && to.name !== "ExchangeSetup" && to.name !== 'Login' && to.name !== 'Register') {
+      if (!hasConfig && to.name !== "ExchangeSetup" && !isAuthRoute) {
         next({ name: "ExchangeSetup" });
         return;
       } else if (hasConfig && to.name !== "ExchangeSetup") {

@@ -31,6 +31,13 @@ export const useUserStore = defineStore('user', {
       this.userInfo = info
     },
 
+    // 清除所有状态
+    clearAll() {
+      this.clearToken()
+      this.setUserInfo(null)
+      localStorage.clear()
+    },
+
     // 登录
     async loginAction(loginData) {
       this.isLoading = true
@@ -42,12 +49,17 @@ export const useUserStore = defineStore('user', {
             this.setUserInfo(res.user)
           }
           // 登录成功后获取最新的用户信息
-          await this.getUserInfoAction()
+          const userInfoSuccess = await this.getUserInfoAction()
+          if (!userInfoSuccess) {
+            this.clearAll()
+            return false
+          }
           return true
         }
         return false
       } catch (error) {
         console.error('登录失败：', error)
+        this.clearAll()
         return false
       } finally {
         this.isLoading = false
@@ -58,18 +70,21 @@ export const useUserStore = defineStore('user', {
     async getUserInfoAction() {
       try {
         const res = await getUserInfo()
+        if (!res || !res.id) {
+          throw new Error('获取用户信息失败：无效的响应数据')
+        }
         this.setUserInfo(res)
         return true
       } catch (error) {
         console.error('获取用户信息失败：', error)
+        this.clearAll()
         return false
       }
     },
 
     // 登出
     logout() {
-      this.clearToken()
-      this.setUserInfo(null)
+      this.clearAll()
     }
   }
 }) 
