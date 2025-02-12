@@ -22,6 +22,7 @@
                     <a-space>
                         <a-button type="primary" html-type="submit" :loading="loading">保存配置</a-button>
                         <a-button @click="clearConfig" :disabled="loading">清除配置</a-button>
+                        <a-button type="danger" @click="handleLogout" :disabled="loading">退出登录</a-button>
                     </a-space>
                 </a-form-item>
             </a-form>
@@ -40,11 +41,13 @@ import { defineComponent, reactive, ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { storage } from '@/utils/storage'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/store/modules/user'
 
 export default defineComponent({
     name: 'ExchangeSetupPage',
     setup() {
         const router = useRouter()
+        const userStore = useUserStore()
         const hasConfig = ref(false)
         const loading = ref(false)
         const formState = reactive({
@@ -94,6 +97,13 @@ export default defineComponent({
             message.success('配置已清除')
         }
 
+        // 退出登录
+        const handleLogout = () => {
+            userStore.logout()
+            message.success('退出登录成功')
+            router.push('/auth/login')
+        }
+
         onMounted(() => {
             checkConfig()
         })
@@ -103,6 +113,7 @@ export default defineComponent({
             hasConfig,
             onFinish,
             clearConfig,
+            handleLogout,
             loading
         }
     }
