@@ -65,6 +65,7 @@ export const storage = {
     localStorage.removeItem(STORAGE_KEYS.API_KEY);
     localStorage.removeItem(STORAGE_KEYS.API_SECRET);
     localStorage.removeItem(STORAGE_KEYS.PASSPHRASE);
+    localStorage.removeItem('token');
   },
 
   // 检查是否已配置
