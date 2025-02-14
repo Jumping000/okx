@@ -1982,35 +1982,31 @@ const clearOppositePosition = async (currency, posSide) => {
 
 /* 日志样式 */
 .log-item {
-    padding: 4px 8px;
-    font-size: 12px;
-    line-height: 1.5;
-    border-bottom: 1px solid var(--border-color);
-}
+    @apply mb-2 flex items-start gap-2;
 
-.log-time {
-    color: var(--text-secondary);
-    margin-right: 8px;
-}
+    .log-time {
+        @apply text-xs dark:text-dark-200 text-gray-500 whitespace-nowrap;
+    }
 
-.log-content {
-    color: var(--text-color);
-}
+    .log-content {
+        @apply text-sm break-all;
 
-.log-info {
-    color: var(--text-color);
-}
+        &.log-info {
+            @apply dark:text-dark-100 text-gray-700;
+        }
 
-.log-success {
-    color: var(--success-color);
-}
+        &.log-success {
+            @apply text-primary;
+        }
 
-.log-warning {
-    color: var(--warning-color);
-}
+        &.log-warning {
+            @apply text-yellow-500;
+        }
 
-.log-error {
-    color: var(--danger-color);
+        &.log-error {
+            @apply text-red-500;
+        }
+    }
 }
 
 /* 表格样式 */
