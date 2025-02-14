@@ -308,6 +308,33 @@
                 <p class="text-gray-500 text-sm">我们重视您的数据安全，所有敏感信息都经过加密处理。</p>
             </div>
         </a-modal>
+
+        <!-- 公告详情弹窗 -->
+        <a-modal
+            v-model:visible="announcementDetailVisible"
+            :title="selectedAnnouncement?.title"
+            @ok="closeAnnouncementDetail"
+            :footer="null"
+            class="announcement-detail-modal"
+            :maskClosable="true"
+        >
+            <template #title>
+                <div class="flex items-center gap-2">
+                    <span>{{ selectedAnnouncement?.title }}</span>
+                    <a-tag :color="getAnnouncementTypeColor(selectedAnnouncement?.type)">
+                        {{ getAnnouncementTypeText(selectedAnnouncement?.type) }}
+                    </a-tag>
+                </div>
+            </template>
+            <div class="announcement-detail-content">
+                <div class="publish-time text-dark-200 text-sm mb-4">
+                    发布时间：{{ formatAnnouncementTime(selectedAnnouncement?.publishTime) }}
+                </div>
+                <div class="content text-dark-100 text-base leading-relaxed whitespace-pre-wrap">
+                    {{ selectedAnnouncement?.content }}
+                </div>
+            </div>
+        </a-modal>
     </div>
 </template>
 
@@ -357,6 +384,8 @@ export default defineComponent({
             isVip: false, // 默认非VIP
         })
         const showPrivacyModal = ref(true)
+        const announcementDetailVisible = ref(false)
+        const selectedAnnouncement = ref(null)
 
         // 表格列定义
         const columns = [
@@ -633,9 +662,17 @@ export default defineComponent({
 
         // 阅读公告
         const readAnnouncement = (announcement) => {
+            selectedAnnouncement.value = announcement
+            announcementDetailVisible.value = true
             if (!announcement.read) {
                 announcement.read = true
             }
+        }
+
+        // 关闭公告详情
+        const closeAnnouncementDetail = () => {
+            announcementDetailVisible.value = false
+            selectedAnnouncement.value = null
         }
 
         // 添加节点申请处理函数
@@ -683,6 +720,9 @@ export default defineComponent({
             handleNodeApplication,
             showPrivacyModal,
             handlePrivacyConfirm,
+            announcementDetailVisible,
+            selectedAnnouncement,
+            closeAnnouncementDetail,
         }
     }
 })
@@ -1123,6 +1163,85 @@ export default defineComponent({
 
     .text-gray-500 {
         color: var(--text-secondary) !important;
+    }
+}
+
+/* 公告详情弹窗样式 */
+.announcement-detail-modal {
+    :deep(.ant-modal-content) {
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        transition: all 0.3s ease;
+
+        .ant-modal-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+
+            .ant-modal-title {
+                color: var(--text-color);
+                font-size: 16px;
+                font-weight: 600;
+                
+                .ant-tag {
+                    margin-left: 8px;
+                    font-weight: normal;
+                    transition: all 0.3s ease;
+                    
+                    &:hover {
+                        transform: translateY(-1px);
+                    }
+                }
+            }
+        }
+
+        .ant-modal-body {
+            padding: 24px;
+            background: var(--bg-color);
+            
+            .announcement-detail-content {
+                .publish-time {
+                    color: var(--text-tertiary);
+                    font-size: 13px;
+                    margin-bottom: 16px;
+                }
+                
+                .content {
+                    color: var(--text-color);
+                    font-size: 14px;
+                    line-height: 1.6;
+                }
+            }
+        }
+
+        .ant-modal-close {
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+
+            &:hover {
+                color: var(--primary-color);
+                transform: rotate(90deg);
+            }
+        }
+    }
+}
+
+/* 动画效果 */
+.announcement-detail-modal {
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 </style>

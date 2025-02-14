@@ -9,7 +9,7 @@
                 <!-- 消息通知 -->
                 <a-dropdown placement="bottomRight" :trigger="['hover']">
                     <div class="relative cursor-pointer">
-                        <bell-outlined class="text-xl text-white translate-y-[-2px]" />
+                        <bell-outlined class="text-xl bell-icon translate-y-[-2px]" />
                         <span v-if="unreadCount > 0" 
                             class="absolute -top-0 -right-0 w-2 h-2 rounded-full bg-red-500 translate-y-[2px]">
                         </span>
@@ -18,7 +18,7 @@
                         <a-card class="message-dropdown" :bordered="false">
                             <template #title>
                                 <div class="flex justify-between items-center py-2 px-4 border-b border-[var(--border-color)]">
-                                    <span class="text-sm font-medium">消息通知</span>
+                                    <span class="text-sm font-medium notification-title">消息通知</span>
                                     <div class="flex items-center gap-2">
                                         <a-tooltip title="全部标记为已读" placement="bottom">
                                             <a-button type="text" size="small" @click="markAllRead" class="icon-btn">
@@ -648,6 +648,16 @@ body[data-theme="light"] {
         .text-dark-200 {
             @apply text-gray-500;
         }
+
+        /* 修改小铃铛图标颜色 */
+        .bell-icon {
+            @apply text-gray-700;
+        }
+
+        /* 消息通知文字颜色 */
+        .message-title {
+            @apply text-gray-700;
+        }
     }
 
     aside {
@@ -1173,6 +1183,26 @@ body[data-theme="light"] {
         &:nth-child(#{$i}) {
             animation-delay: #{$i * 0.05}s;
         }
+    }
+}
+
+/* 消息通知标题样式 */
+.notification-title {
+    color: var(--text-color);
+    transition: color 0.3s ease;
+}
+
+/* 深色主题样式 */
+body[data-theme="dark"] {
+    .notification-title {
+        color: rgba(255, 255, 255, 0.85);
+    }
+}
+
+/* 浅色主题样式 */
+body[data-theme="light"] {
+    .notification-title {
+        color: rgba(0, 0, 0, 0.85);
     }
 }
 </style>
