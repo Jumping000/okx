@@ -6,10 +6,6 @@
                 <h1 class="m-0 text-lg font-medium text-primary tracking-wide">OKX</h1>
             </div>
             <div class="flex items-center gap-6">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(0,185,107,0.5)]"></span>
-                    <span class="text-xs text-dark-200">市场状态正常</span>
-                </div>
                 <!-- 消息通知 -->
                 <a-dropdown placement="bottomRight" :trigger="['hover']">
                     <div class="relative cursor-pointer">
