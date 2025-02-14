@@ -1183,18 +1183,53 @@ onMounted(() => {
 }
 
 :deep(.ant-input-number) {
-    background-color: var(--bg-color) !important;
-    border-color: var(--border-color) !important;
-}
-
-:deep(.ant-input-number:hover),
-:deep(.ant-input-number:focus) {
-    border-color: var(--primary-color) !important;
-}
-
-:deep(.ant-input-number-input) {
-    background-color: transparent !important;
-    color: var(--text-color) !important;
+    --el-input-number-border-color: var(--border-color);
+    --el-input-number-hover-border-color: var(--primary-color);
+    --el-input-number-bg-color: var(--bg-color);
+    
+    .el-input-number__decrease,
+    .el-input-number__increase {
+        background-color: var(--bg-color);
+        border-color: var(--border-color);
+        color: var(--text-color);
+        
+        &:hover {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        &.is-disabled {
+            background-color: var(--disabled-bg);
+            border-color: var(--border-color);
+            color: var(--disabled-text);
+        }
+    }
+    
+    .el-input__wrapper {
+        background-color: var(--bg-color);
+        
+        &.is-focus {
+            box-shadow: 0 0 0 1px var(--primary-color);
+        }
+    }
+    
+    .el-input__inner {
+        color: var(--text-color);
+        
+        &::placeholder {
+            color: var(--text-secondary);
+        }
+    }
+    
+    &.is-disabled {
+        .el-input__wrapper {
+            background-color: var(--disabled-bg);
+        }
+        
+        .el-input__inner {
+            color: var(--disabled-text);
+        }
+    }
 }
 
 :deep(.ant-modal-content),
@@ -1261,14 +1296,51 @@ onMounted(() => {
 :deep(.el-input-number) {
     --el-input-number-border-color: var(--border-color);
     --el-input-number-hover-border-color: var(--primary-color);
-}
-
-:deep(.el-input-number .el-input__wrapper) {
-    background-color: var(--bg-color);
-}
-
-:deep(.el-input-number .el-input__inner) {
-    color: var(--text-color);
+    --el-input-number-bg-color: var(--bg-color);
+    
+    .el-input-number__decrease,
+    .el-input-number__increase {
+        background-color: var(--bg-color);
+        border-color: var(--border-color);
+        color: var(--text-color);
+        
+        &:hover {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        &.is-disabled {
+            background-color: var(--disabled-bg);
+            border-color: var(--border-color);
+            color: var(--disabled-text);
+        }
+    }
+    
+    .el-input__wrapper {
+        background-color: var(--bg-color);
+        
+        &.is-focus {
+            box-shadow: 0 0 0 1px var(--primary-color);
+        }
+    }
+    
+    .el-input__inner {
+        color: var(--text-color);
+        
+        &::placeholder {
+            color: var(--text-secondary);
+        }
+    }
+    
+    &.is-disabled {
+        .el-input__wrapper {
+            background-color: var(--disabled-bg);
+        }
+        
+        .el-input__inner {
+            color: var(--disabled-text);
+        }
+    }
 }
 
 :deep(.el-select-dropdown) {
