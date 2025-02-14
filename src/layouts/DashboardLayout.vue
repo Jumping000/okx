@@ -178,19 +178,34 @@
             @ok="handleFeedbackSubmit"
             @cancel="handleFeedbackCancel"
             :confirmLoading="feedbackLoading"
+            class="feedback-modal"
+            :maskClosable="false"
+            :keyboard="false"
+            okText="提交反馈"
+            cancelText="取消"
         >
+            <template #title>
+                <div class="flex items-center gap-2">
+                    <comment-outlined />
+                    <span>问题反馈</span>
+                </div>
+            </template>
             <a-form :model="feedbackForm" layout="vertical">
                 <a-form-item
                     label="问题类型"
                     name="type"
                     :rules="[{ required: true, message: '请选择问题类型' }]"
                 >
-                    <a-select v-model:value="feedbackForm.type" placeholder="请选择问题类型">
-                        <a-select-option value="bug">功能异常</a-select-option>
-                        <a-select-option value="suggestion">功能建议</a-select-option>
-                        <a-select-option value="question">使用疑问</a-select-option>
-                        <a-select-option value="other">其他</a-select-option>
-                    </a-select>
+                    <a-select 
+                        v-model:value="feedbackForm.type" 
+                        placeholder="请选择问题类型"
+                        :options="[
+                            { value: 'bug', label: '功能异常' },
+                            { value: 'suggestion', label: '功能建议' },
+                            { value: 'question', label: '使用疑问' },
+                            { value: 'other', label: '其他' }
+                        ]"
+                    />
                 </a-form-item>
                 <a-form-item
                     label="问题描述"
@@ -201,12 +216,15 @@
                         v-model:value="feedbackForm.content"
                         :rows="4"
                         placeholder="请详细描述您遇到的问题或建议..."
+                        :maxlength="500"
+                        show-count
                     />
                 </a-form-item>
                 <a-form-item label="联系方式" name="contact">
                     <a-input
                         v-model:value="feedbackForm.contact"
                         placeholder="请留下您的联系方式（选填）"
+                        :maxlength="50"
                     />
                 </a-form-item>
             </a-form>
@@ -1203,6 +1221,156 @@ body[data-theme="dark"] {
 body[data-theme="light"] {
     .notification-title {
         color: rgba(0, 0, 0, 0.85);
+    }
+}
+
+/* 反馈弹窗样式 */
+.feedback-modal {
+    :deep(.ant-modal-content) {
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        transition: all 0.3s ease;
+
+        .ant-modal-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+
+            .ant-modal-title {
+                color: var(--text-color);
+                font-size: 16px;
+                font-weight: 600;
+                
+                .anticon {
+                    color: var(--primary-color);
+                    margin-right: 8px;
+                }
+            }
+        }
+
+        .ant-modal-body {
+            padding: 24px;
+            background: var(--bg-color);
+            
+            .ant-form-item-label > label {
+                color: var(--text-color);
+                font-size: 14px;
+                font-weight: 500;
+            }
+            
+            .ant-select:not(.ant-select-customize-input) .ant-select-selector {
+                background-color: var(--input-bg);
+                border-color: var(--input-border);
+                color: var(--text-color);
+                
+                &:hover {
+                    border-color: var(--primary-color);
+                }
+            }
+            
+            .ant-select-focused:not(.ant-select-disabled).ant-select:not(.ant-select-customize-input) .ant-select-selector {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+            }
+            
+            .ant-input {
+                background-color: var(--input-bg);
+                border-color: var(--input-border);
+                color: var(--text-color);
+                
+                &::placeholder {
+                    color: var(--text-secondary);
+                }
+                
+                &:hover {
+                    border-color: var(--primary-color);
+                }
+                
+                &:focus {
+                    border-color: var(--primary-color);
+                    box-shadow: 0 0 0 2px rgba(var(--primary-color-rgb), 0.2);
+                }
+            }
+            
+            .ant-input-textarea-show-count::after {
+                color: var(--text-secondary);
+            }
+        }
+
+        .ant-modal-footer {
+            background-color: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 16px 24px;
+            
+            .ant-btn {
+                border-radius: 6px;
+                height: 32px;
+                padding: 4px 16px;
+                font-size: 14px;
+                transition: all 0.3s ease;
+                
+                &.ant-btn-primary {
+                    background-color: var(--primary-color);
+                    border-color: var(--primary-color);
+                    color: #fff;
+                    
+                    &:hover {
+                        background-color: color-mix(in srgb, var(--primary-color) 90%, white);
+                        border-color: color-mix(in srgb, var(--primary-color) 90%, white);
+                    }
+                    
+                    &:active {
+                        background-color: color-mix(in srgb, var(--primary-color) 90%, black);
+                        border-color: color-mix(in srgb, var(--primary-color) 90%, black);
+                    }
+                }
+                
+                &.ant-btn-default {
+                    background-color: transparent;
+                    border-color: var(--border-color);
+                    color: var(--text-color);
+                    
+                    &:hover {
+                        color: var(--primary-color);
+                        border-color: var(--primary-color);
+                    }
+                    
+                    &:active {
+                        color: color-mix(in srgb, var(--primary-color) 90%, black);
+                        border-color: color-mix(in srgb, var(--primary-color) 90%, black);
+                    }
+                }
+            }
+        }
+
+        .ant-modal-close {
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+
+            &:hover {
+                color: var(--primary-color);
+                transform: rotate(90deg);
+            }
+        }
+    }
+}
+
+/* 动画效果 */
+.feedback-modal {
+    animation: modalFadeIn 0.3s ease;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
     }
 }
 </style>
