@@ -9,7 +9,7 @@
                 <!-- 消息通知 -->
                 <a-dropdown placement="bottomRight" :trigger="['hover']">
                     <div class="relative cursor-pointer">
-                        <bell-outlined class="text-xl text-dark-100 translate-y-[-2px]" />
+                        <bell-outlined class="text-xl text-white translate-y-[-2px]" />
                         <span v-if="unreadCount > 0" 
                             class="absolute -top-0 -right-0 w-2 h-2 rounded-full bg-red-500 translate-y-[2px]">
                         </span>
@@ -21,12 +21,12 @@
                                     <span class="text-sm font-medium">消息通知</span>
                                     <div class="flex items-center gap-2">
                                         <a-tooltip title="全部标记为已读" placement="bottom">
-                                            <a-button type="text" size="small" @click="markAllRead">
+                                            <a-button type="text" size="small" @click="markAllRead" class="icon-btn">
                                                 <template #icon><check-outlined /></template>
                                             </a-button>
                                         </a-tooltip>
                                         <a-tooltip title="清空全部消息" placement="bottom">
-                                            <a-button type="text" size="small" @click="clearAllMessages">
+                                            <a-button type="text" size="small" @click="clearAllMessages" class="icon-btn">
                                                 <template #icon><delete-outlined /></template>
                                             </a-button>
                                         </a-tooltip>
@@ -40,7 +40,7 @@
                                             <div v-for="msg in messages" :key="msg.id" 
                                                 class="message-item" 
                                                 :class="{ 'unread': !msg.read }"
-                                                @click="readMessage(msg)">
+                                                @click="showMessageDetail(msg)">
                                                 <div class="flex items-start gap-3 relative">
                                                     <div class="flex-1 min-w-0">
                                                         <div class="message-title truncate">{{ msg.title }}</div>
@@ -63,7 +63,7 @@
                                             <div v-for="msg in systemMessages" :key="msg.id" 
                                                 class="message-item" 
                                                 :class="{ 'unread': !msg.read }"
-                                                @click="readMessage(msg)">
+                                                @click="showMessageDetail(msg)">
                                                 <div class="flex items-start gap-3 relative">
                                                     <div class="flex-1 min-w-0">
                                                         <div class="message-title truncate">{{ msg.title }}</div>
@@ -86,7 +86,7 @@
                                             <div v-for="msg in tradeMessages" :key="msg.id" 
                                                 class="message-item" 
                                                 :class="{ 'unread': !msg.read }"
-                                                @click="readMessage(msg)">
+                                                @click="showMessageDetail(msg)">
                                                 <div class="flex items-start gap-3 relative">
                                                     <div class="flex-1 min-w-0">
                                                         <div class="message-title truncate">{{ msg.title }}</div>
@@ -211,6 +211,32 @@
                 </a-form-item>
             </a-form>
         </a-modal>
+
+        <!-- 消息详情模态框 -->
+        <a-modal
+            v-model:visible="messageDetailVisible"
+            :title="selectedMessage?.title"
+            @ok="closeMessageDetail"
+            :footer="null"
+            class="message-detail-modal"
+        >
+            <template #title>
+                <div class="flex items-center gap-2">
+                    <span>{{ selectedMessage?.title }}</span>
+                    <a-tag :color="getMessageTypeColor(selectedMessage?.type)">
+                        {{ getMessageTypeText(selectedMessage?.type) }}
+                    </a-tag>
+                </div>
+            </template>
+            <div class="message-detail-content">
+                <div class="message-time">
+                    发布时间：{{ formatMessageTime(selectedMessage?.time) }}
+                </div>
+                <div class="message-content">
+                    {{ selectedMessage?.content }}
+                </div>
+            </div>
+        </a-modal>
     </div>
 </template>
 
@@ -238,6 +264,7 @@ import { useCurrencyStore } from '@/store/currency'
 import PreferenceSettings from '@/components/PreferenceSettings.vue'
 import { useUserStore } from '@/store/modules/user'
 import { message } from 'ant-design-vue'
+import dayjs from 'dayjs'
 
 const PATH_TO_KEY = {
     '/dashboard/overview': 'dashboard',
@@ -411,8 +438,57 @@ export default defineComponent({
             return messages.value.filter(msg => !msg.read).length
         })
 
+        // 消息详情相关
+        const messageDetailVisible = ref(false)
+        const selectedMessage = ref(null)
+
+        // 获取消息类型颜色
+        const getMessageTypeColor = (type) => {
+            const colors = {
+                system: 'blue',
+                trade: 'green',
+                risk: 'red',
+                maintenance: 'orange'
+            }
+            return colors[type] || 'default'
+        }
+
+        // 获取消息类型文本
+        const getMessageTypeText = (type) => {
+            const texts = {
+                system: '系统消息',
+                trade: '交易提醒',
+                risk: '风险提示',
+                maintenance: '系统维护'
+            }
+            return texts[type] || type
+        }
+
+        // 格式化消息时间
+        const formatMessageTime = (time) => {
+            if (!time) return ''
+            return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
+        }
+
+        // 显示消息详情
+        const showMessageDetail = (message) => {
+            selectedMessage.value = message
+            messageDetailVisible.value = true
+            if (!message.read) {
+                readMessage(message)
+            }
+        }
+
+        // 关闭消息详情
+        const closeMessageDetail = () => {
+            messageDetailVisible.value = false
+            selectedMessage.value = null
+        }
+
+        // 更新readMessage方法
         const readMessage = (message) => {
             message.read = true
+            showMessageDetail(message)
         }
 
         const markAllRead = () => {
@@ -448,7 +524,14 @@ export default defineComponent({
             unreadCount,
             readMessage,
             markAllRead,
-            clearAllMessages
+            clearAllMessages,
+            messageDetailVisible,
+            selectedMessage,
+            getMessageTypeColor,
+            getMessageTypeText,
+            formatMessageTime,
+            showMessageDetail,
+            closeMessageDetail,
         }
     }
 })
@@ -537,6 +620,18 @@ body[data-theme="dark"] {
             }
         }
     }
+
+    /* 消息通知图标样式 */
+    .icon-btn {
+        :deep(.anticon) {
+            color: rgba(255, 255, 255, 0.85);
+            transition: color 0.3s;
+            
+            &:hover {
+                color: var(--primary-color);
+            }
+        }
+    }
 }
 
 /* 浅色主题样式 */
@@ -619,6 +714,18 @@ body[data-theme="light"] {
                 &:hover {
                     @apply bg-primary/90;
                 }
+            }
+        }
+    }
+
+    /* 消息通知图标样式 */
+    .icon-btn {
+        :deep(.anticon) {
+            color: rgba(0, 0, 0, 0.65);
+            transition: color 0.3s;
+            
+            &:hover {
+                color: var(--primary-color);
             }
         }
     }
@@ -768,10 +875,14 @@ body[data-theme="light"] {
     @apply mt-2;
 }
 
+/* 消息下拉框样式优化 */
 .message-dropdown {
     width: 360px;
     max-height: 480px;
     overflow: hidden;
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
     
     :deep(.ant-card-body) {
         padding: 0;
@@ -784,10 +895,13 @@ body[data-theme="light"] {
     :deep(.ant-tabs-nav) {
         margin: 0;
         padding: 0 16px;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
     }
 
     :deep(.ant-tabs-content) {
         height: 360px;
+        background: var(--bg-color);
     }
     
     .message-list {
@@ -795,12 +909,16 @@ body[data-theme="light"] {
         overflow-y: auto;
         
         &::-webkit-scrollbar {
-            width: 6px;
+            width: 4px;
         }
         
         &::-webkit-scrollbar-thumb {
             background-color: var(--scrollbar-thumb);
-            border-radius: 3px;
+            border-radius: 2px;
+            
+            &:hover {
+                background-color: var(--scrollbar-thumb-hover);
+            }
         }
         
         &::-webkit-scrollbar-track {
@@ -811,29 +929,54 @@ body[data-theme="light"] {
     .message-item {
         padding: 12px 16px;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         border-bottom: 1px solid var(--border-color);
+        position: relative;
+        
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100%;
+            background-color: var(--primary-color);
+            opacity: 0.1;
+            transition: width 0.3s ease;
+        }
         
         &:hover {
             background-color: var(--item-hover-bg);
+            
+            &::after {
+                width: 4px;
+            }
+            
+            .message-title {
+                color: var(--primary-color);
+            }
         }
         
         &.unread {
             background-color: var(--item-unread-bg);
+            
+            .message-title {
+                font-weight: 600;
+            }
         }
         
         .message-title {
             font-size: 14px;
-            font-weight: 500;
             color: var(--text-color);
             margin-bottom: 4px;
+            transition: color 0.2s ease;
         }
         
         .message-content {
             font-size: 13px;
             color: var(--text-secondary);
             margin-bottom: 4px;
-            line-height: 1.4;
+            line-height: 1.5;
         }
         
         .message-time {
@@ -849,6 +992,11 @@ body[data-theme="light"] {
             height: 6px;
             border-radius: 50%;
             background-color: var(--primary-color);
+            transition: transform 0.2s ease;
+            
+            &:hover {
+                transform: scale(1.2);
+            }
         }
     }
     
@@ -860,20 +1008,100 @@ body[data-theme="light"] {
         justify-content: center;
         color: var(--text-secondary);
         font-size: 14px;
+        padding: 24px;
+        
+        .anticon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: var(--text-tertiary);
+            opacity: 0.5;
+            transition: all 0.3s ease;
+            
+            &:hover {
+                opacity: 0.8;
+                transform: scale(1.1);
+            }
+        }
     }
 }
 
-/* 暗色主题消息样式 */
+/* 消息详情模态框样式优化 */
+.message-detail-modal {
+    :deep(.ant-modal-content) {
+        background-color: var(--bg-color);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        transition: all 0.3s ease;
+
+        .ant-modal-header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 20px 24px;
+
+            .ant-modal-title {
+                color: var(--text-color);
+                font-size: 16px;
+                font-weight: 600;
+                
+                .ant-tag {
+                    margin-left: 8px;
+                    font-weight: normal;
+                    transition: all 0.3s ease;
+                    
+                    &:hover {
+                        transform: translateY(-1px);
+                    }
+                }
+            }
+        }
+
+        .ant-modal-body {
+            padding: 24px;
+            background: var(--bg-color);
+            
+            .message-detail-content {
+                .message-time {
+                    color: var(--text-tertiary);
+                    font-size: 13px;
+                    margin-bottom: 16px;
+                }
+                
+                .message-content {
+                    color: var(--text-color);
+                    font-size: 14px;
+                    line-height: 1.6;
+                }
+            }
+        }
+
+        .ant-modal-close {
+            color: var(--text-secondary);
+            transition: all 0.3s ease;
+
+            &:hover {
+                color: var(--primary-color);
+                transform: rotate(90deg);
+            }
+        }
+    }
+}
+
+/* 主题变量定义 */
 body[data-theme="dark"] {
     .message-dropdown {
         --scrollbar-thumb: rgba(255, 255, 255, 0.2);
+        --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
         --scrollbar-track: rgba(255, 255, 255, 0.05);
         --item-hover-bg: rgba(255, 255, 255, 0.04);
-        --item-unread-bg: rgba(var(--primary-color-rgb), 0.1);
-        --border-color: rgba(255, 255, 255, 0.12);
+        --item-unread-bg: rgba(var(--primary-color-rgb), 0.08);
+        --border-color: rgba(255, 255, 255, 0.08);
+        --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.5);
         
         :deep(.ant-tabs-tab) {
             color: rgba(255, 255, 255, 0.65);
+            transition: color 0.3s ease;
             
             &:hover {
                 color: rgba(255, 255, 255, 0.85);
@@ -881,26 +1109,29 @@ body[data-theme="dark"] {
             
             &.ant-tabs-tab-active {
                 color: var(--primary-color);
+                font-weight: 500;
             }
         }
         
         :deep(.ant-tabs-ink-bar) {
-            background: var(--primary-color);
+            display: none;
         }
     }
 }
 
-/* 亮色主题消息样式 */
 body[data-theme="light"] {
     .message-dropdown {
-        --scrollbar-thumb: rgba(0, 0, 0, 0.2);
-        --scrollbar-track: rgba(0, 0, 0, 0.05);
+        --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+        --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+        --scrollbar-track: rgba(0, 0, 0, 0.03);
         --item-hover-bg: rgba(0, 0, 0, 0.02);
-        --item-unread-bg: rgba(var(--primary-color-rgb), 0.05);
+        --item-unread-bg: rgba(var(--primary-color-rgb), 0.04);
         --border-color: rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
         
         :deep(.ant-tabs-tab) {
             color: rgba(0, 0, 0, 0.65);
+            transition: color 0.3s ease;
             
             &:hover {
                 color: rgba(0, 0, 0, 0.85);
@@ -908,11 +1139,39 @@ body[data-theme="light"] {
             
             &.ant-tabs-tab-active {
                 color: var(--primary-color);
+                font-weight: 500;
             }
         }
         
         :deep(.ant-tabs-ink-bar) {
-            background: var(--primary-color);
+            display: none;
+        }
+    }
+}
+
+/* 动画效果 */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message-dropdown {
+    animation: slideIn 0.3s ease;
+}
+
+.message-item {
+    animation: slideIn 0.3s ease;
+    animation-fill-mode: both;
+    
+    @for $i from 1 through 10 {
+        &:nth-child(#{$i}) {
+            animation-delay: #{$i * 0.05}s;
         }
     }
 }
