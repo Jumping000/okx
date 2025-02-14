@@ -130,6 +130,85 @@
 </div> -->
             </div>
 
+            <!-- 公告模块和系统描述的Grid布局 -->
+            <div class="grid grid-cols-2 gap-5">
+                <!-- 公告模块 -->
+                <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <div class="flex justify-between items-center p-4 border-b border-dark-300">
+                        <h3 class="text-base font-medium text-dark-100">系统公告</h3>
+                    </div>
+                    <div class="announcements-container" style="max-height: 300px; overflow-y: auto;">
+                        <div class="space-y-2 p-4">
+                            <template v-if="announcements.length">
+                                <div v-for="item in announcements" :key="item.id" 
+                                    class="announcement-item p-3 rounded-lg border border-dark-300 hover:bg-dark-300 transition-colors cursor-pointer"
+                                    @click="readAnnouncement(item)">
+                                    <div class="flex items-start gap-3">
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-2">
+                                                <h4 class="text-sm font-medium text-dark-100 truncate">{{ item.title }}</h4>
+                                                <a-tag v-if="!item.read" color="red" class="ml-2">未读</a-tag>
+                                                <a-tag :color="getAnnouncementTypeColor(item.type)">
+                                                    {{ getAnnouncementTypeText(item.type) }}
+                                                </a-tag>
+                                            </div>
+                                            <p class="mt-1 text-sm text-dark-200 line-clamp-2">{{ item.content }}</p>
+                                            <div class="mt-2 text-xs text-dark-300">{{ formatAnnouncementTime(item.publishTime) }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                <div class="flex flex-col items-center justify-center py-8">
+                                    <inbox-outlined class="text-4xl text-dark-300" />
+                                    <span class="mt-2 text-sm text-dark-200">暂无公告</span>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 系统描述模块 -->
+                <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <div class="flex justify-between items-center p-4 border-b border-dark-300">
+                        <h3 class="text-base font-medium text-dark-100">系统信息</h3>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <!-- VIP状态 -->
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-dark-200">会员状态</span>
+                            <a-tag :color="userInfo.isVip ? 'gold' : 'default'">
+                                {{ userInfo.isVip ? 'VIP会员' : '普通会员' }}
+                            </a-tag>
+                        </div>
+                        
+                        <!-- VIP说明 -->
+                        <div class="text-sm text-dark-200">
+                            <p class="mb-2">VIP权益说明：</p>
+                            <ul class="list-disc list-inside space-y-1 text-dark-100">
+                                <li>节点下级用户自动获得VIP身份</li>
+                                <li>优先技术支持服务</li>
+                                <li>四策略量化功能</li>
+                                <li>策略云备份功能</li>
+                                <li>更多特权持续更新中</li>
+                            </ul>
+                        </div>
+
+                        <!-- 节点申请 -->
+                        <div class="mt-4">
+                            <p class="text-sm text-dark-200 mb-2">成为节点下级用户：</p>
+                            <a-button 
+                                type="primary" 
+                                block 
+                                @click="handleNodeApplication"
+                                :disabled="userInfo.isVip">
+                                {{ userInfo.isVip ? '已是节点用户' : '申请成为VIP' }}
+                            </a-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 币种信息区 -->
             <div class="grid gap-5 grid-cols-1 lg:grid-cols-2">
                 <!-- 现货币种 -->
@@ -212,6 +291,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- 首次访问提示弹窗 -->
+        <a-modal
+            v-model:visible="showPrivacyModal"
+            title="隐私安全提示"
+            :closable="false"
+            :maskClosable="false"
+            :keyboard="false"
+            @ok="handlePrivacyConfirm"
+            okText="我知道了"
+            :cancelButtonProps="{ style: { display: 'none' } }"
+        >
+            <div class="text-base leading-relaxed">
+                <p class="mb-4">本网站量化及其策略与交易所秘钥均在本地保存，只有在手动开启云备份功能后才会上传到服务器。</p>
+                <p class="text-gray-500 text-sm">我们重视您的数据安全，所有敏感信息都经过加密处理。</p>
+            </div>
+        </a-modal>
     </div>
 </template>
 
@@ -231,6 +327,11 @@ import { useOverviewStore } from '@/store/overview'
 import { useCurrencyStore } from '@/store/currency'
 import { useWebSocketStore } from '@/store/websocket'
 import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/zh-cn'
+
+dayjs.extend(relativeTime)
+dayjs.locale('zh-cn')
 
 export default defineComponent({
     name: 'DashboardOverview',
@@ -252,6 +353,10 @@ export default defineComponent({
         const spotSearch = ref('')
         const swapSearch = ref('')
         const loading = ref(false)
+        const userInfo = ref({
+            isVip: false, // 默认非VIP
+        })
+        const showPrivacyModal = ref(true)
 
         // 表格列定义
         const columns = [
@@ -444,7 +549,100 @@ export default defineComponent({
         // 组件挂载时获取订单数据
         onMounted(() => {
             fetchOrders()
+            // 检查是否已经显示过隐私提示
+            const hasShownPrivacyNotice = localStorage.getItem('hasShownPrivacyNotice')
+            showPrivacyModal.value = !hasShownPrivacyNotice
         })
+
+        // 处理弹窗确认
+        const handlePrivacyConfirm = () => {
+            localStorage.setItem('hasShownPrivacyNotice', 'true')
+            showPrivacyModal.value = false
+        }
+
+        // 公告数据
+        const announcements = ref([
+            {
+                id: '1',
+                title: '系统维护通知',
+                content: '为了提供更好的服务，系统将于2024年3月20日进行例行维护，维护期间可能影响部分功能的使用。',
+                type: 'maintenance',
+                publishTime: '2024-03-15 10:00:00',
+                read: false
+            },
+            {
+                id: '2',
+                title: '新功能上线公告',
+                content: '量化交易功能全新升级，支持更多指标和策略，欢迎体验。',
+                type: 'feature',
+                publishTime: '2024-03-14 15:30:00',
+                read: false
+            },
+            {
+                id: '3',
+                title: '风险提示',
+                content: '近期市场波动加大，请注意资金安全，合理配置资产。',
+                type: 'risk',
+                publishTime: '2024-03-13 09:15:00',
+                read: true
+            },
+            {
+                id: '4',
+                title: '交易手续费调整通知',
+                content: '自2024年4月1日起，平台将对部分交易对的手续费率进行调整，详情请查看公告。',
+                type: 'system',
+                publishTime: '2024-03-12 14:00:00',
+                read: true
+            },
+            {
+                id: '5',
+                title: '新币种上线预告',
+                content: '平台将于近期上线多个新的交易对，敬请期待。',
+                type: 'feature',
+                publishTime: '2024-03-11 11:00:00',
+                read: true
+            }
+        ])
+
+        // 获取公告类型颜色
+        const getAnnouncementTypeColor = (type) => {
+            const colors = {
+                system: 'blue',
+                maintenance: 'orange',
+                feature: 'green',
+                risk: 'red'
+            }
+            return colors[type] || 'default'
+        }
+
+        // 获取公告类型文本
+        const getAnnouncementTypeText = (type) => {
+            const texts = {
+                system: '系统',
+                maintenance: '维护',
+                feature: '功能',
+                risk: '风险'
+            }
+            return texts[type] || type
+        }
+
+        // 格式化公告时间
+        const formatAnnouncementTime = (time) => {
+            return dayjs(time).fromNow()
+        }
+
+        // 阅读公告
+        const readAnnouncement = (announcement) => {
+            if (!announcement.read) {
+                announcement.read = true
+            }
+        }
+
+        // 添加节点申请处理函数
+        const handleNodeApplication = () => {
+            // 在新窗口打开节点申请链接
+            window.open('https://your-node-application-url.com', '_blank')
+        }
 
         return {
             // 资产数据
@@ -476,6 +674,15 @@ export default defineComponent({
             formatTime,
             getOrderTypeColor,
             getOrderTypeText,
+            announcements,
+            getAnnouncementTypeColor,
+            getAnnouncementTypeText,
+            formatAnnouncementTime,
+            readAnnouncement,
+            userInfo,
+            handleNodeApplication,
+            showPrivacyModal,
+            handlePrivacyConfirm,
         }
     }
 })
@@ -816,5 +1023,106 @@ export default defineComponent({
 
 .text-danger {
     color: var(--danger-color) !important;
+}
+
+/* 公告列表容器样式 */
+.announcements-container {
+    &::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: var(--bg-color);
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 3px;
+
+        &:hover {
+            background: var(--text-secondary);
+        }
+    }
+
+    /* Firefox 滚动条样式 */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) var(--bg-color);
+}
+
+/* 公告项样式 */
+.announcement-item {
+    background-color: var(--bg-color);
+
+    &:hover {
+        background-color: var(--bg-hover);
+    }
+
+    .text-dark-100 {
+        color: var(--text-color);
+    }
+
+    .text-dark-200 {
+        color: var(--text-secondary);
+    }
+
+    .text-dark-300 {
+        color: var(--text-tertiary);
+    }
+}
+
+/* 文本截断样式 */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* 系统描述模块样式 */
+.list-disc {
+    list-style-type: disc;
+    padding-left: 1rem;
+}
+
+/* VIP标签样式 */
+:deep(.ant-tag-gold) {
+    color: #d4b106;
+    background: #fffbe6;
+    border-color: #ffe58f;
+}
+
+/* 申请按钮样式 */
+:deep(.ant-btn-primary) {
+    &[disabled] {
+        background-color: var(--disabled-bg);
+        border-color: var(--disabled-border);
+        color: var(--disabled-text);
+    }
+}
+
+/* 首次访问提示弹窗样式 */
+:deep(.ant-modal-content) {
+    .ant-modal-header {
+        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 16px;
+    }
+
+    .ant-modal-title {
+        font-weight: 500;
+        color: var(--text-color) !important;
+    }
+
+    .ant-modal-body {
+        color: var(--text-color) !important;
+    }
+
+    .ant-modal-footer {
+        border-top: 1px solid var(--border-color);
+        padding: 16px 24px;
+    }
+
+    .text-gray-500 {
+        color: var(--text-secondary) !important;
+    }
 }
 </style>
