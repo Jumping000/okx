@@ -411,12 +411,11 @@
                             <template v-if="wsStore.positionsData.SWAP.length">
                                 <div class="space-y-2">
                                     <div v-for="position in wsStore.positionsData.SWAP" :key="position.posId"
-                                        class="flex items-center justify-between p-2.5 rounded-lg border border-dark-300 hover:bg-dark-300 transition-colors">
+                                        class="flex items-center justify-between p-2.5 rounded-lg border border-dark-300 hover:bg-dark-300 dark:hover:bg-dark-300 hover:bg-gray-50 transition-colors">
                                         <div class="flex items-center gap-3">
                                             <div class="flex flex-col">
                                                 <div class="flex items-center gap-2">
-                                                    <span
-                                                        class="font-medium">{{ position.instId.replace('-USDT-SWAP', '') }}</span>
+                                                    <span class="font-medium dark:text-dark-100 text-gray-700">{{ position.instId.replace('-USDT-SWAP', '') }}</span>
                                                     <a-tag :color="position.posSide === 'long' ? 'success' : 'error'"
                                                         class="m-0 text-xs px-1.5 py-0">
                                                         {{ position.posSide === 'long' ? '多' : '空' }}
@@ -424,7 +423,7 @@
                                                     <a-tag class="m-0 text-xs px-1.5 py-0">{{ position.lever }}X</a-tag>
                                                 </div>
                                                 <div class="flex items-center gap-2 mt-1">
-                                                    <span class="text-xs text-dark-200">持仓:
+                                                    <span class="text-xs dark:text-dark-200 text-gray-500">持仓:
                                                         {{ formatNumber(position.pos, 6) }}</span>
                                                 </div>
                                             </div>
