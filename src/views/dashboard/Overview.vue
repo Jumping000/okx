@@ -139,7 +139,13 @@
                     </div>
                     <div class="announcements-container" style="max-height: 300px; overflow-y: auto;">
                         <div class="space-y-2 p-4">
-                            <template v-if="announcements.length">
+                            <template v-if="announcementLoading">
+                                <div class="flex flex-col items-center justify-center py-8">
+                                    <a-spin />
+                                    <span class="mt-2 text-sm text-dark-200">加载中...</span>
+                                </div>
+                            </template>
+                            <template v-else-if="announcements.length">
                                 <div v-for="item in announcements" :key="item.id" 
                                     class="announcement-item p-3 rounded-lg border border-dark-300 hover:bg-dark-300 transition-colors cursor-pointer"
                                     @click="readAnnouncement(item)">
@@ -147,15 +153,29 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2">
                                                 <h4 class="text-sm font-medium text-dark-100 truncate">{{ item.title }}</h4>
-                                                <a-tag v-if="!item.read" color="red" class="ml-2">未读</a-tag>
                                                 <a-tag :color="getAnnouncementTypeColor(item.type)">
                                                     {{ getAnnouncementTypeText(item.type) }}
                                                 </a-tag>
                                             </div>
                                             <p class="mt-1 text-sm text-dark-200 line-clamp-2">{{ item.content }}</p>
-                                            <div class="mt-2 text-xs text-dark-300">{{ formatAnnouncementTime(item.publishTime) }}</div>
+                                            <div class="mt-2 text-xs text-dark-300">
+                                                发布时间：{{ formatAnnouncementTime(item.publishAt) }}
+                                                <template v-if="item.expiresAt">
+                                                    <span class="mx-1">|</span>
+                                                    过期时间：{{ formatAnnouncementTime(item.expiresAt) }}
+                                                </template>
+                                            </div>
                                         </div>
                                     </div>
+                                </div>
+                                <!-- 分页 -->
+                                <div class="mt-4 flex justify-center">
+                                    <a-pagination
+                                        v-model:current="announcementPagination.current"
+                                        :total="announcementPagination.total"
+                                        :page-size="announcementPagination.pageSize"
+                                        @change="handleAnnouncementPageChange"
+                                    />
                                 </div>
                             </template>
                             <template v-else>
@@ -327,8 +347,10 @@
                 </div>
             </template>
             <div class="announcement-detail-content">
-                <div class="publish-time text-dark-200 text-sm mb-4">
-                    发布时间：{{ formatAnnouncementTime(selectedAnnouncement?.publishTime) }}
+                <div class="publish-info text-dark-200 text-sm mb-4">
+                    <div>发布时间：{{ formatAnnouncementTime(selectedAnnouncement?.publishAt) }}</div>
+                    <div v-if="selectedAnnouncement?.expiresAt">过期时间：{{ formatAnnouncementTime(selectedAnnouncement?.expiresAt) }}</div>
+                    <div v-if="selectedAnnouncement?.createdBy">发布人：{{ selectedAnnouncement?.createdBy.name }}</div>
                 </div>
                 <div class="content text-dark-100 text-base leading-relaxed whitespace-pre-wrap">
                     {{ selectedAnnouncement?.content }}
@@ -356,6 +378,8 @@ import { useWebSocketStore } from '@/store/websocket'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
+import { getAnnouncementList, getAnnouncementDetail } from '@/api/announcement'
+import { ElMessage } from 'ant-design-vue'
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -386,6 +410,13 @@ export default defineComponent({
         const showPrivacyModal = ref(true)
         const announcementDetailVisible = ref(false)
         const selectedAnnouncement = ref(null)
+        const announcements = ref([])
+        const announcementLoading = ref(false)
+        const announcementPagination = ref({
+            current: 1,
+            pageSize: 10,
+            total: 0
+        })
 
         // 表格列定义
         const columns = [
@@ -581,6 +612,7 @@ export default defineComponent({
             // 检查是否已经显示过隐私提示
             const hasShownPrivacyNotice = localStorage.getItem('hasShownPrivacyNotice')
             showPrivacyModal.value = !hasShownPrivacyNotice
+            fetchAnnouncements()
         })
 
         // 处理弹窗确认
@@ -589,57 +621,56 @@ export default defineComponent({
             showPrivacyModal.value = false
         }
 
-        // 公告数据
-        const announcements = ref([
-            {
-                id: '1',
-                title: '系统维护通知',
-                content: '为了提供更好的服务，系统将于2024年3月20日进行例行维护，维护期间可能影响部分功能的使用。',
-                type: 'maintenance',
-                publishTime: '2024-03-15 10:00:00',
-                read: false
-            },
-            {
-                id: '2',
-                title: '新功能上线公告',
-                content: '量化交易功能全新升级，支持更多指标和策略，欢迎体验。',
-                type: 'feature',
-                publishTime: '2024-03-14 15:30:00',
-                read: false
-            },
-            {
-                id: '3',
-                title: '风险提示',
-                content: '近期市场波动加大，请注意资金安全，合理配置资产。',
-                type: 'risk',
-                publishTime: '2024-03-13 09:15:00',
-                read: true
-            },
-            {
-                id: '4',
-                title: '交易手续费调整通知',
-                content: '自2024年4月1日起，平台将对部分交易对的手续费率进行调整，详情请查看公告。',
-                type: 'system',
-                publishTime: '2024-03-12 14:00:00',
-                read: true
-            },
-            {
-                id: '5',
-                title: '新币种上线预告',
-                content: '平台将于近期上线多个新的交易对，敬请期待。',
-                type: 'feature',
-                publishTime: '2024-03-11 11:00:00',
-                read: true
+        // 获取公告列表
+        const fetchAnnouncements = async (page = 1) => {
+            announcementLoading.value = true
+            try {
+                const res = await getAnnouncementList({
+                    page,
+                    pageSize: announcementPagination.value.pageSize,
+                    status: 'published'
+                })
+                if (res.success) {
+                    announcements.value = res.data.list
+                    announcementPagination.value = {
+                        current: res.data.pagination.page,
+                        pageSize: res.data.pagination.pageSize,
+                        total: res.data.pagination.total
+                    }
+                }
+            } catch (error) {
+                console.error('获取公告列表失败:', error)
+                ElMessage.error('获取公告列表失败')
+            } finally {
+                announcementLoading.value = false
             }
-        ])
+        }
+
+        // 获取公告详情
+        const readAnnouncement = async (announcement) => {
+            try {
+                const res = await getAnnouncementDetail(announcement.id)
+                if (res.success) {
+                    selectedAnnouncement.value = res.data
+                    announcementDetailVisible.value = true
+                }
+            } catch (error) {
+                console.error('获取公告详情失败:', error)
+                ElMessage.error('获取公告详情失败')
+            }
+        }
+
+        // 处理分页变化
+        const handleAnnouncementPageChange = (page) => {
+            fetchAnnouncements(page)
+        }
 
         // 获取公告类型颜色
         const getAnnouncementTypeColor = (type) => {
             const colors = {
-                system: 'blue',
-                maintenance: 'orange',
-                feature: 'green',
-                risk: 'red'
+                normal: 'blue',
+                important: 'warning',
+                urgent: 'error'
             }
             return colors[type] || 'default'
         }
@@ -647,26 +678,16 @@ export default defineComponent({
         // 获取公告类型文本
         const getAnnouncementTypeText = (type) => {
             const texts = {
-                system: '系统',
-                maintenance: '维护',
-                feature: '功能',
-                risk: '风险'
+                normal: '普通',
+                important: '重要',
+                urgent: '紧急'
             }
             return texts[type] || type
         }
 
         // 格式化公告时间
         const formatAnnouncementTime = (time) => {
-            return dayjs(time).fromNow()
-        }
-
-        // 阅读公告
-        const readAnnouncement = (announcement) => {
-            selectedAnnouncement.value = announcement
-            announcementDetailVisible.value = true
-            if (!announcement.read) {
-                announcement.read = true
-            }
+            return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
         }
 
         // 关闭公告详情
@@ -712,6 +733,9 @@ export default defineComponent({
             getOrderTypeColor,
             getOrderTypeText,
             announcements,
+            announcementLoading,
+            announcementPagination,
+            handleAnnouncementPageChange,
             getAnnouncementTypeColor,
             getAnnouncementTypeText,
             formatAnnouncementTime,
@@ -1203,7 +1227,7 @@ export default defineComponent({
             background: var(--bg-color);
             
             .announcement-detail-content {
-                .publish-time {
+                .publish-info {
                     color: var(--text-tertiary);
                     font-size: 13px;
                     margin-bottom: 16px;
