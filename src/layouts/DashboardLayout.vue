@@ -38,7 +38,10 @@
                                     <div v-for="msg in messages" :key="msg.id" 
                                         class="message-item" 
                                         :class="{ 'unread': !msg.read }"
-                                        @click="readMessage(msg)">
+                                        @click="() => {
+                                            readMessage(msg);
+                                            showMessageDetail(msg);
+                                        }">
                                         <div class="flex items-start gap-3 relative">
                                             <div class="flex-1 min-w-0">
                                                 <div class="message-title truncate">{{ msg.title }}</div>
@@ -438,7 +441,6 @@ export default defineComponent({
                     console.error('标记消息已读失败:', error)
                 }
             }
-            showMessageDetail(message)
         }
 
         // 标记所有消息为已读
