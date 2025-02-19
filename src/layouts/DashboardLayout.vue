@@ -37,7 +37,7 @@
                                 <template v-if="messages.length">
                                     <div v-for="msg in messages" :key="msg.id" 
                                         class="message-item" 
-                                        :class="{ 'unread': !msg.read }"
+                                        :class="{ 'unread': !msg.isRead }"
                                         @click="() => {
                                             readMessage(msg);
                                             showMessageDetail(msg);
@@ -46,9 +46,13 @@
                                             <div class="flex-1 min-w-0">
                                                 <div class="message-title truncate">{{ msg.title }}</div>
                                                 <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
+                                                <div class="flex justify-between items-center">
+                                                    <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
+                                                    <div class="message-status" :class="msg.isRead ? 'text-dark-200' : 'text-primary'">
+                                                        {{ msg.isRead ? '已读' : '未读' }}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div v-if="!msg.read" class="unread-dot"></div>
                                         </div>
                                     </div>
                                 </template>
@@ -505,7 +509,7 @@ export default defineComponent({
         const showMessageDetail = (message) => {
             selectedMessage.value = message
             messageDetailVisible.value = true
-            if (!message.read) {
+            if (!message.isRead) {
                 readMessage(message)
             }
         }
@@ -958,24 +962,8 @@ body[data-theme="light"] {
         border-bottom: 1px solid var(--border-color);
         position: relative;
         
-        &::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 0;
-            height: 100%;
-            background-color: var(--primary-color);
-            opacity: 0.1;
-            transition: width 0.3s ease;
-        }
-        
         &:hover {
             background-color: var(--item-hover-bg);
-            
-            &::after {
-                width: 4px;
-            }
             
             .message-title {
                 color: var(--primary-color);
@@ -1008,20 +996,10 @@ body[data-theme="light"] {
             font-size: 12px;
             color: var(--text-color);
         }
-        
-        .unread-dot {
-            position: absolute;
-            right: 0;
-            top: 2px;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background-color: var(--primary-color);
-            transition: transform 0.2s ease;
-            
-            &:hover {
-                transform: scale(1.2);
-            }
+
+        .message-status {
+            font-size: 12px;
+            transition: color 0.2s ease;
         }
     }
     
