@@ -153,29 +153,18 @@
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2">
                                                 <h4 class="text-sm font-medium text-dark-100 truncate">{{ item.title }}</h4>
+                                                <!-- <span v-if="item.createdBy" class="text-dark-200">（{{ item.createdBy.name }}）</span> -->
                                                 <a-tag :color="getAnnouncementTypeColor(item.type)">
                                                     {{ getAnnouncementTypeText(item.type) }}
                                                 </a-tag>
                                             </div>
                                             <p class="mt-1 text-sm text-dark-200 line-clamp-2">{{ item.content }}</p>
-                                            <div class="mt-2 text-xs text-dark-300">
-                                                发布时间：{{ formatAnnouncementTime(item.publishAt) }}
-                                                <template v-if="item.expiresAt">
-                                                    <span class="mx-1">|</span>
-                                                    过期时间：{{ formatAnnouncementTime(item.expiresAt) }}
-                                                </template>
+                                            <div class="mt-2 flex justify-between items-center text-xs text-dark-300">
+                                                <span v-if="item.publishAt">发布时间：{{ formatAnnouncementTime(item.publishAt) }}</span>
+                                                <span v-if="item.expiresAt">过期时间：{{ formatAnnouncementTime(item.expiresAt) }}</span>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <!-- 分页 -->
-                                <div class="mt-4 flex justify-center">
-                                    <a-pagination
-                                        v-model:current="announcementPagination.current"
-                                        :total="announcementPagination.total"
-                                        :page-size="announcementPagination.pageSize"
-                                        @change="handleAnnouncementPageChange"
-                                    />
                                 </div>
                             </template>
                             <template v-else>
@@ -332,7 +321,6 @@
         <!-- 公告详情弹窗 -->
         <a-modal
             v-model:visible="announcementDetailVisible"
-            :title="selectedAnnouncement?.title"
             @ok="closeAnnouncementDetail"
             :footer="null"
             class="announcement-detail-modal"
@@ -341,16 +329,18 @@
             <template #title>
                 <div class="flex items-center gap-2">
                     <span>{{ selectedAnnouncement?.title }}</span>
+                    <!-- <span v-if="selectedAnnouncement?.createdBy" class="text-dark-200">({{ selectedAnnouncement?.createdBy.name }})</span> -->
                     <a-tag :color="getAnnouncementTypeColor(selectedAnnouncement?.type)">
                         {{ getAnnouncementTypeText(selectedAnnouncement?.type) }}
                     </a-tag>
                 </div>
             </template>
             <div class="announcement-detail-content">
-                <div class="publish-info text-dark-200 text-sm mb-4">
-                    <div>发布时间：{{ formatAnnouncementTime(selectedAnnouncement?.publishAt) }}</div>
-                    <div v-if="selectedAnnouncement?.expiresAt">过期时间：{{ formatAnnouncementTime(selectedAnnouncement?.expiresAt) }}</div>
-                    <div v-if="selectedAnnouncement?.createdBy">发布人：{{ selectedAnnouncement?.createdBy.name }}</div>
+                <div class="publish-info text-dark-200 text-sm mb-4" v-if="selectedAnnouncement?.publishAt||selectedAnnouncement?.expiresAt">
+                    <div class="flex justify-between items-center mb-2">
+                        <span v-if="selectedAnnouncement?.publishAt">发布时间：{{ formatAnnouncementTime(selectedAnnouncement?.publishAt) }}</span>
+                        <span v-if="selectedAnnouncement?.expiresAt">过期时间：{{ formatAnnouncementTime(selectedAnnouncement?.expiresAt) }}</span>
+                    </div>
                 </div>
                 <div class="content text-dark-100 text-base leading-relaxed whitespace-pre-wrap">
                     {{ selectedAnnouncement?.content }}
