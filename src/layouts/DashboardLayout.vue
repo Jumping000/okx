@@ -147,7 +147,7 @@
                     </div>
                 </div>
                 <!-- 反馈按钮 -->
-                <div class="nav-item nav-item-bottom" @click="showFeedbackModal">
+                <div class="nav-item nav-item-bottom" @click="showFeedback">
                     <comment-outlined class="text-xl mb-1" />
                     <span class="text-xs">反馈</span>
                 </div>
@@ -201,8 +201,7 @@
                         placeholder="请选择问题类型"
                         :options="[
                             { value: 'bug', label: '功能异常' },
-                            { value: 'suggestion', label: '功能建议' },
-                            { value: 'question', label: '使用疑问' },
+                            { value: 'feature', label: '功能建议' },
                             { value: 'other', label: '其他' }
                         ]"
                     />
@@ -210,7 +209,11 @@
                 <a-form-item
                     label="问题描述"
                     name="content"
-                    :rules="[{ required: true, message: '请输入问题描述' }]"
+                    :rules="[
+                        { required: true, message: '请输入问题描述' },
+                        { min: 10, message: '问题描述至少10个字符' },
+                        { max: 500, message: '问题描述最多500个字符' }
+                    ]"
                 >
                     <a-textarea
                         v-model:value="feedbackForm.content"
@@ -283,6 +286,7 @@ import PreferenceSettings from '@/components/PreferenceSettings.vue'
 import { useUserStore } from '@/store/modules/user'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+import { submitFeedback } from '@/api/feedback'
 
 const PATH_TO_KEY = {
     '/dashboard/overview': 'dashboard',
@@ -382,46 +386,55 @@ export default defineComponent({
         const feedbackVisible = ref(false)
         const feedbackLoading = ref(false)
         const feedbackForm = ref({
-            type: undefined,
+            type: '',
             content: '',
             contact: ''
         })
 
-        // 显示反馈弹窗
-        const showFeedbackModal = () => {
+        // 打开反馈弹窗
+        const showFeedback = () => {
             feedbackVisible.value = true
         }
 
+        // 关闭反馈弹窗
+        const handleFeedbackCancel = () => {
+            feedbackVisible.value = false
+            feedbackForm.value = {
+                type: '',
+                content: '',
+                contact: ''
+            }
+        }
+
         // 提交反馈
-        const handleFeedbackSubmit = () => {
+        const handleFeedbackSubmit = async () => {
             if (!feedbackForm.value.type || !feedbackForm.value.content) {
                 message.error('请填写必填项')
                 return
             }
 
-            feedbackLoading.value = true
-            // 这里模拟提交反馈
-            setTimeout(() => {
-                message.success('感谢您的反馈！')
-                feedbackLoading.value = false
-                feedbackVisible.value = false
-                // 重置表单
-                feedbackForm.value = {
-                    type: undefined,
-                    content: '',
-                    contact: ''
-                }
-            }, 1000)
-        }
+            if (feedbackForm.value.content.length < 10) {
+                message.error('问题描述至少10个字符')
+                return
+            }
 
-        // 取消反馈
-        const handleFeedbackCancel = () => {
-            feedbackVisible.value = false
-            // 重置表单
-            feedbackForm.value = {
-                type: undefined,
-                content: '',
-                contact: ''
+            feedbackLoading.value = true
+            try {
+                const res = await submitFeedback({
+                    type: feedbackForm.value.type,
+                    content: feedbackForm.value.content,
+                    contact: feedbackForm.value.contact || undefined  // 如果没有填写联系方式，则不传此字段
+                })
+                if (res.code === 200 && res.success) {
+                    message.success('反馈提交成功')
+                    handleFeedbackCancel()
+                } else {
+                    throw new Error(res.message || '提交失败')
+                }
+            } catch (error) {
+                message.error(error.message || '提交失败')
+            } finally {
+                feedbackLoading.value = false
             }
         }
 
@@ -533,7 +546,7 @@ export default defineComponent({
             feedbackVisible,
             feedbackLoading,
             feedbackForm,
-            showFeedbackModal,
+            showFeedback,
             handleFeedbackSubmit,
             handleFeedbackCancel,
             messages,
