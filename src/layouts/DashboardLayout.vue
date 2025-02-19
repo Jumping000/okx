@@ -196,17 +196,17 @@
         >
             <template #title>
                 <div class="flex items-center gap-2">
-                    <span>{{ selectedMessage?.title }}</span>
+                    <span class="modal-title">{{ selectedMessage?.title }}</span>
                     <a-tag :color="getMessageTypeColor(selectedMessage?.type)">
                         {{ getMessageTypeText(selectedMessage?.type) }}
                     </a-tag>
                 </div>
             </template>
             <div class="message-detail-content">
-                <div class="message-time">
+                <div class="message-time text-dark-200">
                     发布时间：{{ formatMessageTime(selectedMessage?.time) }}
                 </div>
-                <div class="message-content">
+                <div class="message-content text-dark-100">
                     {{ selectedMessage?.content }}
                 </div>
             </div>
@@ -999,13 +999,14 @@ body[data-theme="light"] {
         
         .message-content {
             font-size: 13px;
-            color: var(--text-secondary);
+            color: var(--text-color);
             margin-bottom: 4px;
             line-height: 1.5;
         }
         
         .message-time {
             font-size: 12px;
+            color: var(--text-color);
         }
         
         .unread-dot {
@@ -1087,13 +1088,11 @@ body[data-theme="light"] {
             
             .message-detail-content {
                 .message-time {
-                    color: var(--text-tertiary);
                     font-size: 13px;
                     margin-bottom: 16px;
                 }
                 
                 .message-content {
-                    color: var(--text-color);
                     font-size: 14px;
                     line-height: 1.6;
                 }
@@ -1114,72 +1113,24 @@ body[data-theme="light"] {
 
 /* 主题变量定义 */
 body[data-theme="dark"] {
-    .message-dropdown {
-        --scrollbar-thumb: rgba(255, 255, 255, 0.2);
-        --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
-        --scrollbar-track: rgba(255, 255, 255, 0.05);
-        --item-hover-bg: rgba(255, 255, 255, 0.04);
-        --item-unread-bg: rgba(var(--primary-color-rgb), 0.08);
-        --border-color: rgba(255, 255, 255, 0.08);
-        --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.5);
-        
-        :deep(.ant-tabs-tab) {
-            color: rgba(255, 255, 255, 0.65);
-            transition: color 0.3s ease;
-            
-            &:hover {
-                color: rgba(255, 255, 255, 0.85);
-            }
-            
-            &.ant-tabs-tab-active {
-                color: var(--primary-color);
-                font-weight: 500;
-            }
-        }
-        
-        :deep(.ant-tabs-ink-bar) {
-            display: none;
-        }
-
-        .message-item {
-            .message-time {
-                color: rgba(255, 255, 255, 0.85);
+    .message-detail-modal {
+        :deep(.ant-modal-content) {
+            .message-detail-content {
+                .message-time, .message-content {
+                    color: rgba(255, 255, 255, 0.85) !important;
+                }
             }
         }
     }
 }
 
 body[data-theme="light"] {
-    .message-dropdown {
-        --scrollbar-thumb: rgba(0, 0, 0, 0.15);
-        --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
-        --scrollbar-track: rgba(0, 0, 0, 0.03);
-        --item-hover-bg: rgba(0, 0, 0, 0.02);
-        --item-unread-bg: rgba(var(--primary-color-rgb), 0.04);
-        --border-color: rgba(0, 0, 0, 0.06);
-        --shadow-lg: 0 4px 20px rgba(0, 0, 0, 0.08);
-        
-        :deep(.ant-tabs-tab) {
-            color: rgba(0, 0, 0, 0.65);
-            transition: color 0.3s ease;
-            
-            &:hover {
-                color: rgba(0, 0, 0, 0.85);
-            }
-            
-            &.ant-tabs-tab-active {
-                color: var(--primary-color);
-                font-weight: 500;
-            }
-        }
-        
-        :deep(.ant-tabs-ink-bar) {
-            display: none;
-        }
-
-        .message-item {
-            .message-time {
-                color: rgba(0, 0, 0, 0.85);
+    .message-detail-modal {
+        :deep(.ant-modal-content) {
+            .message-detail-content {
+                .message-time, .message-content {
+                    color: rgba(0, 0, 0, 0.85) !important;
+                }
             }
         }
     }
@@ -1384,6 +1335,27 @@ body[data-theme="light"] {
 </style>
 
 <style lang="scss">
+/* 全局主题样式 */
+[data-theme="dark"] {
+    .text-dark-100 {
+        color: rgba(255, 255, 255, 0.85) !important;
+    }
+    
+    .text-dark-200 {
+        color: rgba(255, 255, 255, 0.45) !important;
+    }
+}
+
+[data-theme="light"] {
+    .text-dark-100 {
+        color: rgba(0, 0, 0, 0.85) !important;
+    }
+    
+    .text-dark-200 {
+        color: rgba(0, 0, 0, 0.45) !important;
+    }
+}
+
 /* 暗色主题样式 */
 body[data-theme="dark"] {
     .ant-modal-content {
