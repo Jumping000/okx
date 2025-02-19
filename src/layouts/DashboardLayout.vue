@@ -19,7 +19,7 @@
                             <template #title>
                                 <div class="flex justify-between items-center py-2 px-4 border-b border-[var(--border-color)]">
                                     <span class="text-sm font-medium notification-title">消息通知</span>
-                                    <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2">
                                         <a-tooltip title="全部标记为已读" placement="bottom">
                                             <a-button type="text" size="small" @click="markAllRead" class="icon-btn">
                                                 <template #icon><check-outlined /></template>
@@ -30,7 +30,7 @@
                                                 <template #icon><delete-outlined /></template>
                                             </a-button>
                                         </a-tooltip>
-                                    </div>
+                </div>
                                 </div>
                             </template>
                             <a-tabs class="message-tabs">
@@ -45,7 +45,7 @@
                                                     <div class="flex-1 min-w-0">
                                                         <div class="message-title truncate">{{ msg.title }}</div>
                                                         <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                        <div class="message-time">{{ msg.time }}</div>
+                                                        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
                                                     </div>
                                                     <div v-if="!msg.read" class="unread-dot"></div>
                                                 </div>
@@ -68,7 +68,7 @@
                                                     <div class="flex-1 min-w-0">
                                                         <div class="message-title truncate">{{ msg.title }}</div>
                                                         <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                        <div class="message-time">{{ msg.time }}</div>
+                                                        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
                                                     </div>
                                                     <div v-if="!msg.read" class="unread-dot"></div>
                                                 </div>
@@ -91,7 +91,7 @@
                                                     <div class="flex-1 min-w-0">
                                                         <div class="message-title truncate">{{ msg.title }}</div>
                                                         <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                        <div class="message-time">{{ msg.time }}</div>
+                                                        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
                                                     </div>
                                                     <div v-if="!msg.read" class="unread-dot"></div>
                                                 </div>
@@ -287,6 +287,7 @@ import { useUserStore } from '@/store/modules/user'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { submitFeedback } from '@/api/feedback'
+import { getUserMessages, markMessageRead, markAllMessagesRead, deleteMessage, getUnreadMessageCount } from '@/api/message'
 
 const PATH_TO_KEY = {
     '/dashboard/overview': 'dashboard',
@@ -438,48 +439,127 @@ export default defineComponent({
             }
         }
 
-        const messages = ref([
-            {
-                id: 1,
-                title: '系统通知',
-                content: '您的API密钥即将过期，请及时更新',
-                time: '10分钟前',
-                read: false,
-                type: 'system'
-            },
-            {
-                id: 2,
-                title: '交易提醒',
-                content: 'BTC-USDT 触发止盈订单',
-                time: '30分钟前',
-                read: true,
-                type: 'trade'
+        const messages = ref([])
+        const unreadCount = ref(0)
+        const messageLoading = ref(false)
+        const currentTab = ref('all')
+
+        // 获取消息列表
+        const fetchMessages = async (type = null) => {
+            messageLoading.value = true
+            try {
+                const res = await getUserMessages({
+                    type,
+                    pageSize: 50  // 设置较大的pageSize以显示更多消息
+                })
+                if (res.success) {
+                    messages.value = res.data.list.map(msg => ({
+                        ...msg,
+                        time: msg.createdAt
+                    }))
+                }
+            } catch (error) {
+                console.error('获取消息列表失败:', error)
+            } finally {
+                messageLoading.value = false
             }
-        ])
+        }
 
-        const systemMessages = computed(() => {
-            return messages.value.filter(msg => msg.type === 'system')
+        // 获取未读消息数量
+        const fetchUnreadCount = async () => {
+            try {
+                const res = await getUnreadMessageCount()
+                if (res.success) {
+                    unreadCount.value = res.data.count
+                }
+            } catch (error) {
+                console.error('获取未读消息数量失败:', error)
+            }
+        }
+
+        // 标记消息为已读
+        const readMessage = async (message) => {
+            if (!message.isRead) {
+                try {
+                    const res = await markMessageRead(message.id)
+                    if (res.success) {
+                        message.isRead = true
+                        await fetchUnreadCount()
+                    }
+                } catch (error) {
+                    console.error('标记消息已读失败:', error)
+                }
+            }
+            showMessageDetail(message)
+        }
+
+        // 标记所有消息为已读
+        const markAllRead = async () => {
+            try {
+                const res = await markAllMessagesRead()
+                if (res.success) {
+                    messages.value.forEach(msg => msg.isRead = true)
+                    unreadCount.value = 0
+                    message.success('已全部标记为已读')
+                }
+            } catch (error) {
+                console.error('标记全部已读失败:', error)
+                message.error('操作失败')
+            }
+        }
+
+        // 清空全部消息
+        const clearAllMessages = async () => {
+            try {
+                // 逐个删除消息
+                await Promise.all(messages.value.map(msg => deleteMessage(msg.id)))
+                messages.value = []
+                unreadCount.value = 0
+                message.success('已清空全部消息')
+            } catch (error) {
+                console.error('清空消息失败:', error)
+                message.error('操作失败')
+            }
+        }
+
+        // 监听标签页切换
+        const handleTabChange = (key) => {
+            currentTab.value = key
+            const type = key === 'all' ? null : key
+            fetchMessages(type)
+        }
+
+        // 计算过滤后的消息列表
+        const filteredMessages = computed(() => {
+            if (currentTab.value === 'all') return messages.value
+            return messages.value.filter(msg => msg.type === currentTab.value)
         })
 
-        const tradeMessages = computed(() => {
-            return messages.value.filter(msg => msg.type === 'trade')
-        })
-
-        const unreadCount = computed(() => {
-            return messages.value.filter(msg => !msg.read).length
-        })
-
-        // 消息详情相关
-        const messageDetailVisible = ref(false)
-        const selectedMessage = ref(null)
+        // 格式化消息时间
+        const formatMessageTime = (time) => {
+            if (!time) return ''
+            const messageTime = dayjs(time)
+            const now = dayjs()
+            const diffMinutes = now.diff(messageTime, 'minute')
+            
+            if (diffMinutes < 1) return '刚刚'
+            if (diffMinutes < 60) return `${diffMinutes}分钟前`
+            
+            const diffHours = now.diff(messageTime, 'hour')
+            if (diffHours < 24) return `${diffHours}小时前`
+            
+            const diffDays = now.diff(messageTime, 'day')
+            if (diffDays < 7) return `${diffDays}天前`
+            
+            return messageTime.format('YYYY-MM-DD HH:mm')
+        }
 
         // 获取消息类型颜色
         const getMessageTypeColor = (type) => {
             const colors = {
                 system: 'blue',
-                trade: 'green',
-                risk: 'red',
-                maintenance: 'orange'
+                notification: 'green',
+                alert: 'red'
             }
             return colors[type] || 'default'
         }
@@ -488,18 +568,15 @@ export default defineComponent({
         const getMessageTypeText = (type) => {
             const texts = {
                 system: '系统消息',
-                trade: '交易提醒',
-                risk: '风险提示',
-                maintenance: '系统维护'
+                notification: '通知',
+                alert: '提醒'
             }
             return texts[type] || type
         }
 
-        // 格式化消息时间
-        const formatMessageTime = (time) => {
-            if (!time) return ''
-            return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
-        }
+        // 消息详情相关
+        const messageDetailVisible = ref(false)
+        const selectedMessage = ref(null)
 
         // 显示消息详情
         const showMessageDetail = (message) => {
@@ -516,25 +593,9 @@ export default defineComponent({
             selectedMessage.value = null
         }
 
-        // 更新readMessage方法
-        const readMessage = (message) => {
-            message.read = true
-            showMessageDetail(message)
-        }
-
-        const markAllRead = () => {
-            messages.value.forEach(msg => {
-                msg.read = true
-            })
-        }
-
-        const clearAllMessages = () => {
-            messages.value = []
-        }
-
-        onMounted(async () => {
-            // 获取币种列表
-            await currencyStore.fetchCurrencies()
+        onMounted(() => {
+            fetchMessages()
+            fetchUnreadCount()
         })
         return {
             selectedKeys,
@@ -549,18 +610,19 @@ export default defineComponent({
             showFeedback,
             handleFeedbackSubmit,
             handleFeedbackCancel,
-            messages,
-            systemMessages,
-            tradeMessages,
+            messages: filteredMessages,
             unreadCount,
+            messageLoading,
+            currentTab,
             readMessage,
             markAllRead,
             clearAllMessages,
-            messageDetailVisible,
-            selectedMessage,
+            handleTabChange,
+            formatMessageTime,
             getMessageTypeColor,
             getMessageTypeText,
-            formatMessageTime,
+            messageDetailVisible,
+            selectedMessage,
             showMessageDetail,
             closeMessageDetail,
         }
