@@ -8,7 +8,6 @@ export function getUserMessages(params) {
     params: {
       page: params?.page || 1,
       pageSize: params?.pageSize || 10,
-      type: params?.type,
       isRead: params?.isRead
     }
   })

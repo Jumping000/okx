@@ -19,7 +19,7 @@
                             <template #title>
                                 <div class="flex justify-between items-center py-2 px-4 border-b border-[var(--border-color)]">
                                     <span class="text-sm font-medium notification-title">消息通知</span>
-                <div class="flex items-center gap-2">
+                                    <div class="flex items-center gap-2">
                                         <a-tooltip title="全部标记为已读" placement="bottom">
                                             <a-button type="text" size="small" @click="markAllRead" class="icon-btn">
                                                 <template #icon><check-outlined /></template>
@@ -30,80 +30,30 @@
                                                 <template #icon><delete-outlined /></template>
                                             </a-button>
                                         </a-tooltip>
-                </div>
+                                    </div>
                                 </div>
                             </template>
-                            <a-tabs class="message-tabs">
-                                <a-tab-pane key="all" tab="全部">
-                                    <div class="message-list">
-                                        <template v-if="messages.length">
-                                            <div v-for="msg in messages" :key="msg.id" 
-                                                class="message-item" 
-                                                :class="{ 'unread': !msg.read }"
-                                                @click="showMessageDetail(msg)">
-                                                <div class="flex items-start gap-3 relative">
-                                                    <div class="flex-1 min-w-0">
-                                                        <div class="message-title truncate">{{ msg.title }}</div>
-                                                        <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
-                                                    </div>
-                                                    <div v-if="!msg.read" class="unread-dot"></div>
-                                                </div>
+                            <div class="message-list">
+                                <template v-if="messages.length">
+                                    <div v-for="msg in messages" :key="msg.id" 
+                                        class="message-item" 
+                                        :class="{ 'unread': !msg.read }"
+                                        @click="readMessage(msg)">
+                                        <div class="flex items-start gap-3 relative">
+                                            <div class="flex-1 min-w-0">
+                                                <div class="message-title truncate">{{ msg.title }}</div>
+                                                <div class="message-content line-clamp-2">{{ msg.content }}</div>
+                                                <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
                                             </div>
-                                        </template>
-                                        <div v-else class="empty-message">
-                                            <inbox-outlined class="text-4xl opacity-20 mb-2" />
-                                            <span>暂无消息</span>
+                                            <div v-if="!msg.read" class="unread-dot"></div>
                                         </div>
                                     </div>
-                                </a-tab-pane>
-                                <a-tab-pane key="system" tab="系统">
-                                    <div class="message-list">
-                                        <template v-if="systemMessages.length">
-                                            <div v-for="msg in systemMessages" :key="msg.id" 
-                                                class="message-item" 
-                                                :class="{ 'unread': !msg.read }"
-                                                @click="showMessageDetail(msg)">
-                                                <div class="flex items-start gap-3 relative">
-                                                    <div class="flex-1 min-w-0">
-                                                        <div class="message-title truncate">{{ msg.title }}</div>
-                                                        <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
-                                                    </div>
-                                                    <div v-if="!msg.read" class="unread-dot"></div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                        <div v-else class="empty-message">
-                                            <inbox-outlined class="text-4xl opacity-20 mb-2" />
-                                            <span>暂无系统消息</span>
-                                        </div>
-                                    </div>
-                                </a-tab-pane>
-                                <a-tab-pane key="trade" tab="交易">
-                                    <div class="message-list">
-                                        <template v-if="tradeMessages.length">
-                                            <div v-for="msg in tradeMessages" :key="msg.id" 
-                                                class="message-item" 
-                                                :class="{ 'unread': !msg.read }"
-                                                @click="showMessageDetail(msg)">
-                                                <div class="flex items-start gap-3 relative">
-                                                    <div class="flex-1 min-w-0">
-                                                        <div class="message-title truncate">{{ msg.title }}</div>
-                                                        <div class="message-content line-clamp-2">{{ msg.content }}</div>
-                                                        <div class="message-time">{{ formatMessageTime(msg.time) }}</div>
-                                                    </div>
-                                                    <div v-if="!msg.read" class="unread-dot"></div>
-                                                </div>
-                                            </div>
-                                        </template>
-                                        <div v-else class="empty-message">
-                                            <inbox-outlined class="text-4xl opacity-20 mb-2" />
-                                            <span>暂无交易消息</span>
-                                        </div>
-                                    </div>
-                                </a-tab-pane>
-                            </a-tabs>
+                                </template>
+                                <div v-else class="empty-message">
+                                    <inbox-outlined class="text-4xl opacity-20 mb-2" />
+                                    <span>暂无消息</span>
+                                </div>
+                            </div>
                         </a-card>
                     </template>
                 </a-dropdown>
@@ -442,14 +392,12 @@ export default defineComponent({
         const messages = ref([])
         const unreadCount = ref(0)
         const messageLoading = ref(false)
-        const currentTab = ref('all')
 
         // 获取消息列表
-        const fetchMessages = async (type = null) => {
+        const fetchMessages = async () => {
             messageLoading.value = true
             try {
                 const res = await getUserMessages({
-                    type,
                     pageSize: 50  // 设置较大的pageSize以显示更多消息
                 })
                 if (res.success) {
@@ -522,36 +470,9 @@ export default defineComponent({
             }
         }
 
-        // 监听标签页切换
-        const handleTabChange = (key) => {
-            currentTab.value = key
-            const type = key === 'all' ? null : key
-            fetchMessages(type)
-        }
-
-        // 计算过滤后的消息列表
-        const filteredMessages = computed(() => {
-            if (currentTab.value === 'all') return messages.value
-            return messages.value.filter(msg => msg.type === currentTab.value)
-        })
-
         // 格式化消息时间
         const formatMessageTime = (time) => {
-            if (!time) return ''
-            const messageTime = dayjs(time)
-            const now = dayjs()
-            const diffMinutes = now.diff(messageTime, 'minute')
-            
-            if (diffMinutes < 1) return '刚刚'
-            if (diffMinutes < 60) return `${diffMinutes}分钟前`
-            
-            const diffHours = now.diff(messageTime, 'hour')
-            if (diffHours < 24) return `${diffHours}小时前`
-            
-            const diffDays = now.diff(messageTime, 'day')
-            if (diffDays < 7) return `${diffDays}天前`
-            
-            return messageTime.format('YYYY-MM-DD HH:mm')
+            return dayjs(time).format('YYYY-MM-DD HH:mm:ss')
         }
 
         // 获取消息类型颜色
@@ -593,6 +514,7 @@ export default defineComponent({
             selectedMessage.value = null
         }
 
+        // 组件挂载时获取消息列表和未读数量
         onMounted(() => {
             fetchMessages()
             fetchUnreadCount()
@@ -610,14 +532,12 @@ export default defineComponent({
             showFeedback,
             handleFeedbackSubmit,
             handleFeedbackCancel,
-            messages: filteredMessages,
+            messages,
             unreadCount,
             messageLoading,
-            currentTab,
             readMessage,
             markAllRead,
             clearAllMessages,
-            handleTabChange,
             formatMessageTime,
             getMessageTypeColor,
             getMessageTypeText,
@@ -1084,7 +1004,6 @@ body[data-theme="light"] {
         
         .message-time {
             font-size: 12px;
-            color: var(--text-tertiary);
         }
         
         .unread-dot {
@@ -1219,6 +1138,12 @@ body[data-theme="dark"] {
         :deep(.ant-tabs-ink-bar) {
             display: none;
         }
+
+        .message-item {
+            .message-time {
+                color: rgba(255, 255, 255, 0.85);
+            }
+        }
     }
 }
 
@@ -1248,6 +1173,12 @@ body[data-theme="light"] {
         
         :deep(.ant-tabs-ink-bar) {
             display: none;
+        }
+
+        .message-item {
+            .message-time {
+                color: rgba(0, 0, 0, 0.85);
+            }
         }
     }
 }
