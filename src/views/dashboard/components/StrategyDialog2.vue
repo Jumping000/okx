@@ -16,29 +16,34 @@
                             <a-form-item label="策略描述" required>
                                 <a-textarea v-model:value="form.description" placeholder="请输入策略描述" :rows="2" />
                             </a-form-item>
-                            <a-form-item label="交易类型">
+                            <a-form-item label="交易类型" v-show="false">
                                 <a-input value="永续" disabled />
                             </a-form-item>
                             <a-form-item label="币种信息" required>
                                 <a-select v-model:value="form.currency" style="width: 100%" placeholder="请选择交易币种"
                                     :options="currencyOptions" />
                             </a-form-item>
-                            <a-form-item label="委托数量" required>
-                                <a-input-number v-model:value="form.quantity" :min="1" style="width: 100%" />
-                            </a-form-item>
-                            <a-form-item label="杠杆倍数" required>
-                                <a-input-number v-model:value="form.leverage" :min="1" :max="100" style="width: 100%" />
-                            </a-form-item>
-                            <a-form-item label="止损比例" required>
-                                <a-input-number v-model:value="form.stopLoss" :min="0" :max="100" :step="0.1"
-                                    style="width: 100%" />
-                                <span class="unit">(1%-100%=0.01-1)</span>
-                            </a-form-item>
-                            <a-form-item label="阈值比例" required>
-                                <a-input-number v-model:value="form.threshold" :min="0" :max="100" :step="0.1"
-                                    style="width: 100%" />
-                                <span class="unit">(1%-100%=0.01-1)</span>
-                            </a-form-item>
+                            <div class="form-row">
+                                <a-form-item label="委托数量(张)" required>
+                                    <a-input-number v-model:value="form.quantity" :min="1" style="width: 100%" />
+                             
+                                </a-form-item>
+                                <a-form-item label="杠杆倍数" required>
+                                    <a-input-number v-model:value="form.leverage" :min="1" :max="100" style="width: 100%" />
+                                </a-form-item>
+                            </div>
+                            <div class="form-row">
+                                <a-form-item label="止损比例" required>
+                                    <a-input-number v-model:value="form.stopLoss" :min="0" :max="100" :step="0.1"
+                                        style="width: 100%" />
+                                    <span class="unit">(1%-100%=0.01-1)</span>
+                                </a-form-item>
+                                <a-form-item label="阈值比例" required>
+                                    <a-input-number v-model:value="form.threshold" :min="0" :max="100" :step="0.1"
+                                        style="width: 100%" />
+                                    <span class="unit">(1%-100%=0.01-1)</span>
+                                </a-form-item>
+                            </div>
                         </div>
                     </a-form>
                 </div>
@@ -53,9 +58,9 @@
                         <div class="strategy-mode">
                             <a-form-item label="策略模式" required>
                                 <a-radio-group v-model:value="form.strategyMode" button-style="solid">
-                                    <a-radio-button value="1">1策略</a-radio-button>
-                                    <a-radio-button value="2">2策略</a-radio-button>
-                                    <a-radio-button value="4">4策略</a-radio-button>
+                                    <a-radio-button value="1">单策略</a-radio-button>
+                                    <a-radio-button value="2">双策略</a-radio-button>
+                                    <a-radio-button value="4">四策略</a-radio-button>
                                 </a-radio-group>
                             </a-form-item>
                         </div>
@@ -204,9 +209,9 @@ const emit = defineEmits(['update:visible', 'submit'])
 // 获取币种列表
 const currencyStore = useCurrencyStore()
 const currencyOptions = computed(() => {
-    const currencies = currencyStore.currencies['SWAP'] || []
+    const currencies = currencyStore.currencies?.['SWAP'] || []
     return currencies.map(currency => ({
-        label: currency.instId.replace('-SWAP', ''),
+        label: currency.instId.split('-')[0],  // 只显示币种名称，不显示 -SWAP
         value: currency.instId
     }))
 })
@@ -217,9 +222,9 @@ const form = ref({
     description: '',
     currency: undefined,
     quantity: 1,
-    leverage: 10,
-    stopLoss: 1,
-    threshold: 1,
+    leverage: 1,
+    stopLoss: 0.05,
+    threshold: 0.05,
     strategyMode: '2',
     // 1策略模式数据
     strategy1Conditions: [],
@@ -324,9 +329,9 @@ const handleCancel = () => {
         description: '',
         currency: undefined,
         quantity: 1,
-        leverage: 10,
-        stopLoss: 1,
-        threshold: 1,
+        leverage: 1,
+        stopLoss: 0.05,
+        threshold: 0.05,
         strategyMode: '2',
         strategy1Conditions: [],
         strategy2LongConditions: [],
@@ -430,8 +435,103 @@ loadExpressions()
 
 .left-panel {
     flex: 0 0 300px;
-    border-right: 1px solid var(--border-color);
-    padding-right: 20px;
+    background: var(--bg-hover);
+    border-radius: 8px;
+    padding: 16px;
+    height: fit-content;
+    border: 1px solid var(--border-color);
+
+    .form-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        :deep(.ant-form-item) {
+            flex: 1;
+            margin-bottom: 0;
+        }
+    }
+
+    :deep(.ant-form-item) {
+        margin-bottom: 16px;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+
+        .ant-form-item-label {
+            padding-bottom: 4px;
+
+            label {
+                color: var(--text-color);
+                font-size: 14px;
+                height: 28px;
+                
+                &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
+                    &::before {
+                        color: var(--error-color);
+                    }
+                }
+            }
+        }
+
+        .ant-input,
+        .ant-input-number,
+        .ant-select:not(.ant-select-customize-input) .ant-select-selector {
+            background-color: var(--bg-color);
+            border-color: var(--border-color);
+            color: var(--text-color);
+            transition: all 0.3s;
+
+            &:hover {
+                border-color: var(--primary-color);
+            }
+
+            &:focus,
+            &.ant-input-focused,
+            &.ant-input-number-focused,
+            &.ant-select-focused {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 2px var(--primary-color-10);
+            }
+        }
+
+        .ant-input-number-handler-wrap {
+            background-color: var(--bg-color);
+
+            .ant-input-number-handler {
+                border-color: var(--border-color);
+
+                &:hover {
+                    .ant-input-number-handler-up-inner,
+                    .ant-input-number-handler-down-inner {
+                        color: var(--primary-color);
+                    }
+                }
+            }
+        }
+
+        .ant-select-arrow {
+            color: var(--text-color);
+        }
+
+        .ant-input-disabled,
+        .ant-input-number-disabled,
+        .ant-select-disabled .ant-select-selector {
+            background-color: var(--bg-hover);
+            border-color: var(--border-color);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+
+            &:hover {
+                border-color: var(--border-color);
+            }
+        }
+    }
 }
 
 .right-panel {
@@ -442,13 +542,23 @@ loadExpressions()
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin: 16px 0 12px;
+    margin: 0 0 16px;
     padding-left: 10px;
     border-left: 4px solid var(--primary-color);
+
+    .title {
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--text-color);
+    }
 }
 
 .section-content {
     margin-bottom: 24px;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
 }
 
 .strategy-mode {
@@ -480,7 +590,7 @@ loadExpressions()
 
 .unit {
     margin-left: 8px;
-    color: var(--text-color-secondary);
+    color: var(--text-secondary);
     font-size: 12px;
 }
 
