@@ -7,7 +7,7 @@
             </div>
             <div class="flex items-center gap-6">
                 <!-- 消息通知 -->
-                <a-dropdown placement="bottomRight" :trigger="['hover']">
+                <a-dropdown placement="bottomRight" :trigger="['hover']" @visibleChange="handleDropdownVisibleChange">
                     <div class="relative cursor-pointer">
                         <bell-outlined class="text-xl bell-icon translate-y-[-2px]" />
                         <span v-if="unreadCount > 0" 
@@ -520,6 +520,17 @@ export default defineComponent({
             selectedMessage.value = null
         }
 
+        // 处理下拉框显示状态变化
+        const handleDropdownVisibleChange = async (visible) => {
+            if (visible) {
+                // 当下拉框显示时，重新加载消息列表和未读数量
+                await Promise.all([
+                    fetchMessages(),
+                    fetchUnreadCount()
+                ])
+            }
+        }
+
         // 组件挂载时获取消息列表和未读数量
         onMounted(() => {
             fetchMessages()
@@ -551,6 +562,7 @@ export default defineComponent({
             selectedMessage,
             showMessageDetail,
             closeMessageDetail,
+            handleDropdownVisibleChange,
         }
     }
 })
