@@ -369,7 +369,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import 'dayjs/locale/zh-cn'
 import { getAnnouncementList, getAnnouncementDetail } from '@/api/announcement'
-import { ElMessage } from 'ant-design-vue'
+import { message } from 'ant-design-vue';
 
 dayjs.extend(relativeTime)
 dayjs.locale('zh-cn')
@@ -630,7 +630,8 @@ export default defineComponent({
                 }
             } catch (error) {
                 console.error('获取公告列表失败:', error)
-                ElMessage.error('获取公告列表失败')
+                 message.error('获取公告列表失败');
+
             } finally {
                 announcementLoading.value = false
             }
@@ -646,7 +647,7 @@ export default defineComponent({
                 }
             } catch (error) {
                 console.error('获取公告详情失败:', error)
-                ElMessage.error('获取公告详情失败')
+                message.error('获取公告详情失败')
             }
         }
 
