@@ -20,8 +20,13 @@
                                 <a-input value="永续" disabled />
                             </a-form-item>
                             <a-form-item label="币种信息" required>
-                                <a-select v-model:value="form.currency" style="width: 100%" placeholder="请选择交易币种"
-                                    :options="currencyOptions" />
+                                <a-select v-model:value="form.currency" 
+                                    style="width: 100%" 
+                                    placeholder="请选择交易币种"
+                                    :options="currencyOptions"
+                                    :popup-class-name="'currency-select-dropdown'"
+                                    :get-popup-container="(triggerNode) => triggerNode.parentNode"
+                                />
                             </a-form-item>
                             <div class="form-row">
                                 <a-form-item label="委托数量(张)" required>
@@ -71,7 +76,7 @@
                             <template v-if="form.strategyMode === '1'">
                                 <div class="strategy-section">
                                     <div class="strategy-header">
-                                        <div class="strategy-label">1策略条件</div>
+                                        <div class="strategy-label">单策略条件</div>
                                         <a-button type="link" @click="addStrategy1Condition">
                                             <template #icon><plus-outlined /></template>
                                             添加条件
@@ -184,7 +189,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { useCurrencyStore } from '@/store/currency'
@@ -208,10 +213,18 @@ const emit = defineEmits(['update:visible', 'submit'])
 
 // 获取币种列表
 const currencyStore = useCurrencyStore()
+
+// 监听弹窗显示状态，确保币种数据加载
+watch(() => props.visible, (newVal) => {
+    if (newVal) {
+        currencyStore.fetchCurrencies()
+    }
+})
+
 const currencyOptions = computed(() => {
     const currencies = currencyStore.currencies?.['SWAP'] || []
     return currencies.map(currency => ({
-        label: currency.instId.split('-')[0],  // 只显示币种名称，不显示 -SWAP
+        label: currency.instId.split('-')[0],
         value: currency.instId
     }))
 })
@@ -415,7 +428,6 @@ const handleSubmit = () => {
 }
 
 // 初始化时加载币种列表和表达式
-currencyStore.fetchCurrencies()
 loadExpressions()
 </script>
 
@@ -614,5 +626,29 @@ loadExpressions()
         border-color: var(--primary-color);
         color: #fff;
     }
+}
+
+// 添加下拉框样式
+:deep(.currency-select-dropdown) {
+    background-color: var(--bg-color);
+    border-color: var(--border-color);
+    
+    .ant-select-item {
+        color: var(--text-color);
+        
+        &:hover {
+            background-color: var(--bg-hover);
+        }
+        
+        &.ant-select-item-option-selected {
+            background-color: var(--primary-color);
+            color: #fff;
+        }
+    }
+}
+
+// 确保下拉框在对话框之上
+:deep(.ant-select-dropdown) {
+    z-index: 1100 !important;
 }
 </style> 
