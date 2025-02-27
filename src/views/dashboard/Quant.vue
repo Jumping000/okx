@@ -113,6 +113,9 @@
                                 <a-button type="primary" size="small" @click="showAddStrategyDialog">
                                     新建策略
                                 </a-button>
+                                <a-button type="primary" size="small" @click="showAddStrategy2Dialog">
+                                    新增策略2
+                                </a-button>
                             </div>
                         </div>
                         <div class="p-4">
@@ -394,6 +397,10 @@
         <!-- 新增策略弹窗 -->
         <strategy-dialog v-model:visible="strategyDialogVisible" :loading="dialogLoading"
             @submit="handleStrategySubmit" />
+
+        <!-- 新增策略2弹窗 -->
+        <strategy-dialog2 v-model:visible="strategy2DialogVisible" :loading="dialogLoading"
+            @submit="handleStrategySubmit" />
     </div>
 </template>
 
@@ -408,6 +415,7 @@ import {
 } from '@ant-design/icons-vue'
 import FormulaDialog from './components/FormulaDialog.vue'
 import StrategyDialog from './components/StrategyDialog.vue'
+import StrategyDialog2 from './components/StrategyDialog2.vue'
 import dayjs from 'dayjs'
 import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
@@ -429,6 +437,7 @@ const loading = ref(false)
 const dialogLoading = ref(false)
 const formulaDialogVisible = ref(false)
 const strategyDialogVisible = ref(false)
+const strategy2DialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
 
@@ -717,6 +726,10 @@ const showAddDialog = (type) => {
 
 const showAddStrategyDialog = () => {
     strategyDialogVisible.value = true
+}
+
+const showAddStrategy2Dialog = () => {
+    strategy2DialogVisible.value = true
 }
 
 const handleFormulaSubmit = ({ type, data }) => {
