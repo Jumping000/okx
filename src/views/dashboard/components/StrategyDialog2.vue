@@ -26,6 +26,9 @@
                                     :options="currencyOptions"
                                     :popup-class-name="'currency-select-dropdown'"
                                     :get-popup-container="(triggerNode) => triggerNode.parentNode"
+                                    show-search
+                                    :filter-option="filterOption"
+                                    search-placeholder="搜索币种"
                                 />
                             </a-form-item>
                             <div class="form-row">
@@ -228,6 +231,11 @@ const currencyOptions = computed(() => {
         value: currency.instId
     }))
 })
+
+// 币种搜索过滤函数
+const filterOption = (input, option) => {
+    return option.label.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+}
 
 // 表单数据
 const form = ref({

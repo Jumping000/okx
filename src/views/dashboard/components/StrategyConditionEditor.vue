@@ -10,26 +10,31 @@
                     <div class="condition-content">
                         <div class="condition-bracket" :class="{ active: activeBrackets[`${index}-left`] }"
                             @click="handleBracketClick(index, 'left')">(</div>
-                        <a-select v-model:value="condition.expression" placeholder="选择表达式" style="width: 200px">
-                            <a-select-option v-for="expr in expressionOptions" :key="expr.value" :label="expr.label"
-                                :value="expr.value">
-                                {{ expr.label }}
-                            </a-select-option>
-                        </a-select>
-                        <a-select v-model:value="condition.compareType" placeholder="比较类型" style="width: 120px">
-                            <a-select-option v-for="type in compareTypes" :key="type.value" :label="type.label"
-                                :value="type.value">
-                                {{ type.label }}
-                            </a-select-option>
-                        </a-select>
+                        <a-select v-model:value="condition.expression" 
+                            placeholder="选择表达式" 
+                            style="width: 200px"
+                            :options="localExpressionOptions"
+                            :popup-class-name="'strategy-select-dropdown'"
+                            :get-popup-container="(triggerNode) => triggerNode.parentNode"
+                        />
+                        <a-select v-model:value="condition.compareType" 
+                            placeholder="比较类型" 
+                            style="width: 120px"
+                            :options="compareTypes"
+                            :popup-class-name="'strategy-select-dropdown'"
+                            :get-popup-container="(triggerNode) => triggerNode.parentNode"
+                        />
                         <a-input-number v-model:value="condition.value" placeholder="比较值" style="width: 120px" />
                         <div class="condition-bracket" :class="{ active: activeBrackets[`${index}-right`] }"
                             @click="handleBracketClick(index, 'right')">)</div>
                         <template v-if="index < conditions.length - 1">
-                            <a-select v-model:value="condition.relation" placeholder="关系" style="width: 80px">
-                                <a-select-option value="and">并且</a-select-option>
-                                <a-select-option value="or">或者</a-select-option>
-                            </a-select>
+                            <a-select v-model:value="condition.relation" 
+                                placeholder="关系" 
+                                style="width: 80px"
+                                :options="relationOptions"
+                                :popup-class-name="'strategy-select-dropdown'"
+                                :get-popup-container="(triggerNode) => triggerNode.parentNode"
+                            />
                         </template>
                         <a-button type="link" danger @click="removeCondition(index)">
                             <template #icon><delete-outlined /></template>
@@ -42,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, defineProps, defineEmits, watch } from 'vue'
+import { ref, defineProps, defineEmits, watch, onMounted } from 'vue'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 
 // Props 定义
@@ -60,6 +65,9 @@ const props = defineProps({
 // Emits 定义
 const emit = defineEmits(['update:conditions'])
 
+// 本地表达式选项
+const localExpressionOptions = ref([])
+
 // 比较类型选项
 const compareTypes = [
     { value: '>', label: '大于' },
@@ -68,6 +76,12 @@ const compareTypes = [
     { value: '<=', label: '小于等于' },
     { value: '==', label: '等于' },
     { value: '!=', label: '不等于' }
+]
+
+// 关系选项
+const relationOptions = [
+    { value: 'and', label: '并且' },
+    { value: 'or', label: '或者' }
 ]
 
 // 添加括号激活状态
@@ -79,17 +93,26 @@ const handleBracketClick = (index, position) => {
     activeBrackets.value[key] = !activeBrackets.value[key]
 }
 
-// 添加条件
-const addCondition = () => {
-    const newConditions = [...props.conditions]
-    newConditions.push({
-        expression: '',
-        compareType: '',
-        value: null,
-        relation: 'and'
-    })
-    emit('update:conditions', newConditions)
+// 加载表达式列表
+const loadExpressions = () => {
+    try {
+        const storedExpressions = localStorage.getItem('quant_expressions')
+        if (storedExpressions) {
+            const parsedExpressions = JSON.parse(storedExpressions)
+            localExpressionOptions.value = parsedExpressions.map(expr => ({
+                label: expr.name,
+                value: `(${expr.formula})`
+            }))
+        }
+    } catch (error) {
+        console.error('加载表达式失败:', error)
+    }
 }
+
+// 监听组件挂载
+onMounted(() => {
+    loadExpressions()
+})
 
 // 删除条件
 const removeCondition = (index) => {
@@ -165,9 +188,74 @@ const removeCondition = (index) => {
 :deep(.ant-input-number) {
     background-color: var(--bg-color) !important;
     border-color: var(--border-color) !important;
+
+    .ant-input-number-input {
+        color: var(--text-color) !important;
+    }
+
+    &:hover {
+        border-color: var(--primary-color) !important;
+    }
+
+    &.ant-input-number-focused {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 2px var(--primary-color-10) !important;
+    }
+}
+
+:deep(.ant-form-item-label > label) {
+    color: var(--text-color) !important;
 }
 
 :deep(.ant-select-selection-item) {
+    color: var(--text-color) !important;
+}
+
+:deep(.strategy-select-dropdown),
+:deep(.ant-select-dropdown) {
+    background-color: var(--bg-color) !important;
+    border-color: var(--border-color) !important;
+    z-index: 1100 !important;
+
+    .ant-select-dropdown-content,
+    .ant-select-dropdown-menu,
+    .ant-select-dropdown-menu-item-group,
+    .ant-select-dropdown-menu-item-group-list,
+    .ant-select-dropdown-menu-item,
+    .ant-select-dropdown-menu-item-selected {
+        background-color: var(--bg-color) !important;
+    }
+
+    .ant-select-empty,
+    .ant-select-item-empty,
+    .ant-select-item-option,
+    .ant-select-item {
+        background-color: var(--bg-color) !important;
+        color: var(--text-color) !important;
+
+        &:hover {
+            background-color: var(--bg-hover) !important;
+        }
+
+        &.ant-select-item-option-selected {
+            background-color: var(--primary-color) !important;
+            color: #fff !important;
+        }
+    }
+
+    .ant-select-item-option-content {
+        color: var(--text-color) !important;
+    }
+}
+
+// 确保下拉框内容区域也有正确的背景色
+:deep(.ant-select-dropdown-menu-vertical) {
+    background-color: var(--bg-color) !important;
+}
+
+// 确保无数据时的空状态也有正确的背景色
+:deep(.ant-empty) {
+    background-color: var(--bg-color) !important;
     color: var(--text-color) !important;
 }
 </style> 
