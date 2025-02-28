@@ -123,49 +123,87 @@
                                 :pagination="strategyList.length > 5 ? { pageSize: 5 } : false" size="small">
                                 <template v-slot:bodyCell="{ column, record }">
                                     <template v-if="column.key === 'name'">
-                                        <a-tooltip placement="topLeft">
+                                        <a-tooltip placement="right">
                                             <template #title>
                                                 <div class="strategy-tooltip">
-                                                    <div class="tooltip-item">
-                                                        <span class="label">策略名称：</span>
-                                                        <span class="value">{{ record.name }}</span>
+                                                    <div class="tooltip-header">
+                                                        <div class="strategy-name">{{ record.name }}</div>
+                                                        <div class="strategy-desc">{{ record.description }}</div>
                                                     </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">策略描述：</span>
-                                                        <span class="value">{{ record.description }}</span>
+                                                    
+                                                    <div class="tooltip-section">
+                                                        <div class="section-title">基本信息</div>
+                                                        <div class="tooltip-content">
+                                                            <div class="tooltip-item">
+                                                                <span class="label">策略模式：</span>
+                                                                <span class="value">{{ getStrategyModeText(record.strategyMode) }}</span>
+                                                            </div>
+                                                            <div class="tooltip-item">
+                                                                <span class="label">币种：</span>
+                                                                <span class="value">{{ record.currency }}</span>
+                                                            </div>
+                                                            <div class="tooltip-item">
+                                                                <span class="label">委托数量：</span>
+                                                                <span class="value">{{ record.quantity }}张</span>
+                                                            </div>
+                                                            <div class="tooltip-item">
+                                                                <span class="label">杠杆倍数：</span>
+                                                                <span class="value">{{ record.leverage }}倍</span>
+                                                            </div>
+                                                            <div class="tooltip-item">
+                                                                <span class="label">止损比例：</span>
+                                                                <span class="value">{{ (record.stopLoss * 100).toFixed(2) }}%</span>
+                                                            </div>
+                                                            <div class="tooltip-item">
+                                                                <span class="label">阈值比例：</span>
+                                                                <span class="value">{{ (record.threshold * 100).toFixed(2) }}%</span>
+                                                            </div>
+                                                        </div>
                                                     </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">交易类型：</span>
-                                                        <span class="value">{{ record.currency }}</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">委托数量：</span>
-                                                        <span class="value">{{ record.quantity }}</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">杠杆倍数：</span>
-                                                        <span class="value">{{ record.leverage }}倍</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">仓位类型：</span>
-                                                        <span
-                                                            class="value">{{ record.positionType === 'cross' ? '全仓' : '逐仓' }}</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">止损比例：</span>
-                                                        <span class="value">{{ record.stopLoss }}%</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">完整表达式：</span>
-                                                        <span class="value">{{ record.fullExpression }}</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">原始表达式：</span>
-                                                        <span class="value">{{ record.originalExpression }}</span>
-                                                    </div>
-                                                    <div class="tooltip-item">
-                                                        <span class="label">创建时间：</span>
-                                                        <span class="value">{{ formatTime(record.createTime) }}</span>
+
+                                                    <div class="tooltip-section">
+                                                        <div class="section-title">策略条件</div>
+                                                        <div class="tooltip-content">
+                                                            <!-- 单策略模式 -->
+                                                            <template v-if="record.strategyMode === '1'">
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">触发条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy1Conditions) }}</span>
+                                                                </div>
+                                                            </template>
+                                                            
+                                                            <!-- 双策略模式 -->
+                                                            <template v-if="record.strategyMode === '2'">
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">多仓条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy2LongConditions) }}</span>
+                                                                </div>
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">空仓条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy2ShortConditions) }}</span>
+                                                                </div>
+                                                            </template>
+                                                            
+                                                            <!-- 四策略模式 -->
+                                                            <template v-if="record.strategyMode === '4'">
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">开多条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy4OpenLongConditions) }}</span>
+                                                                </div>
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">开空条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy4OpenShortConditions) }}</span>
+                                                                </div>
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">平多条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy4CloseLongConditions) }}</span>
+                                                                </div>
+                                                                <div class="tooltip-item">
+                                                                    <span class="label">平空条件：</span>
+                                                                    <span class="value">{{ formatConditions(record.strategy4CloseShortConditions) }}</span>
+                                                                </div>
+                                                            </template>
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </template>
@@ -1918,6 +1956,27 @@ const clearOppositePosition = async (currency, posSide) => {
     }
 }
 
+// 获取策略模式文本
+const getStrategyModeText = (mode) => {
+    const modeMap = {
+        '1': '单策略模式',
+        '2': '双策略模式',
+        '4': '四策略模式'
+    }
+    return modeMap[mode] || '未知模式'
+}
+
+// 格式化条件表达式
+const formatConditions = (conditions) => {
+    if (!conditions || conditions.length === 0) return '无'
+    return conditions.map((condition, index) => {
+        const expr = `${condition.expression} ${condition.compareType} ${condition.value}`
+        return index < conditions.length - 1 
+            ? `${expr} ${condition.relation === 'and' ? '并且' : '或者'}`
+            : expr
+    }).join(' ')
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -2166,30 +2225,78 @@ const clearOppositePosition = async (currency, posSide) => {
 
 /* 策略提示框样式 */
 .strategy-tooltip {
-    padding: 4px;
-    max-width: 400px;
+    border-radius: 8px;
+    overflow: hidden;
+    
+    .tooltip-header {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+
+        .strategy-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .strategy-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+    }
+
+    .tooltip-section {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border-color);
+
+        &:last-child {
+            border-bottom: none;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 8px;
+            padding-left: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+    }
+    
+    .tooltip-content {
+        .tooltip-item {
+            display: flex;
+            margin-bottom: 6px;
+            line-height: 1.5;
+            
+            &:last-child {
+                margin-bottom: 0;
+            }
+            
+            .label {
+                flex: 0 0 70px;
+                color: var(--text-secondary);
+                font-weight: 500;
+            }
+            
+            .value {
+                flex: 1;
+                color: var(--text-color);
+                word-break: break-all;
+            }
+        }
+    }
 }
 
-.tooltip-item {
-    margin-bottom: 8px;
-    line-height: 1.5;
-    display: flex;
-    align-items: flex-start;
+// 修改 ant-tooltip 的样式
+:deep(.ant-tooltip-inner) {
+    background-color: var(--bg-color);
+    padding: 0;
 }
 
-.tooltip-item:last-child {
-    margin-bottom: 0;
-}
-
-.tooltip-item .label {
-    color: var(--text-secondary);
-    margin-right: 8px;
-    flex-shrink: 0;
-}
-
-.tooltip-item .value {
-    color: #fff;
-    word-break: break-all;
+:deep(.ant-tooltip-arrow-content) {
+    background-color: var(--bg-color);
 }
 
 /* 在 style 部分添加以下样式 */
