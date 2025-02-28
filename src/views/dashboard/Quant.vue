@@ -123,20 +123,22 @@
                                 :pagination="strategyList.length > 5 ? { pageSize: 5 } : false" size="small">
                                 <template v-slot:bodyCell="{ column, record }">
                                     <template v-if="column.key === 'name'">
-                                        <a-tooltip placement="right">
+                                        <a-tooltip placement="right"
+                                            :overlayStyle="{ 'max-width': '860px' }">
                                             <template #title>
                                                 <div class="strategy-tooltip">
                                                     <div class="tooltip-header">
                                                         <div class="strategy-name">{{ record.name }}</div>
                                                         <div class="strategy-desc">{{ record.description }}</div>
                                                     </div>
-                                                    
+
                                                     <div class="tooltip-section">
                                                         <div class="section-title">基本信息</div>
                                                         <div class="tooltip-content">
                                                             <div class="tooltip-item">
                                                                 <span class="label">策略模式：</span>
-                                                                <span class="value">{{ getStrategyModeText(record.strategyMode) }}</span>
+                                                                <span class="value">{{
+                                                                    getStrategyModeText(record.strategyMode) }}</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">币种：</span>
@@ -152,11 +154,13 @@
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">止损比例：</span>
-                                                                <span class="value">{{ (record.stopLoss * 100).toFixed(2) }}%</span>
+                                                                <span class="value">{{ (record.stopLoss *
+                                                                    100).toFixed(2) }}%</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">阈值比例：</span>
-                                                                <span class="value">{{ (record.threshold * 100).toFixed(2) }}%</span>
+                                                                <span class="value">{{ (record.threshold *
+                                                                    100).toFixed(2) }}%</span>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -168,39 +172,53 @@
                                                             <template v-if="record.strategyMode === '1'">
                                                                 <div class="tooltip-item">
                                                                     <span class="label">触发条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy1Conditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy1Conditions)
+                                                                    }}</span>
                                                                 </div>
                                                             </template>
-                                                            
+
                                                             <!-- 双策略模式 -->
                                                             <template v-if="record.strategyMode === '2'">
                                                                 <div class="tooltip-item">
                                                                     <span class="label">多仓条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy2LongConditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy2LongConditions)
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">空仓条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy2ShortConditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy2ShortConditions)
+                                                                    }}</span>
                                                                 </div>
                                                             </template>
-                                                            
+
                                                             <!-- 四策略模式 -->
                                                             <template v-if="record.strategyMode === '4'">
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开多条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy4OpenLongConditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy4OpenLongConditions)
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开空条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy4OpenShortConditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy4OpenShortConditions)
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平多条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy4CloseLongConditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy4CloseLongConditions)
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平空条件：</span>
-                                                                    <span class="value">{{ formatConditions(record.strategy4CloseShortConditions) }}</span>
+                                                                    <span class="value">{{
+                                                                        formatConditions(record.strategy4CloseShortConditions)
+                                                                    }}</span>
                                                                 </div>
                                                             </template>
                                                         </div>
@@ -344,7 +362,7 @@
                                                 (record.posSide === 'long' ? 'error' : 'success')">
                                                 {{ text === 'buy' ?
                                                     (record.posSide === 'long' ? '开多' : '平空') :
-                                                    (record.posSide === 'long' ? '平多' : '开空') 
+                                                    (record.posSide === 'long' ? '平多' : '开空')
                                                 }}
                                             </a-tag>
                                         </template>
@@ -363,8 +381,8 @@
 
                                         <!-- 订单状态 -->
                                         <template v-else-if="column.dataIndex === 'state'">
-                                            <a-tag
-                                                :color="getOrderStateColor(text)">{{ getOrderStateText(text) }}</a-tag>
+                                            <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text)
+                                            }}</a-tag>
                                         </template>
 
                                         <!-- 数量 -->
@@ -1971,7 +1989,7 @@ const formatConditions = (conditions) => {
     if (!conditions || conditions.length === 0) return '无'
     return conditions.map((condition, index) => {
         const expr = `${condition.expression} ${condition.compareType} ${condition.value}`
-        return index < conditions.length - 1 
+        return index < conditions.length - 1
             ? `${expr} ${condition.relation === 'and' ? '并且' : '或者'}`
             : expr
     }).join(' ')
@@ -2227,7 +2245,7 @@ const formatConditions = (conditions) => {
 .strategy-tooltip {
     border-radius: 8px;
     overflow: hidden;
-    
+
     .tooltip-header {
         padding: 12px 16px;
         border-bottom: 1px solid var(--border-color);
@@ -2263,23 +2281,23 @@ const formatConditions = (conditions) => {
             border-left: 3px solid var(--primary-color);
         }
     }
-    
+
     .tooltip-content {
         .tooltip-item {
             display: flex;
             margin-bottom: 6px;
             line-height: 1.5;
-            
+
             &:last-child {
                 margin-bottom: 0;
             }
-            
+
             .label {
                 flex: 0 0 70px;
                 color: var(--text-secondary);
                 font-weight: 500;
             }
-            
+
             .value {
                 flex: 1;
                 color: var(--text-color);
