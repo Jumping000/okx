@@ -124,7 +124,7 @@
                                 <template v-slot:bodyCell="{ column, record }">
                                     <template v-if="column.key === 'name'">
                                         <a-tooltip placement="right"
-                                            :overlayStyle="{ 'max-width': '860px' }">
+                                            :overlayStyle="{ 'max-width': '500px' }">
                                             <template #title>
                                                 <div class="strategy-tooltip">
                                                     <div class="tooltip-header">
