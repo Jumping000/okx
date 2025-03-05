@@ -8,7 +8,7 @@
             <div v-else class="conditions-list">
                 <div v-for="(condition, index) in conditions" :key="index" class="condition-item">
                     <div class="condition-content">
-                        <div class="condition-bracket" :class="{ active: activeBrackets[`${index}-left`] }"
+                        <div class="condition-bracket" :class="{ active: condition.leftBracket }"
                             @click="handleBracketClick(index, 'left')">(</div>
                         <a-select v-model:value="condition.expression" 
                             placeholder="选择表达式" 
@@ -25,7 +25,7 @@
                             :get-popup-container="(triggerNode) => triggerNode.parentNode"
                         />
                         <a-input-number v-model:value="condition.value" placeholder="比较值" style="width: 120px" />
-                        <div class="condition-bracket" :class="{ active: activeBrackets[`${index}-right`] }"
+                        <div class="condition-bracket" :class="{ active: condition.rightBracket }"
                             @click="handleBracketClick(index, 'right')">)</div>
                         <template v-if="index < conditions.length - 1">
                             <a-select v-model:value="condition.relation" 
@@ -89,8 +89,14 @@ const activeBrackets = ref({})
 
 // 处理括号点击
 const handleBracketClick = (index, position) => {
-    const key = `${index}-${position}`
-    activeBrackets.value[key] = !activeBrackets.value[key]
+    const newConditions = [...props.conditions]
+    const condition = newConditions[index]
+    if (position === 'left') {
+        condition.leftBracket = !condition.leftBracket
+    } else {
+        condition.rightBracket = !condition.rightBracket
+    }
+    emit('update:conditions', newConditions)
 }
 
 // 加载表达式列表
@@ -113,6 +119,11 @@ const loadExpressions = () => {
 onMounted(() => {
     loadExpressions()
 })
+
+// 监听表达式选项变化
+watch(() => props.expressionOptions, (newOptions) => {
+    localExpressionOptions.value = newOptions
+}, { immediate: true })
 
 // 删除条件
 const removeCondition = (index) => {

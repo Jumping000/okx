@@ -284,7 +284,9 @@ const addStrategy1Condition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -293,7 +295,9 @@ const addStrategy2LongCondition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -302,7 +306,9 @@ const addStrategy2ShortCondition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -311,7 +317,9 @@ const addStrategy4OpenLongCondition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -320,7 +328,9 @@ const addStrategy4OpenShortCondition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -329,7 +339,9 @@ const addStrategy4CloseLongCondition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -338,7 +350,9 @@ const addStrategy4CloseShortCondition = () => {
         expression: '',
         compareType: '',
         value: null,
-        relation: 'and'
+        relation: 'and',
+        leftBracket: false,
+        rightBracket: false
     })
 }
 
@@ -398,6 +412,42 @@ const handleSubmit = () => {
              form.value.strategy4CloseShortConditions.length === 0)) {
             message.error('请完善所有策略条件')
             return false
+        }
+
+        // 验证条件完整性
+        const validateConditionSet = (conditions) => {
+            for (const condition of conditions) {
+                if (!condition.expression || !condition.compareType || condition.value === null) {
+                    return false
+                }
+            }
+            return true
+        }
+
+        // 根据策略模式验证所有条件
+        switch (form.value.strategyMode) {
+            case '1':
+                if (!validateConditionSet(form.value.strategy1Conditions)) {
+                    message.error('请完善单策略条件')
+                    return false
+                }
+                break
+            case '2':
+                if (!validateConditionSet(form.value.strategy2LongConditions) || 
+                    !validateConditionSet(form.value.strategy2ShortConditions)) {
+                    message.error('请完善多空策略条件')
+                    return false
+                }
+                break
+            case '4':
+                if (!validateConditionSet(form.value.strategy4OpenLongConditions) || 
+                    !validateConditionSet(form.value.strategy4OpenShortConditions) ||
+                    !validateConditionSet(form.value.strategy4CloseLongConditions) ||
+                    !validateConditionSet(form.value.strategy4CloseShortConditions)) {
+                    message.error('请完善所有策略条件')
+                    return false
+                }
+                break
         }
         return true
     }

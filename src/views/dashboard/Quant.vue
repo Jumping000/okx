@@ -943,7 +943,6 @@ const handleStrategyAction = async (record) => {
                 })
                 const tickSz = currentCurrency.tickSz.toString() // 价格精度
                 const priceDecimalPlaces = tickSz.toString().split('.')[1]?.length || 0
-
                 // 准备要发送的数据，只包含必要的可序列化字段
                 const workerData = {
                     type: 'init',
@@ -957,13 +956,29 @@ const handleStrategyAction = async (record) => {
                             leverage: record.leverage, // 策略杠杆
                             positionType: record.positionType, // 策略持仓类型
                             stopLoss: record.stopLoss, // 策略止损
-                            fullExpression: record.fullExpression, // 策略完整表达式
-                            originalExpression: record.originalExpression, // 策略原始表达式
+                            strategyMode: record.strategyMode, // 策略模式
                             priceDecimalPlaces: priceDecimalPlaces // 价格精度
                         },
                     }
                 }
-
+                switch (record.strategyMode) {
+                    case '1':
+                        workerData.payload.strategy.strategy1Conditions = formatConditions(record.strategy1Conditions)
+                        break;
+                    case '2':
+                        workerData.payload.strategy.strategy2LongConditions = formatConditions(record.strategy2LongConditions)
+                        workerData.payload.strategy.strategy2ShortConditions = formatConditions(record.strategy2ShortConditions)
+                        break;
+                    case '4':
+                        workerData.payload.strategy.strategy4CloseLongConditions = formatConditions(record.strategy4CloseLongConditions)
+                        workerData.payload.strategy.strategy4CloseShortConditions = formatConditions(record.strategy4CloseShortConditions)
+                        workerData.payload.strategy.strategy4OpenShortConditions = formatConditions(record.strategy4OpenShortConditions)
+                        workerData.payload.strategy.strategy4OpenLongConditions = formatConditions(record.strategy4OpenLongConditions)
+                        break;
+                }
+                console.log('-----------------------------------------------------------------------------------')
+                console.log(workerData);
+                console.log('-----------------------------------------------------------------------------------')
                 // 发送初始化数据给 Worker
                 workerManager.postMessage(record.id, workerData)
 
@@ -1316,16 +1331,6 @@ const loadStrategies = () => {
 onMounted(() => {
     loadFromStorage()
     loadStrategies()
-    // const strategies = JSON.parse(localStorage.getItem('quant_strategies'))
-    // strategies.forEach(strategy => {
-    //     strategy.fullExpression = '(EMA_1F_14 - SP_1F) > 0 and (EMA_3F_14 - SP_3F) > 0) or ((EMA_1F_14 - SP_1F) > 0 and (EMA_5F_14 - SP_5F) > 0) or ((EMA_3F_14 - SP_3F) > 0 and (EMA_5F_14 - SP_5F) > 0)'
-    //     // strategy.stopLoss = 0.001
-    //     // if (strategy.currency == "ADA-USDT-SWAP") {
-    //     //     strategy.leverage = 10
-    //     // }
-    // })
-    // localStorage.setItem('quant_strategies', JSON.stringify(strategies))
-
 })
 
 // 监听 selectedStrategy 变化，只在有数据时自动选择第一个时间周期
@@ -1948,51 +1953,96 @@ const handleExpressionResult = async (strategyId, data) => {
     }
 }
 
-// 下单专属仓位
+// 下单专属仓位函数
+// @param strategyInformation - 策略信息对象，包含币种、数量、价格精度等信息
+// @param data - 策略执行结果数据，包含开仓方向信息
 const orderExclusiveStorageSpace = async (strategyInformation, data) => {
-    await placeMarketOrder(strategyInformation.currency, 'open', data.result ? 'long' : 'short', 'cross', strategyInformation.quantity)
-    const position = await loopSearchPosition(strategyInformation.currency, data.result ? 'long' : 'short', 3000);
+    // 1. 根据策略结果开仓（多/空），使用市价单
+    await placeMarketOrder(
+        strategyInformation.currency,  // 交易币种
+        'open',                        // 开仓操作
+        data.result ? 'long' : 'short',// 根据结果决定做多还是做空
+        'cross',                       // 全仓模式
+        strategyInformation.quantity   // 下单数量
+    )
+
+    // 2. 循环查询持仓信息，等待持仓到位（最多等待3秒）
+    const position = await loopSearchPosition(
+        strategyInformation.currency,
+        data.result ? 'long' : 'short',
+        3000
+    );
+
+    // 3. 计算止损价格
+    // 多仓：持仓均价 * (1 - 止损比例)
+    // 空仓：持仓均价 * (1 + 止损比例)
     const stopLossPrice = data.result ?
         (position.avgPx * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
         : (position.avgPx * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
-    // 下止损单
+
+    // 4. 设置止损单
     await placeStopLossOrder({
-        instId: strategyInformation.currency,
-        posSide: data.result ? 'long' : 'short',
-        marginMode: 'cross',
-        size: strategyInformation.quantity,
-        stopLossPrice: stopLossPrice
+        instId: strategyInformation.currency,      // 交易币种
+        posSide: data.result ? 'long' : 'short',  // 持仓方向
+        marginMode: 'cross',                       // 全仓模式
+        size: strategyInformation.quantity,        // 止损数量
+        stopLossPrice: stopLossPrice              // 止损价格
     })
 }
-// 清理反仓位
+
+// 清理反向持仓函数
+// @param currency - 交易币种
+// @param posSide - 当前持仓方向
 const clearOppositePosition = async (currency, posSide) => {
+    // 1. 确定反向持仓方向
     const oppositePosSide = posSide === 'long' ? 'short' : 'long'
+    
+    // 2. 检查是否存在反向持仓
     const oppositePosition = checkPositionExists(currency, oppositePosSide)
+    
+    // 3. 如果存在反向持仓，则平仓
     if (oppositePosition) {
-        // 存在相反仓位 平仓
-        await placeMarketOrder(currency, 'close', oppositePosSide, 'cross', oppositePosition.pos)
+        await placeMarketOrder(
+            currency,                // 交易币种
+            'close',                // 平仓操作
+            oppositePosSide,        // 反向持仓方向
+            'cross',                // 全仓模式
+            oppositePosition.pos     // 平仓数量（全部平仓）
+        )
     }
 }
 
-// 获取策略模式文本
+// 获取策略模式的中文描述
+// @param mode - 策略模式代码（'1'/'2'/'4'）
+// @returns {string} 策略模式的中文描述
 const getStrategyModeText = (mode) => {
     const modeMap = {
-        '1': '单策略模式',
-        '2': '双策略模式',
-        '4': '四策略模式'
+        '1': '单策略模式',  // 单一触发条件
+        '2': '双策略模式',  // 多空策略条件
+        '4': '四策略模式'   // 开多、开空、平多、平空四个条件
     }
     return modeMap[mode] || '未知模式'
 }
 
-// 格式化条件表达式
+// 格式化策略条件表达式
+// @param conditions - 条件数组，每个条件包含表达式、比较符、数值和关系（与/或）
+// @returns {string} 格式化后的条件表达式
 const formatConditions = (conditions) => {
+    // 如果没有条件，返回"无"
     if (!conditions || conditions.length === 0) return '无'
+    
+    // 遍历所有条件，将其格式化为可读的表达式
     return conditions.map((condition, index) => {
-        const expr = `${condition.expression} ${condition.compareType} ${condition.value}`
-        return index < conditions.length - 1
-            ? `${expr} ${condition.relation === 'and' ? '并且' : '或者'}`
+        // 构建基础表达式：表达式 比较符 数值
+        const leftBracket = condition.leftBracket ? '(' : ''
+        const rightBracket = condition.rightBracket ? ')' : ''
+        const expr = `${leftBracket}${condition.expression} ${condition.compareType} ${condition.value}${rightBracket}`
+        // 如果不是最后一个条件，添加关系词（并且/或者）
+        return index < conditions.length - 1 
+            ? `${expr} ${condition.relation === 'and' ? 'and' : 'or'}`
             : expr
-    }).join(' ')
+    }).join(' ')  // 用空格连接所有表达式
+
 }
 
 </script>
