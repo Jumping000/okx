@@ -477,7 +477,7 @@ import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
 import { setLeverage, postOrderAlgo, postCancelAlgos } from '@/api/module/Basics'
 import { WebSocketType, WebSocketState } from '@/utils/websocket'
-// import  from '@/utils/strategyExpressionHandler'
+import StrategyExpressionHandler from '@/utils/strategyExpressionHandler'
 // 定义组件选项
 defineOptions({
     name: 'Quant'
@@ -2043,6 +2043,33 @@ const formatConditions = (conditions) => {
             : expr
     }).join(' ')  // 用空格连接所有表达式
 
+}
+// 创建策略表达式处理器实例，使用 currencyStore
+const handler = new StrategyExpressionHandler(wsStore,currencyStore);
+/**
+ * 处理策略表达式结果
+ * @param {Object} strategy - 策略对象
+ * @param {Object} data - 数据对象
+ */
+const expressionResultProcessing = (strategy, data) => {
+    try {
+        // 获取当前策略币种的完整信息
+        const symbolInfo = handler.getSymbolFullInfo(strategy.currency);
+
+        console.log('策略信息:', {
+            strategyName: strategy.name,
+            strategyId: strategy.id,
+            currency: strategy.currency,
+            currentPosition: symbolInfo.position,
+            currentCurrency: symbolInfo.currency,
+            rawData: data
+        });
+
+        return true;
+    } catch (error) {
+        console.error('策略表达式处理错误:', error);
+        return false;
+    }
 }
 
 </script>
