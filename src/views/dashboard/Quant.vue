@@ -2054,16 +2054,16 @@ const handler = new StrategyExpressionHandler(wsStore,currencyStore);
 const expressionResultProcessing = (strategy, data) => {
     try {
         // 获取当前策略币种的完整信息
-        const symbolInfo = handler.getSymbolFullInfo(strategy.currency);
+        // const symbolInfo = handler.getSymbolFullInfo(strategy.currency);
 
-        console.log('策略信息:', {
-            strategyName: strategy.name,
-            strategyId: strategy.id,
-            currency: strategy.currency,
-            currentPosition: symbolInfo.position,
-            currentCurrency: symbolInfo.currency,
-            rawData: data
-        });
+        // console.log('策略信息:', {
+        //     strategyName: strategy.name,
+        //     strategyId: strategy.id,
+        //     currency: strategy.currency,
+        //     currentPosition: symbolInfo.position,
+        //     currentCurrency: symbolInfo.currency,
+        //     rawData: data
+        // });
 
         return true;
     } catch (error) {
