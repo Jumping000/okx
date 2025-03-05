@@ -1045,7 +1045,6 @@ const handleStrategyAction = async (record) => {
         }
     }
 }
-
 // 处理 Worker 消息
 const handleWorkerMessage = (strategyId, data) => {
     const strategy = strategyList.value.find(item => item.id === strategyId)
@@ -1110,8 +1109,9 @@ const handleWorkerMessage = (strategyId, data) => {
             }
             break
         case 'expression_result':
-
-            handleExpressionResult(strategyId, data.data)
+            // handleExpressionResult(strategyId, )
+            let { expression,strategys, name, result, tempKlines, timestamp } = data.data
+            console.log(expression,strategys, name, result, tempKlines, timestamp);
             break
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)

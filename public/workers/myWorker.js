@@ -51,6 +51,20 @@ class StrategyWorker extends self.BaseWorker {
       { Name: "1Y", dis: "1月", exchange: "1M" },
       { Name: "3Y", dis: "3月", exchange: "3M" },
     ];
+    // 1. 策略条件配置映射
+    this.STRATEGY_CONDITIONS = {
+      1: [{ name: "strategy1Conditions" }],
+      2: [
+        { name: "strategy2LongConditions" },
+        { name: "strategy2ShortConditions" },
+      ],
+      4: [
+        { name: "strategy4CloseLongConditions" },
+        { name: "strategy4CloseShortConditions" },
+        { name: "strategy4OpenShortConditions" },
+        { name: "strategy4OpenLongConditions" },
+      ],
+    };
 
     this.initErrorHandlers();
     this.startPeriodicCleanup();
@@ -138,50 +152,66 @@ class StrategyWorker extends self.BaseWorker {
 
       this.strategy = payload.strategy;
       this.priceDecimalPlaces = payload.strategy.priceDecimalPlaces;
-
-      switch (this.strategy.strategyMode) {
-        case "1":
-          this.klineTimeLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy1Conditions
-          );
-          break;
-        case "2":
-          // 处理多空策略条件
-          const longLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy2LongConditions
-          );
-          const shortLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy2ShortConditions
-          );
-          this.klineTimeLevels = [...new Set([...longLevels, ...shortLevels])];
-          break;
-        case "4":
-          // strategy4CloseLongConditions
-          const closeLongLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy4CloseLongConditions
-          );
-          // strategy4CloseShortConditions
-          const closeShortLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy4CloseShortConditions
-          );
-          // strategy4OpenShortConditions
-          const openShortLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy4OpenShortConditions
-          );
-          // strategy4OpenLongConditions
-          const openLongLevels = await this.handleKlineTimeLevel(
-            this.strategy.strategy4OpenLongConditions
-          );
-          this.klineTimeLevels = [
-            ...new Set([
-              ...closeLongLevels,
-              ...closeShortLevels,
-              ...openShortLevels,
-              ...openLongLevels,
-            ]),
-          ];
-          break;
+      const conditions = this.STRATEGY_CONDITIONS[this.strategy.strategyMode];
+      if (!conditions) {
+        throw new Error(`未知的策略模式: ${this.strategy.strategyMode}`);
       }
+      // 并行处理所有条件的时间级别
+      const timeLevelPromises = conditions.map((condition) =>
+        this.handleKlineTimeLevel(this.strategy[condition.name])
+      );
+
+      // 等待所有时间级别处理完成
+      const timeLevels = await Promise.all(timeLevelPromises);
+      // 合并去重所有时间级别
+      this.klineTimeLevels = [...new Set(timeLevels.flat())];
+      // console.log(this.klineTimeLevels);
+      // this.klineTimeLevels=[];
+      // switch (this.strategy.strategyMode) {
+      //   case "1":
+      //     this.klineTimeLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy1Conditions
+      //     );
+      //     break;
+      //   case "2":
+      //     // 处理多空策略条件
+      //     const longLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy2LongConditions
+      //     );
+      //     const shortLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy2ShortConditions
+      //     );
+      //     this.klineTimeLevels = [...new Set([...longLevels, ...shortLevels])];
+      //     break;
+      //   case "4":
+      //     // strategy4CloseLongConditions
+      //     const closeLongLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy4CloseLongConditions
+      //     );
+      //     // strategy4CloseShortConditions
+      //     const closeShortLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy4CloseShortConditions
+      //     );
+      //     // strategy4OpenShortConditions
+      //     const openShortLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy4OpenShortConditions
+      //     );
+      //     // strategy4OpenLongConditions
+      //     const openLongLevels = await this.handleKlineTimeLevel(
+      //       this.strategy.strategy4OpenLongConditions
+      //     );
+      //     this.klineTimeLevels = [
+      //       ...new Set([
+      //         ...closeLongLevels,
+      //         ...closeShortLevels,
+      //         ...openShortLevels,
+      //         ...openLongLevels,
+      //       ]),
+      //     ];
+      //     break;
+      // }
+      // console.log(this.klineTimeLevels);
+
       // 初始化数据存储
       this.initializeDataStructures();
 
@@ -249,76 +279,99 @@ class StrategyWorker extends self.BaseWorker {
       // 原子性更新数据
       this.klines.set(timeLevel, tempKlines);
       this.historyKlines.set(timeLevel, tempHistoryKlines);
-      console.log(timeLevel);
-      console.log(this.strategyExpression[timeLevel]);
-      console.log(this.strategyExpression);
+
       // 计算指标
       this.calculateIndicators(this.strategyExpression[timeLevel], timeLevel);
-      console.log(this.strategyExpression[timeLevel]);
-      console.log(this.strategyExpression);
-      switch (this.strategy.strategyMode) {
-        case "1":
-          let strategy1Conditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy1Conditions,
-            tempKlines
-          );
-          console.log("strategy1Conditions", strategy1Conditions);
+      const conditions = this.STRATEGY_CONDITIONS[this.strategy.strategyMode];
+      conditions.forEach((condition) => {
+        this.calculateExpression(
+          this.strategyExpression,
+          this.strategy[condition.name]
+        )
+          .then((result) => {
+            console.log(condition.name, result);
+          this.postMessage({
+            type: "expression_result",
+            data: {
+              expression: this.strategyExpression,
+              strategy: this.strategy,
+              name: condition.name,
+              result: result,
+              tempKlines: tempKlines,
+              timestamp: Date.now(),
+            },
+          });
 
-          break;
-        case "2":
-          let strategy2LongConditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy2LongConditions,
-            tempKlines
-          );
-          console.log("strategy2LongConditions", strategy2LongConditions);
-          let strategy2ShortConditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy2ShortConditions,
-            tempKlines
-          );
-          console.log("strategy2ShortConditions", strategy2ShortConditions);
-          break;
-        case "4":
-          let strategy4CloseLongConditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy4CloseLongConditions,
-            tempKlines
-          );
-          console.log(
-            "strategy4CloseLongConditions",
-            strategy4CloseLongConditions
-          );
-          let strategy4CloseShortConditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy4CloseShortConditions,
-            tempKlines
-          );
-          console.log(
-            "strategy4CloseShortConditions",
-            strategy4CloseShortConditions
-          );
-          let strategy4OpenShortConditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy4OpenShortConditions,
-            tempKlines
-          );
-          console.log(
-            "strategy4OpenShortConditions",
-            strategy4OpenShortConditions
-          );
-          let strategy4OpenLongConditions = this.calculateExpression(
-            this.strategyExpression,
-            this.strategy.strategy4OpenLongConditions,
-            tempKlines
-          );
-          console.log(
-            "strategy4OpenLongConditions",
-            strategy4OpenLongConditions
-          );
-          break;
-      }
+          })
+          .catch((error) => {
+            console.error(condition.name, error);
+          });
+      });
+      // switch (this.strategy.strategyMode) {
+      //   case "1":
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy1Conditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy1Conditions", result);
+      //     });
+      //     // console.log("strategy1Conditions", strategy1Conditions);
+
+      //     break;
+      //   case "2":
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy2LongConditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy2LongConditions", result);
+      //     });
+      //     // console.log("strategy2LongConditions", strategy2LongConditions);
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy2ShortConditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy2ShortConditions", result);
+      //     });
+      //     // console.log("strategy2ShortConditions", strategy2ShortConditions);
+      //     break;
+      //   case "4":
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy4CloseLongConditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy4CloseLongConditions", result);
+      //     });
+      //     // console.log("strategy4CloseLongConditions", strategy4CloseLongConditions);
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy4CloseShortConditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy4CloseShortConditions", result);
+      //     });
+      //     // console.log("strategy4CloseShortConditions", strategy4CloseShortConditions);
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy4OpenShortConditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy4OpenShortConditions", result);
+      //     });
+      //     // console.log("strategy4OpenShortConditions", strategy4OpenShortConditions);
+      //     this.calculateExpression(
+      //       this.strategyExpression,
+      //       this.strategy.strategy4OpenLongConditions,
+      //       tempKlines
+      //     ).then((result) => {
+      //       console.log("strategy4OpenLongConditions", result);
+      //     });
+      //     // console.log("strategy4OpenLongConditions", strategy4OpenLongConditions);
+      //     break;
+      // }
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
     }
@@ -430,7 +483,11 @@ class StrategyWorker extends self.BaseWorker {
       formatText.push(klineTimeLevel);
     });
     let strategyExpression = this.classificationOfStrategyValues(formatText);
-      this.strategyExpression =  Object.assign({}, this.strategyExpression, strategyExpression);
+    this.strategyExpression = Object.assign(
+      {},
+      this.strategyExpression,
+      strategyExpression
+    );
     klineTimeLevels = [...new Set(klineTimeLevels)];
     return klineTimeLevels;
   }
@@ -793,7 +850,7 @@ class StrategyWorker extends self.BaseWorker {
                 break;
             }
           }
-        }     
+        }
         // 处理EMA指标
         else if (name.startsWith("EMA_")) {
           const period = parseInt(name.split("_")[1]);
@@ -808,7 +865,6 @@ class StrategyWorker extends self.BaseWorker {
             maPeriods.push(period);
           }
         }
-   
       });
 
       // 计算MA指标（如果需要）
@@ -883,115 +939,120 @@ class StrategyWorker extends self.BaseWorker {
    * 计算表达式
    * @param {Object} strategyExpression - 策略表达式对象，包含各个时间级别的指标值
    * @param {string} expression - 原始表达式
-   * @param {Array} tempKlines - 临时K线数据
    */
-  calculateExpression(strategyExpression, expression, tempKlines) {
-    // 检查空值
-    for (const timeLevel in strategyExpression) {
-      for (const item of strategyExpression[timeLevel]) {
-        if (item.value === "") {
-          console.log(JSON.stringify(item), "有空值");
-          return false;
+  calculateExpression(strategyExpression, expression) {
+    return new Promise((resolve, reject) => {
+      // 检查空值
+      for (const timeLevel in strategyExpression) {
+        for (const item of strategyExpression[timeLevel]) {
+          if (item.value === "") {
+            console.log(JSON.stringify(item), "有空值");
+            return false;
+          }
         }
       }
-    }
-    try {
-      // 创建时间级别映射表（从 exchange 格式转换为 Name 格式）
-      const timeLevelMap = {};
-      this.timeLevel.forEach((level) => {
-        timeLevelMap[level.exchange] = level.Name;
-      });
-      // 复制一份表达式用于替换
-      let calculatedExpression = expression;
-
-      // 遍历所有时间级别的指标
-      Object.entries(strategyExpression).forEach(([timeLevel, indicators]) => {
-        // 获取对应的时间级别格式（例如：将 "1m" 转换为 "1F"）
-        const formattedTimeLevel = timeLevelMap[timeLevel];
-        if (!formattedTimeLevel) return;
-        // 遍历该时间级别下的所有指标
-        indicators.forEach((indicator) => {
-          let searchPattern;
-          if (indicator.name.startsWith("LS_")) {
-            // 处理历史数据指标（例如：LS_CJ_2）
-            const [prefix, type, index] = indicator.name.split("_");
-            searchPattern = `${prefix}_${type}_${formattedTimeLevel}_${index}`;
-          } else if (
-            indicator.name.startsWith("MA_") ||
-            indicator.name.startsWith("EMA_")
-          ) {
-            // 处理 MA 和 EMA 指标（例如：MA_5）
-            const [type, period] = indicator.name.split("_");
-            searchPattern = `${type}_${formattedTimeLevel}_${period}`;
-          } else if (
-            indicator.name.startsWith("MACD_") ||
-            indicator.name.startsWith("KDJ_") ||
-            indicator.name.startsWith("BOLL_")
-          ) {
-            // 处理其他复合指标（例如：MACD_DIF, KDJ_K, BOLL_UP）
-            const [type, subType] = indicator.name.split("_");
-            searchPattern = `${type}_${subType}_${formattedTimeLevel}`;
-          } else {
-            // 处理基础指标（例如：SP, ZG）
-            searchPattern = `${indicator.name}_${formattedTimeLevel}`;
-          }
-          // 在表达式中查找并替换匹配的指标
-          // const regex = new RegExp(searchPattern, "g");
-          const regex = new RegExp(`\\b${searchPattern}\\b`, "g");
-
-          calculatedExpression = calculatedExpression.replace(
-            regex,
-            `${indicator.value}`
-          );
-        });
-      });
-      // 处理逻辑运算符
-      calculatedExpression = calculatedExpression
-        .replace(/\band\b/g, "&&") // 将 and 替换为 &&
-        .replace(/\bor\b/g, "||") // 将 or 替换为 ||
-        .replace(/！=/g, "!=") // 处理全角不等号
-        .replace(/＝=/g, "==") // 处理全角等号
-        .replace(/！/g, "!") // 处理全角感叹号
-        .replace(/（/g, "(") // 处理全角左括号
-        .replace(/）/g, ")") // 处理全角右括号
-        .replace(/＞=/g, ">=") // 处理全角大于等于
-        .replace(/＜=/g, "<=") // 处理全角小于等于
-        .replace(/＞/g, ">") // 处理全角大于号
-        .replace(/＜/g, "<"); // 处理全角小于号
-      calculatedExpression = calculatedExpression.replace(/LS_|_\d+/g, "");
-      // 记录转换后的表达式
-      //   console.log("原始表达式:", expression);
-      //   console.log("转换后的表达式:", calculatedExpression);
-      // strategyExpression;
-      //   console.log("strategyExpression", strategyExpression);
-      // 尝试计算表达式
       try {
-        // console.log(calculatedExpression);
-        // eslint-disable-next-line no-eval
-        const result = eval(calculatedExpression);
-        // console.log("表达式计算结果:", result);
+        // 创建时间级别映射表（从 exchange 格式转换为 Name 格式）
+        const timeLevelMap = {};
+        this.timeLevel.forEach((level) => {
+          timeLevelMap[level.exchange] = level.Name;
+        });
+        // 复制一份表达式用于替换
+        let calculatedExpression = expression;
 
-        // 发送计算结果
-        // this.postMessage({
-        //   type: "expression_result",
-        //   data: {
-        //     expression: calculatedExpression,
-        //     strategy: this.strategy,
-        //     result: result,
-        //     tempKlines: tempKlines,
-        //     timestamp: Date.now(),
-        //   },
-        // });
+        // 遍历所有时间级别的指标
+        Object.entries(strategyExpression).forEach(
+          ([timeLevel, indicators]) => {
+            // 获取对应的时间级别格式（例如：将 "1m" 转换为 "1F"）
+            const formattedTimeLevel = timeLevelMap[timeLevel];
+            if (!formattedTimeLevel) return;
+            // 遍历该时间级别下的所有指标
+            indicators.forEach((indicator) => {
+              let searchPattern;
+              if (indicator.name.startsWith("LS_")) {
+                // 处理历史数据指标（例如：LS_CJ_2）
+                const [prefix, type, index] = indicator.name.split("_");
+                searchPattern = `${prefix}_${type}_${formattedTimeLevel}_${index}`;
+              } else if (
+                indicator.name.startsWith("MA_") ||
+                indicator.name.startsWith("EMA_")
+              ) {
+                // 处理 MA 和 EMA 指标（例如：MA_5）
+                const [type, period] = indicator.name.split("_");
+                searchPattern = `${type}_${formattedTimeLevel}_${period}`;
+              } else if (
+                indicator.name.startsWith("MACD_") ||
+                indicator.name.startsWith("KDJ_") ||
+                indicator.name.startsWith("BOLL_")
+              ) {
+                // 处理其他复合指标（例如：MACD_DIF, KDJ_K, BOLL_UP）
+                const [type, subType] = indicator.name.split("_");
+                searchPattern = `${type}_${subType}_${formattedTimeLevel}`;
+              } else {
+                // 处理基础指标（例如：SP, ZG）
+                searchPattern = `${indicator.name}_${formattedTimeLevel}`;
+              }
+              // 在表达式中查找并替换匹配的指标
+              // const regex = new RegExp(searchPattern, "g");
+              const regex = new RegExp(`\\b${searchPattern}\\b`, "g");
 
-        return result;
-      } catch (evalError) {
-        console.error("表达式计算错误:", evalError);
+              calculatedExpression = calculatedExpression.replace(
+                regex,
+                `${indicator.value}`
+              );
+            });
+          }
+        );
+        // 处理逻辑运算符
+        calculatedExpression = calculatedExpression
+          .replace(/\band\b/g, "&&") // 将 and 替换为 &&
+          .replace(/\bor\b/g, "||") // 将 or 替换为 ||
+          .replace(/！=/g, "!=") // 处理全角不等号
+          .replace(/＝=/g, "==") // 处理全角等号
+          .replace(/！/g, "!") // 处理全角感叹号
+          .replace(/（/g, "(") // 处理全角左括号
+          .replace(/）/g, ")") // 处理全角右括号
+          .replace(/＞=/g, ">=") // 处理全角大于等于
+          .replace(/＜=/g, "<=") // 处理全角小于等于
+          .replace(/＞/g, ">") // 处理全角大于号
+          .replace(/＜/g, "<"); // 处理全角小于号
+        calculatedExpression = calculatedExpression.replace(/LS_|_\d+/g, "");
+        // 记录转换后的表达式
+        //   console.log("原始表达式:", expression);
+        //   console.log("转换后的表达式:", calculatedExpression);
+        // strategyExpression;
+        //   console.log("strategyExpression", strategyExpression);
+        // 尝试计算表达式
+        try {
+          // console.log(calculatedExpression);
+          // eslint-disable-next-line no-eval
+          const result = eval(calculatedExpression);
+          // console.log("表达式计算结果:", result);
+
+          // 发送计算结果
+          // this.postMessage({
+          //   type: "expression_result",
+          //   data: {
+          //     expression: calculatedExpression,
+          //     strategy: this.strategy,
+          //     result: result,
+          //     tempKlines: tempKlines,
+          //     timestamp: Date.now(),
+          //   },
+          // });
+          resolve(result);
+          return result;
+        } catch (evalError) {
+          console.error("表达式计算错误:", evalError);
+          reject(evalError);
+          return null;
+        }
+      } catch (error) {
+        this.handleError(error, "表达式计算失败");
+        reject(error);
         return null;
       }
-    } catch (error) {
-      this.handleError(error, "表达式计算失败");
-      return null;
-    }
+    });
   }
 
   /**
