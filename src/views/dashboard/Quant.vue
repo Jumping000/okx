@@ -123,8 +123,7 @@
                                 :pagination="strategyList.length > 5 ? { pageSize: 5 } : false" size="small">
                                 <template v-slot:bodyCell="{ column, record }">
                                     <template v-if="column.key === 'name'">
-                                        <a-tooltip placement="right"
-                                            :overlayStyle="{ 'max-width': '500px' }">
+                                        <a-tooltip placement="right" :overlayStyle="{ 'max-width': '500px' }">
                                             <template #title>
                                                 <div class="strategy-tooltip">
                                                     <div class="tooltip-header">
@@ -174,7 +173,7 @@
                                                                     <span class="label">触发条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy1Conditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                             </template>
 
@@ -184,13 +183,13 @@
                                                                     <span class="label">多仓条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy2LongConditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">空仓条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy2ShortConditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                             </template>
 
@@ -200,25 +199,25 @@
                                                                     <span class="label">开多条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4OpenLongConditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开空条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4OpenShortConditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平多条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4CloseLongConditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平空条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4CloseShortConditions)
-                                                                    }}</span>
+                                                                        }}</span>
                                                                 </div>
                                                             </template>
                                                         </div>
@@ -382,7 +381,7 @@
                                         <!-- 订单状态 -->
                                         <template v-else-if="column.dataIndex === 'state'">
                                             <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text)
-                                            }}</a-tag>
+                                                }}</a-tag>
                                         </template>
 
                                         <!-- 数量 -->
@@ -478,7 +477,7 @@ import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
 import { setLeverage, postOrderAlgo, postCancelAlgos } from '@/api/module/Basics'
 import { WebSocketType, WebSocketState } from '@/utils/websocket'
-
+// import  from '@/utils/strategyExpressionHandler'
 // 定义组件选项
 defineOptions({
     name: 'Quant'
@@ -1110,8 +1109,9 @@ const handleWorkerMessage = (strategyId, data) => {
             break
         case 'expression_result':
             // handleExpressionResult(strategyId, )
-            let { expression,strategys, name, result, tempKlines, timestamp } = data.data
-            console.log(expression,strategys, name, result, tempKlines, timestamp);
+            // let { expression,strategys, name, result, tempKlines, timestamp } = data.data
+            // console.log(expression,strategys, name, result, tempKlines, timestamp);
+            expressionResultProcessing(strategy, data.data)
             break
         default:
             console.log(`未处理的消息类型: ${data.type}`, data)
@@ -1996,10 +1996,10 @@ const orderExclusiveStorageSpace = async (strategyInformation, data) => {
 const clearOppositePosition = async (currency, posSide) => {
     // 1. 确定反向持仓方向
     const oppositePosSide = posSide === 'long' ? 'short' : 'long'
-    
+
     // 2. 检查是否存在反向持仓
     const oppositePosition = checkPositionExists(currency, oppositePosSide)
-    
+
     // 3. 如果存在反向持仓，则平仓
     if (oppositePosition) {
         await placeMarketOrder(
@@ -2030,7 +2030,7 @@ const getStrategyModeText = (mode) => {
 const formatConditions = (conditions) => {
     // 如果没有条件，返回"无"
     if (!conditions || conditions.length === 0) return '无'
-    
+
     // 遍历所有条件，将其格式化为可读的表达式
     return conditions.map((condition, index) => {
         // 构建基础表达式：表达式 比较符 数值
@@ -2038,7 +2038,7 @@ const formatConditions = (conditions) => {
         const rightBracket = condition.rightBracket ? ')' : ''
         const expr = `${leftBracket}${condition.expression} ${condition.compareType} ${condition.value}${rightBracket}`
         // 如果不是最后一个条件，添加关系词（并且/或者）
-        return index < conditions.length - 1 
+        return index < conditions.length - 1
             ? `${expr} ${condition.relation === 'and' ? 'and' : 'or'}`
             : expr
     }).join(' ')  // 用空格连接所有表达式
