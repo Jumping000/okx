@@ -2051,8 +2051,9 @@ const handler = new StrategyExpressionHandler(wsStore,currencyStore);
  * @param {Object} strategy - 策略对象
  * @param {Object} data - 数据对象
  */
-const expressionResultProcessing = (strategy, data) => {
+const expressionResultProcessing =async (strategy, data) => {
     try {
+        console.log(strategy,JSON.stringify(data));
         // 获取当前策略币种的完整信息
         // const symbolInfo = handler.getSymbolFullInfo(strategy.currency);
 

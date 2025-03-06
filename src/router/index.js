@@ -103,13 +103,15 @@ router.beforeEach(async (to, from, next) => {
         const success = await userStore.getUserInfoAction();
         if (!success) {
           // 如果获取用户信息失败，清除所有存储并跳转到登录页
-          localStorage.clear();
+          // localStorage.clear();
+          localStorage.removeItem('token');
           next({ name: 'Login' });
           return;
         }
       } catch (error) {
         console.error('获取用户信息失败：', error);
-        localStorage.clear();
+        // localStorage.clear();
+        localStorage.removeItem('token');
         next({ name: 'Login' });
         return;
       }

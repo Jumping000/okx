@@ -290,18 +290,17 @@ class StrategyWorker extends self.BaseWorker {
         )
           .then((result) => {
             console.log(condition.name, result);
-          this.postMessage({
-            type: "expression_result",
-            data: {
-              expression: this.strategyExpression,
-              strategy: this.strategy,
-              name: condition.name,
-              result: result,
-              tempKlines: tempKlines,
-              timestamp: Date.now(),
-            },
-          });
-
+            this.postMessage({
+              type: "expression_result",
+              data: {
+                expression: this.strategyExpression,
+                strategy: this.strategy,
+                name: condition.name,
+                result: result,
+                tempKlines: tempKlines,
+                timestamp: Date.now(),
+              },
+            });
           })
           .catch((error) => {
             console.error(condition.name, error);

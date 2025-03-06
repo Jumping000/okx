@@ -330,7 +330,8 @@ export default defineComponent({
 
         const handleLogout = () => {
             // 清除配置并跳转到登录页
-            storage.clearApiConfig()
+            // storage.clearApiConfig()
+            localStorage.removeItem('token');
             userStore.logout()
             message.success('退出登录成功')
             router.push('/auth/login')

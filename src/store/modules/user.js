@@ -35,7 +35,8 @@ export const useUserStore = defineStore('user', {
     clearAll() {
       this.clearToken()
       this.setUserInfo(null)
-      localStorage.clear()
+      // localStorage.clear()
+      localStorage.removeItem('token');
     },
 
     // 登录
