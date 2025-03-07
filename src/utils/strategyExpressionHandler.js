@@ -107,7 +107,8 @@ class StrategyExpressionHandler {
     this.tempResult[strategy.currency].state = false;
   }
   //处理决策
-  handleDecisionResult(strategy, strategyCalculationResults) {
+  async handleDecisionResult(strategy, strategyCalculationResults) {
+
     // 区分单独策略还是双策略 还是四策略
     const strategyType = strategy.strategyMode;
     const strategyConditions = this.STRATEGY_CONDITIONS[strategyType];
@@ -116,6 +117,7 @@ class StrategyExpressionHandler {
       // 初始化内存栈
       this.queueInitialization(strategy, strategyConditions);
     }
+
     // 获取临时数组
     if (this.tempResult[strategy.currency].state === false) {
       this.tempResult[strategy.currency].state = true;
@@ -126,24 +128,25 @@ class StrategyExpressionHandler {
         return;
       }
       const allTrue = this.tempResult[strategy.currency][strategyCalculationResults.name].slice(-3).every(value => value === true);
-      // const allFalse = this.tempResult[strategy.currency][strategyCalculationResults.name].slice(-3).every(value => value === false);
+      const allFalse = this.tempResult[strategy.currency][strategyCalculationResults.name].slice(-3).every(value => value === false);
       const strategyConditionsItem = strategyConditions.find(item => item.name === strategyCalculationResults.name);
       // 根据strategyType 处理 策略
       switch (strategyType) {
         case "1":
-          // 如果是1 策略 直接进行处理 因为单策略不论结果如何都会执行
-          this.singleStrategyProcessing(strategyCalculationResults);
+          if (allTrue == true || allFalse == true) {
+            await this.singleStrategyProcessing(strategyCalculationResults);
+          }
           break;
         case "2":
           // 双策略 当三个连续结果都为true时 进行处理
           if (allTrue == true) {
-            this.doubleStrategyProcessing(strategyCalculationResults, strategyConditionsItem);
+            await this.doubleStrategyProcessing(strategyCalculationResults, strategyConditionsItem);
           }
           break;
         case "4":
           // 四策略 当三个连续结果都为true时 进行处理
           if (allTrue == true) {
-            this.fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem);
+            await this.fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem);
           }
           break;
       }
@@ -159,28 +162,27 @@ class StrategyExpressionHandler {
 
   }
   // 处理双策略
-  doubleStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
+  async doubleStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
     // 策略
     const strategyInformation = strategyCalculationResults.strategy;
-    console.log('strategyInformation',strategyInformation);
     // 仓位
     const currentPosition = this.getPositionInfo(strategyCalculationResults.strategy.currency, strategyConditionsItem.posSide)
     // 判断当前仓位是否为空
     if (currentPosition == null) {
       // 没有仓位 开仓不存在${strategyConditionsItem.posSide}仓位 进行开仓
       this.logger({
-  time: new Date(),
-  type: 'info',
-  content: `触发开仓条件: 建立${strategyConditionsItem.posSide === 'long' ? '多' : '空'}头仓位`
-});
+        time: new Date(),
+        type: 'info',
+        content: `触发开仓条件: 建立${strategyConditionsItem.posSide === 'long' ? '多' : '空'}头仓位`
+      });
       // 开仓
-      this.orderExclusiveStorageSpace(strategyInformation, strategyConditionsItem.posSide)
+      await this.orderExclusiveStorageSpace(strategyInformation, strategyConditionsItem.posSide)
     } else {
       // 有仓位 开仓存在${strategyConditionsItem.posSide}仓位 进行平仓
     }
   }
   // 处理四策略
-  fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
+  async fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
 
   }
 
@@ -192,10 +194,10 @@ class StrategyExpressionHandler {
     // 防止重复开仓
     if (this.getPositionInfo(strategyInformation.currency, posSide)) {
       this.logger({
-  time: new Date(),
-  type: 'warning',
-  content: '当前已有仓位，取消开仓操作'
-})
+        time: new Date(),
+        type: 'warning',
+        content: '错误：已存在相同方向的仓位，请先平仓再进行操作'
+      })
       return
     }
     // 1. 根据策略结果开仓（多/空），使用市价单
@@ -221,7 +223,7 @@ class StrategyExpressionHandler {
         (position.avgPx * (1 - strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
         : (position.avgPx * (1 + strategyInformation.stopLoss)).toFixed(strategyInformation.priceDecimalPlaces)
       // 4. 设置止损单
-      const stopLossResult=await this.placeStopLossOrder({
+      const stopLossResult = await this.placeStopLossOrder({
         instId: strategyInformation.currency,      // 交易币种
         posSide: posSide,  // 持仓方向
         marginMode: 'cross',                       // 全仓模式
