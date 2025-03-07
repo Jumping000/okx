@@ -1,3 +1,4 @@
+import { CheckableTag } from "ant-design-vue";
 
 /**
  * 策略表达式处理器
@@ -104,13 +105,13 @@ class StrategyExpressionHandler {
     for (let i = 0; i < strategyConditions.length; i++) {
       this.tempResult[strategy.currency][strategyConditions[i].name] = [];
     }
-    this.tempResult[strategy.currency]['long']={
-      stopLossId:0,
-      stopLossPrice:0,
+    this.tempResult[strategy.currency]['long'] = {
+      stopLossState: 0,
+      stopPrice: 0,
     }
-    this.tempResult[strategy.currency]['short']={
-      stopLossId:0,
-      stopLossPrice:0, 
+    this.tempResult[strategy.currency]['short'] = {
+      stopLossState: 0,
+      stopPrice: 0,
     }
     this.tempResult[strategy.currency].state = false;
   }
@@ -188,7 +189,7 @@ class StrategyExpressionHandler {
     } else {
       // 有仓位 开仓存在${strategyConditionsItem.posSide}仓位 进行平仓
       // console.log("阈值比例or止损比例", strategyInformation.threshold, strategyInformation.stopLoss);
-      this.thresholdCalculation(strategyInformation, strategyConditionsItem.posSide, strategyCalculationResults.tempKlines, currentPosition)
+      await this.thresholdCalculation(strategyInformation, strategyConditionsItem.posSide, strategyCalculationResults.tempKlines, currentPosition)
     }
   }
   // 处理四策略
@@ -203,23 +204,89 @@ class StrategyExpressionHandler {
  * @param {Object} position - 当前仓位信息
  * 
  */
-  async thresholdCalculation(strategyInformation, posSide, Klines,position) {
+  async thresholdCalculation(strategyInformation, posSide, Klines, position) {
+    if (Klines.length == 0) {
+      return;
+    }
     const tempKlines = Klines[0];
-    const priceDecimalPlaces=strategyInformation.priceDecimalPlaces
-    const stopLoss =  strategyInformation.stopLoss
-// tempklines ={timestamp: 1741317480000, open: 2.6907, high: 2.6927, low: 2.6888, close: 2.6888,volCcy: 13923 , volume: 13923}
+
+    const priceDecimalPlaces = strategyInformation.priceDecimalPlaces
+    const stopLoss = strategyInformation.stopLoss
+    const threshold = strategyInformation.threshold
+    const currency = strategyInformation.currency
+
+    // tempklines ={timestamp: 1741317480000, open: 2.6907, high: 2.6927, low: 2.6888, close: 2.6888,volCcy: 13923 , volume: 13923}
     const stopLossPrice = posSide === 'long' ?
-      (tempKlines.close * (1 -stopLoss)).toFixed(priceDecimalPlaces)
+      (tempKlines.close * (1 - stopLoss)).toFixed(priceDecimalPlaces)
       : (tempKlines.close * (1 + stopLoss)).toFixed(priceDecimalPlaces)
     // 检查是否存在通过阈值挂的止损单
-    if(this.tempResult[strategy.currency][position].stopLossId==0){
+    if (this.tempResult[currency][posSide].stopLossState == 0) {
       // 不存在
       // 计算移动止损价格阈值
-      let profitLossPrice = data.result ?
-      (position.avgPx * (1 + 0.0005)).toFixed(priceDecimalPlaces)
-      : (position.avgPx * (1 - 0.0005)).toFixed(priceDecimalPlaces)
-    }else{
+      let profitLossPrice = posSide === 'long' ?
+        (position.avgPx * (1 + threshold)).toFixed(priceDecimalPlaces)
+        : (position.avgPx * (1 - threshold)).toFixed(priceDecimalPlaces)
+      // 检查当前价格是否高于或低于移动止损价格阈值
+      if ((posSide === 'long' && tempKlines.close >= profitLossPrice) || (posSide === 'short' && tempKlines.close <= profitLossPrice)) {
+        // 触发移动止损
+        let stopResults = await this.placeStopLossOrder({
+          instId: currency,
+          posSide: posSide,
+          marginMode: 'cross',
+          size: strategyInformation.quantity,
+          stopLossPrice: stopLossPrice
+        });
+        if (stopResults.code === "0") {
+          // 成功
+          // 记录止损单ID
+          this.tempResult[currency][posSide].stopLossState = 1
+          // 记录止损单价格
+          this.tempResult[currency][posSide].stopPrice = tempKlines.close
+          this.logger({
+            time: new Date(),
+            type: 'info',
+            content: '更新移动阈值止损价格'
+          })
+        } else {
+          // 失败
+          this.logger({
+            time: new Date(),
+            type: 'warning',
+            content: '错误：移动阈值止损下单失败'
+          })
+        }
+      }
+    } else {
       // 存在
+      const stopPrice = this.tempResult[currency][posSide].stopPrice
+      let profitLossPrice = posSide === 'long' ?
+        (stopPrice * (1 + threshold)).toFixed(priceDecimalPlaces)
+        : (stopPrice * (1 - threshold)).toFixed(priceDecimalPlaces)
+      if ((posSide === 'long' && tempKlines.close >= profitLossPrice) || (posSide === 'short' && tempKlines.close <= profitLossPrice)) {
+        const stopResults = await this.placeStopLossOrder({
+          instId: currency,
+          posSide: posSide,
+          marginMode: 'cross',
+          size: strategyInformation.quantity,
+          stopLossPrice: stopLossPrice
+        })
+        if (stopResults.code === "0") {
+          // 记录止损单价格
+          this.tempResult[currency][posSide].stopPrice = tempKlines.close
+          this.logger({
+            time: new Date(),
+            type: 'info',
+            content: '更新移动阈值止损价格'
+          })
+        } else {
+          // 失败
+          this.logger({
+            time: new Date(),
+            type: 'warning',
+            content: '错误：移动阈值止损下单失败'
+          })
+        }
+      }
     }
 
   }
@@ -439,7 +506,7 @@ class StrategyExpressionHandler {
       // 6. 发送止损单
       // console.log('发送止损单:', algoParams)
       const response = await this.postOrderAlgo(algoParams)
-      // console.log('止损单响应:', response)
+      console.log('止损单响应:', response)
 
       // 7. 处理响应
       if (response.code === '0' && response.data[0]?.sCode === '0') {
@@ -453,10 +520,10 @@ class StrategyExpressionHandler {
       return false
     }
   }
- /**
- * 结束决策处理
- * @param {Object} strategy 策略信息
- */ 
+  /**
+  * 结束决策处理
+  * @param {Object} strategy 策略信息
+  */
   endDecisionProcessing(strategy) {
     delete this.tempResult[strategy.currency]
   }
