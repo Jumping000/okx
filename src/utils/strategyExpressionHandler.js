@@ -153,8 +153,8 @@ class StrategyExpressionHandler {
           }
           break;
         case "4":
-          // 四策略 当三个连续结果都为true时 进行处理
-          if (allTrue == true) {
+          // 四策略 当三个连续结果都为true时 进行处理 或者是平仓的时候 进行处理
+          if (allTrue == true||strategyConditionsItem.positionAction=="close") {
             await this.fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem);
           }
           break;
@@ -162,30 +162,57 @@ class StrategyExpressionHandler {
       this.tempResult[strategy.currency].state = false;
     }
   }
-  // strategyCalculationResults={   "expression":{ "1m": [{ "name": "ZG", "value": 2.6674 }]}, "name": "strategy2ShortConditions","result": true,  "tempKlines": [{ "timestamp": 1741254300000, "open": 2.6759, "high": 2.6796, "low": 2.6645, "close": 2.6666, "volume": 142310, "volCcy": 142310, "confirm": false }], "strategy": { "id": "strategy_1741247505593", "name": "测试12312312", "description": "21312321", "currency": "SUI-USDT-SWAP", "quantity": 1, "leverage": 1, "positionType": "cross", "stopLoss": 0.05, "strategyMode": "2", "priceDecimalPlaces": 4, "strategy2LongConditions": "((ZG_1F - KDJ_K_1F + KDJ_K_1F + KDJ_D_3F - KDJ_J_3F - MA_3F_5 - LS_CJ_3F_2 - LS_CJ_5F_2 - LS_SP_5F_1 * EMA_5F_5) > 1 and (+ CJ_15F + MA_15F_5 + EMA_15F_5 + MACD_MACD_15F + KDJ_K_15F) < 1) or (ZG_1F - KDJ_K_1F + KDJ_K_1F + KDJ_D_3F - KDJ_J_3F - MA_3F_5 - LS_CJ_3F_2 - LS_CJ_5F_2 - LS_SP_5F_1 * EMA_5F_5) > 10", "strategy2ShortConditions": "(+ CJ_15F + MA_15F_5 + EMA_15F_5 + MACD_MACD_15F + KDJ_K_15F) != 1" }, "timestamp": 1741254623524 }
+  // strategyCalculationResults={"expression":{ "1m": [{ "name": "ZG", "value": 2.6674 }]}, "name": "strategy2ShortConditions","result": true,  "tempKlines": [{ "timestamp": 1741254300000, "open": 2.6759, "high": 2.6796, "low": 2.6645, "close": 2.6666, "volume": 142310, "volCcy": 142310, "confirm": false }], "strategy": { "id": "strategy_1741247505593", "name": "测试12312312", "description": "21312321", "currency": "SUI-USDT-SWAP", "quantity": 1, "leverage": 1, "positionType": "cross", "stopLoss": 0.05, "strategyMode": "2", "priceDecimalPlaces": 4, "strategy2LongConditions": "((ZG_1F - KDJ_K_1F + KDJ_K_1F + KDJ_D_3F - KDJ_J_3F - MA_3F_5 - LS_CJ_3F_2 - LS_CJ_5F_2 - LS_SP_5F_1 * EMA_5F_5) > 1 and (+ CJ_15F + MA_15F_5 + EMA_15F_5 + MACD_MACD_15F + KDJ_K_15F) < 1) or (ZG_1F - KDJ_K_1F + KDJ_K_1F + KDJ_D_3F - KDJ_J_3F - MA_3F_5 - LS_CJ_3F_2 - LS_CJ_5F_2 - LS_SP_5F_1 * EMA_5F_5) > 10", "strategy2ShortConditions": "(+ CJ_15F + MA_15F_5 + EMA_15F_5 + MACD_MACD_15F + KDJ_K_15F) != 1" }, "timestamp": 1741254623524 }
   // strategyConditionsItem={"name":"strategy2ShortConditions","posSide":"short","positionAction":"open"}
   // 处理单策略
   singleStrategyProcessing(strategyCalculationResults) {
     // 为true是空仓 为false是空仓 
     const strategyInformation = strategyCalculationResults.strategy;
-
+    // 检查仓位 
+    const posSide=strategyCalculationResults.result==true?"long":"short"
+    const currentPosition = this.getPositionInfo(strategyInformation.currency,posSide)
+    // 相反仓位
+    const oppositePosition = this.getPositionInfo(strategyInformation.currency,posSide=="long"?"short":"long")
+    // 清理相反仓位
+    if(oppositePosition){
+      this.logger({
+        time: new Date(),
+        type: 'info',
+        content: `策略 ${strategyInformation.name} 触发平仓条件: 关闭${oppositePosition.posSide === 'long'? '多' : '空'}头仓位`
+      })
+      // 平仓
+      this.closingPositionAndPlacingOrder(strategyInformation,posSide) 
+    }
+    if (currentPosition == null) {
+      // 没有仓位 开仓不存在${strategyConditionsItem.posSide}仓位 进行开仓 
+      this.logger({
+        time: new Date(),
+        type: 'info',
+        content: `策略 ${strategyInformation.name} 触发开仓条件: 建立${posSide === 'long' ? '多' : '空'}头仓位`
+      })
+      // 开仓
+      this.openWarehouseAndPlaceOrder(strategyInformation,posSide)
+    }else{
+      //存在仓位 进行阈值委托
+      this.thresholdCalculation(strategyInformation,posSide,strategyCalculationResults.tempKlines,currentPosition) 
+    }
   }
   // 处理双策略
   async doubleStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
     // 策略
     const strategyInformation = strategyCalculationResults.strategy;
     // 仓位
-    const currentPosition = this.getPositionInfo(strategyCalculationResults.strategy.currency, strategyConditionsItem.posSide)
+    const currentPosition = this.getPositionInfo(strategyInformation.currency, strategyConditionsItem.posSide)
     // 判断当前仓位是否为空
     if (currentPosition == null) {
       // 没有仓位 开仓不存在${strategyConditionsItem.posSide}仓位 进行开仓
       this.logger({
         time: new Date(),
         type: 'info',
-        content: `触发开仓条件: 建立${strategyConditionsItem.posSide === 'long' ? '多' : '空'}头仓位`
+        content: `策略 ${strategyInformation.name} 触发开仓条件: 建立${strategyConditionsItem.posSide === 'long' ? '多' : '空'}头仓位`
       });
       // 开仓
-      await this.orderExclusiveStorageSpace(strategyInformation, strategyConditionsItem.posSide)
+      await this.openWarehouseAndPlaceOrder(strategyInformation, strategyConditionsItem.posSide)
     } else {
       // 有仓位 开仓存在${strategyConditionsItem.posSide}仓位 进行平仓
       // console.log("阈值比例or止损比例", strategyInformation.threshold, strategyInformation.stopLoss);
@@ -194,7 +221,33 @@ class StrategyExpressionHandler {
   }
   // 处理四策略
   async fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
-
+    // 策略
+    const strategyInformation = strategyCalculationResults.strategy;
+    // 仓位
+    const currentPosition = this.getPositionInfo(strategyInformation.currency, strategyConditionsItem.posSide)
+    // 判断当前仓位是否为空
+    if (strategyConditionsItem.positionAction === "close" && currentPosition) {
+      // 有仓位且是平仓条件 进行平仓
+      this.logger({
+        time: new Date(),
+        type: 'info',
+        content: `策略 ${strategyInformation.name} 触发平仓条件: 关闭${strategyConditionsItem.posSide === 'long'? '多' : '空'}头仓位`
+      });
+      // 平仓
+      await this.closingPositionAndPlacingOrder(strategyInformation, strategyConditionsItem.posSide)
+    }else if(strategyConditionsItem.positionAction === "open" && !currentPosition){
+      // 没有仓位 开仓条件 进行开仓
+      this.logger({
+        time: new Date(),
+        type: 'info',
+        content: `策略 ${strategyInformation.name} 触发开仓条件: 建立${strategyConditionsItem.posSide === 'long' ? '多' : '空'}头仓位`
+      });
+      // 开仓
+      await this.openWarehouseAndPlaceOrder(strategyInformation, strategyConditionsItem.posSide)
+    }else if(strategyConditionsItem.positionAction === "open" && currentPosition){
+      // 有仓位 开仓条件 进行挂阈值委托
+      await this.thresholdCalculation(strategyInformation, strategyConditionsItem.posSide, strategyCalculationResults.tempKlines, currentPosition)
+    }
   }
   /**
  * 计算阈值比例
@@ -245,14 +298,14 @@ class StrategyExpressionHandler {
           this.logger({
             time: new Date(),
             type: 'info',
-            content: '更新移动阈值止损价格'
+            content: `策略 ${strategyInformation.name} 更新移动阈值止损价格`
           })
         } else {
           // 失败
           this.logger({
             time: new Date(),
             type: 'warning',
-            content: '错误：移动阈值止损下单失败'
+            content: `策略 ${strategyInformation.name} 错误：移动阈值止损下单失败`
           })
         }
       }
@@ -276,14 +329,14 @@ class StrategyExpressionHandler {
           this.logger({
             time: new Date(),
             type: 'info',
-            content: '更新移动阈值止损价格'
+            content: `策略 ${strategyInformation.name} 更新移动阈值止损价格 `
           })
         } else {
           // 失败
           this.logger({
             time: new Date(),
             type: 'warning',
-            content: '错误：移动阈值止损下单失败'
+            content: `策略 ${strategyInformation.name} 错误：移动阈值止损下单失败`
           })
         }
       }
@@ -291,16 +344,16 @@ class StrategyExpressionHandler {
 
   }
 
-  // 下单专属仓位函数
+  // 开仓下单专属仓位函数
   // @param strategyInformation - 策略信息对象，包含币种、数量、价格精度等信息
   // @param posSide - 仓位方向，'long' 或 'short'
-  async orderExclusiveStorageSpace(strategyInformation, posSide) {
+  async openWarehouseAndPlaceOrder(strategyInformation, posSide) {
     // 防止重复开仓
     if (this.getPositionInfo(strategyInformation.currency, posSide)) {
       this.logger({
         time: new Date(),
         type: 'warning',
-        content: '错误：已存在相同方向的仓位，请先平仓再进行操作'
+        content: `策略 ${strategyInformation.name} 错误：已存在相同方向的仓位，请先平仓再进行操作`
       })
       return
     }
@@ -338,20 +391,67 @@ class StrategyExpressionHandler {
         this.logger({
           time: new Date(),
           type: 'warning',
-          content: '错误：设置初始仓位止损单失败'
+          content: `策略 ${strategyInformation.name} 错误：设置初始仓位止损单失败`
         })
       } else {
         this.logger({
           time: new Date(),
           type: 'info',
-          content: '设置初始仓位止损单成功'
+          content: `策略 ${strategyInformation.name} 设置初始仓位止损单成功`
         })
       }
     } else {
       this.logger({
         time: new Date(),
         type: 'warning',
-        content: '错误：下单失败'
+        content: `策略 ${strategyInformation.name} 错误：下单失败`
+      })
+    }
+  }
+  // 平仓下单专属仓位函数
+  // @param strategyInformation - 策略信息对象，包含币种、数量、价格精度等信息
+  // @param posSide - 仓位方向，'long' 或 'short'
+  async closingPositionAndPlacingOrder (strategyInformation, posSide) {
+    // 检查是否存在仓位
+    const position = this.getPositionInfo(strategyInformation.currency, posSide)
+    if (!position) {
+      this.logger({
+        time: new Date(),
+        type: 'warning',
+        content: `策略 ${strategyInformation.name} 错误：不存在${posSide === 'long' ? '多' : '空'}头仓位，无法平仓`
+      })
+      return
+    }
+
+    // 1. 执行市价平仓
+    let orderResult = await this.placeMarketOrder(
+      strategyInformation.currency,  // 交易币种
+      'close',                       // 平仓操作
+      posSide,                       // 仓位方向
+      'cross',                       // 全仓模式
+      strategyInformation.quantity   // 平仓数量
+    )
+
+    // 2. 处理下单结果
+    if (orderResult) {
+      this.logger({
+        time: new Date(),
+        type: 'info',
+        content: `策略 ${strategyInformation.name} ${posSide === 'long' ? '多' : '空'}头仓位平仓成功`
+      })
+      // 清除该币种该方向的临时数据
+      if (this.tempResult[strategyInformation.currency] && 
+          this.tempResult[strategyInformation.currency][posSide]) {
+        this.tempResult[strategyInformation.currency][posSide] = {
+          stopLossState: 0,
+          stopPrice: 0,
+        }
+      }
+    } else {
+      this.logger({
+        time: new Date(),
+        type: 'warning',
+        content: `策略 ${strategyInformation.name} 错误：${posSide === 'long' ? '多' : '空'}头仓位平仓失败`
       })
     }
   }
