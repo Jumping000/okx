@@ -3,8 +3,8 @@ import { useUserStore } from '@/store/modules/user'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: 'http://127.0.0.1:3000',
-  timeout: 15000
+  baseURL: 'http://okx.server.hhjqygl.cn',
+  timeout: 60000
 })
 
 // 请求拦截器

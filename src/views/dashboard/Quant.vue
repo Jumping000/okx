@@ -113,11 +113,8 @@
                                     :loading="testLoading">
                                     测试功能
                                 </a-button>
-                                <a-button type="primary" size="small" @click="showAddStrategyDialog">
-                                    新建策略
-                                </a-button>
                                 <a-button type="primary" size="small" @click="showAddStrategy2Dialog">
-                                    新增策略2
+                                    新增策略
                                 </a-button>
                             </div>
                         </div>
@@ -453,10 +450,6 @@
             @submit="handleFormulaSubmit" />
 
         <!-- 新增策略弹窗 -->
-        <strategy-dialog v-model:visible="strategyDialogVisible" :loading="dialogLoading"
-            @submit="handleStrategySubmit" />
-
-        <!-- 新增策略2弹窗 -->
         <strategy-dialog2 v-model:visible="strategy2DialogVisible" :loading="dialogLoading"
             @submit="handleStrategySubmit" />
 
@@ -475,7 +468,6 @@ import {
     FileTextOutlined
 } from '@ant-design/icons-vue'
 import FormulaDialog from './components/FormulaDialog.vue'
-import StrategyDialog from './components/StrategyDialog.vue'
 import StrategyDialog2 from './components/StrategyDialog2.vue'
 import LocalStorageEditor from './components/LocalStorageEditor.vue'
 import dayjs from 'dayjs'
@@ -498,7 +490,6 @@ const currencyStore = useCurrencyStore()
 const loading = ref(false)
 const dialogLoading = ref(false)
 const formulaDialogVisible = ref(false)
-const strategyDialogVisible = ref(false)
 const strategy2DialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
@@ -786,10 +777,6 @@ const showAddDialog = (type) => {
     formulaDialogVisible.value = true
 }
 
-const showAddStrategyDialog = () => {
-    strategyDialogVisible.value = true
-}
-
 const showAddStrategy2Dialog = () => {
     strategy2DialogVisible.value = true
 }
@@ -819,7 +806,7 @@ const handleStrategySubmit = async (formData) => {
     dialogLoading.value = true
     try {
         strategyList.value.push(formData)
-        strategyDialogVisible.value = false
+        strategy2DialogVisible.value = false
         message.success('保存成功')
     } catch (error) {
         console.error('保存失败:', error)
