@@ -104,6 +104,14 @@ class StrategyExpressionHandler {
     for (let i = 0; i < strategyConditions.length; i++) {
       this.tempResult[strategy.currency][strategyConditions[i].name] = [];
     }
+    this.tempResult[strategy.currency]['long']={
+      stopLossId:0,
+      stopLossPrice:0,
+    }
+    this.tempResult[strategy.currency]['short']={
+      stopLossId:0,
+      stopLossPrice:0, 
+    }
     this.tempResult[strategy.currency].state = false;
   }
   //处理决策
@@ -179,13 +187,42 @@ class StrategyExpressionHandler {
       await this.orderExclusiveStorageSpace(strategyInformation, strategyConditionsItem.posSide)
     } else {
       // 有仓位 开仓存在${strategyConditionsItem.posSide}仓位 进行平仓
+      // console.log("阈值比例or止损比例", strategyInformation.threshold, strategyInformation.stopLoss);
+      this.thresholdCalculation(strategyInformation, strategyConditionsItem.posSide, strategyCalculationResults.tempKlines, currentPosition)
     }
   }
   // 处理四策略
   async fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
 
   }
+  /**
+ * 计算阈值比例
+ * @param {Object} strategyInformation - 策略信息对象，包含币种、数量、价格精度等信息
+ * @param {string} posSide - 仓位方向，'long' 或'short' 
+ * @param {object} tempKlines - 临时K线数据
+ * @param {Object} position - 当前仓位信息
+ * 
+ */
+  async thresholdCalculation(strategyInformation, posSide, Klines,position) {
+    const tempKlines = Klines[0];
+    const priceDecimalPlaces=strategyInformation.priceDecimalPlaces
+    const stopLoss =  strategyInformation.stopLoss
+// tempklines ={timestamp: 1741317480000, open: 2.6907, high: 2.6927, low: 2.6888, close: 2.6888,volCcy: 13923 , volume: 13923}
+    const stopLossPrice = posSide === 'long' ?
+      (tempKlines.close * (1 -stopLoss)).toFixed(priceDecimalPlaces)
+      : (tempKlines.close * (1 + stopLoss)).toFixed(priceDecimalPlaces)
+    // 检查是否存在通过阈值挂的止损单
+    if(this.tempResult[strategy.currency][position].stopLossId==0){
+      // 不存在
+      // 计算移动止损价格阈值
+      let profitLossPrice = data.result ?
+      (position.avgPx * (1 + 0.0005)).toFixed(priceDecimalPlaces)
+      : (position.avgPx * (1 - 0.0005)).toFixed(priceDecimalPlaces)
+    }else{
+      // 存在
+    }
 
+  }
 
   // 下单专属仓位函数
   // @param strategyInformation - 策略信息对象，包含币种、数量、价格精度等信息
@@ -231,10 +268,24 @@ class StrategyExpressionHandler {
         stopLossPrice: stopLossPrice              // 止损价格
       })
       if (!stopLossResult) {
-        console.log('止损单设置失败')
+        this.logger({
+          time: new Date(),
+          type: 'warning',
+          content: '错误：设置初始仓位止损单失败'
+        })
+      } else {
+        this.logger({
+          time: new Date(),
+          type: 'info',
+          content: '设置初始仓位止损单成功'
+        })
       }
     } else {
-      console.log('下单失败')
+      this.logger({
+        time: new Date(),
+        type: 'warning',
+        content: '错误：下单失败'
+      })
     }
   }
   /**
@@ -401,6 +452,13 @@ class StrategyExpressionHandler {
       console.error('下止损单失败:', error)
       return false
     }
+  }
+ /**
+ * 结束决策处理
+ * @param {Object} strategy 策略信息
+ */ 
+  endDecisionProcessing(strategy) {
+    delete this.tempResult[strategy.currency]
   }
 }
 

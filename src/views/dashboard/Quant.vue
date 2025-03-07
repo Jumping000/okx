@@ -106,6 +106,9 @@
                                 <h3 class="text-base font-medium text-dark-100">策略列表</h3>
                             </div>
                             <div class="flex items-center gap-2">
+                                <a-button type="primary" size="small" @click="showStorageEditor">
+                                    本地存储编辑
+                                </a-button>
                                 <a-button type="primary" size="small" @click="handleTestFunction"
                                     :loading="testLoading">
                                     测试功能
@@ -456,6 +459,9 @@
         <!-- 新增策略2弹窗 -->
         <strategy-dialog2 v-model:visible="strategy2DialogVisible" :loading="dialogLoading"
             @submit="handleStrategySubmit" />
+
+        <!-- 本地存储编辑器 -->
+        <local-storage-editor v-model="storageEditorVisible" @save="handleStorageEditorSave" />
     </div>
 </template>
 
@@ -471,6 +477,7 @@ import {
 import FormulaDialog from './components/FormulaDialog.vue'
 import StrategyDialog from './components/StrategyDialog.vue'
 import StrategyDialog2 from './components/StrategyDialog2.vue'
+import LocalStorageEditor from './components/LocalStorageEditor.vue'
 import dayjs from 'dayjs'
 import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
@@ -955,8 +962,9 @@ const handleStrategyAction = async (record) => {
                             leverage: record.leverage, // 策略杠杆
                             positionType: record.positionType, // 策略持仓类型
                             stopLoss: record.stopLoss, // 策略止损
+                            threshold: record.threshold, // 策略阈值
                             strategyMode: record.strategyMode, // 策略模式
-                            priceDecimalPlaces: priceDecimalPlaces // 价格精度
+                            priceDecimalPlaces: priceDecimalPlaces, // 价格精度
                         },
                     }
                 }
@@ -1013,6 +1021,8 @@ const handleStrategyAction = async (record) => {
                 if (checkPositionExists(strategy.currency, 'short')) {
                     placeMarketOrder(strategy.currency, 'close', 'short', 'cross', strategy.quantity)
                 }
+                // 删除决策的内存栈的使用
+                handler.endDecisionProcessing(strategy)
                 // 添加停止日志
                 strategyLogs.value.unshift({
                     time: new Date(),
@@ -2079,6 +2089,21 @@ const expressionResultProcessing =async (strategy, data) => {
     }
 }
 // rr
+
+// 本地存储编辑器状态
+const storageEditorVisible = ref(false)
+
+// 显示存储编辑器
+const showStorageEditor = () => {
+    storageEditorVisible.value = true
+}
+
+// 处理存储编辑器保存
+const handleStorageEditorSave = () => {
+    // 重新加载数据
+    loadFromStorage()
+    loadStrategies()
+}
 </script>
 
 <style lang="scss" scoped>
