@@ -23,7 +23,7 @@ export const useCurrencyStore = defineStore("currency", {
 
     // 获取所有可用的币种
     availableCurrencies: (state) => {
-      return state.currencies.filter(
+      return [...state.currencies.SWAP, ...state.currencies.SPOT].filter(
         (currency) => currency.canDep && currency.canWd
       );
     },

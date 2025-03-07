@@ -289,7 +289,7 @@ class StrategyWorker extends self.BaseWorker {
           this.strategy[condition.name]
         )
           .then((result) => {
-            console.log(condition.name, result);
+            // console.log(condition.name, result);
             this.postMessage({
               type: "expression_result",
               data: {

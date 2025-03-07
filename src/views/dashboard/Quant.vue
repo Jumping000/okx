@@ -2045,7 +2045,11 @@ const formatConditions = (conditions) => {
 
 }
 // 创建策略表达式处理器实例，使用 currencyStore
-const handler = new StrategyExpressionHandler(wsStore,currencyStore);
+const strategyLogger = (logData) => {
+  strategyLogs.value.unshift(logData);
+};
+const handler = new StrategyExpressionHandler(wsStore, currencyStore, postOrderAlgo, strategyLogger);
+
 /**
  * 处理策略表达式结果
  * @param {Object} strategy - 策略对象
@@ -2053,10 +2057,11 @@ const handler = new StrategyExpressionHandler(wsStore,currencyStore);
  */
 const expressionResultProcessing =async (strategy, data) => {
     try {
-        console.log(strategy,JSON.stringify(data));
+
         // 获取当前策略币种的完整信息
         // const symbolInfo = handler.getSymbolFullInfo(strategy.currency);
-
+        // 假设处理决策结果方法名为 handleDecisionResult
+        handler.handleDecisionResult(strategy, data);
         // console.log('策略信息:', {
         //     strategyName: strategy.name,
         //     strategyId: strategy.id,
@@ -2072,7 +2077,7 @@ const expressionResultProcessing =async (strategy, data) => {
         return false;
     }
 }
-
+// rr
 </script>
 
 <style lang="scss" scoped>
