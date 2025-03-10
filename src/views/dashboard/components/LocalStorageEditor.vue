@@ -13,7 +13,7 @@
             <div class="storage-list">
                 <div v-for="(item, key) in storageItems" :key="key" class="storage-item mb-4">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-base font-medium">{{ getStorageKeyName(key) }}</span>
+                        <span class="text-base font-medium storage-title">{{ getStorageKeyName(key) }}</span>
                         <div class="flex gap-2">
                             <a-tooltip :title="getStorageHelp(key)" placement="left">
                                 <a-button type="link" size="small">
@@ -245,32 +245,16 @@ const handleCancel = () => {
 // 监听显示状态变化，当显示时初始化数据
 watch(() => props.modelValue, (newVal) => {
     if (newVal) {
-        // 显示警告提示
-        Modal.warning({
-            title: '警告',
-            content: '若您无编程经验请不要使用该功能！不然会影响您的正常使用',
-            okText: '我知道了',
-            onOk: () => {
-                // 初始化数据
-                initStorageData()
-            }
-        })
+        // 初始化数据
+        initStorageData()
     }
 })
 
 // 组件挂载时初始化数据
 onMounted(() => {
     if (props.modelValue) {
-        // 显示警告提示
-        Modal.warning({
-            title: '警告',
-            content: '若您无编程经验请不要使用该功能！不然会影响您的正常使用',
-            okText: '我知道了',
-            onOk: () => {
-                // 初始化数据
-                initStorageData()
-            }
-        })
+        // 初始化数据
+        initStorageData()
     }
 })
 </script>
@@ -297,6 +281,10 @@ onMounted(() => {
 }
 
 .storage-item {
+    .storage-title {
+        color: var(--text-color) !important;
+    }
+
     :deep(.ant-input) {
         font-family: monospace;
         font-size: 14px;
@@ -316,11 +304,11 @@ onMounted(() => {
 }
 
 .text-success {
-    color: var(--success-color);
+    color: var(--success-color) !important;
 }
 
 .text-error {
-    color: var(--error-color);
+    color: var(--error-color) !important;
 }
 
 :deep(.ant-tooltip) {
@@ -340,5 +328,24 @@ onMounted(() => {
         color: var(--primary-color);
         background: transparent;
     }
+}
+
+/* 确保所有文本颜色正确 */
+:deep(.ant-modal-title) {
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-modal-content) {
+    background-color: var(--bg-color) !important;
+    color: var(--text-color) !important;
+}
+
+:deep(.ant-modal-body) {
+    color: var(--text-color) !important;
+}
+
+/* 确保文本颜色在任何情况下都正确 */
+span, div, p {
+    color: var(--text-color) !important;
 }
 </style> 

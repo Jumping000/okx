@@ -2240,6 +2240,27 @@ const addSystemLog = (type, content) => {
     scrollbar-color: var(--border-color) var(--bg-color);
 }
 
+/* 日志样式 - 全局规则 */
+:deep(.log-content) {
+    color: var(--text-color) !important;
+}
+
+:deep(.log-content.log-info) {
+    color: var(--text-color) !important;
+}
+
+:deep(.log-content.log-success) {
+    color: var(--primary-color) !important;
+}
+
+:deep(.log-content.log-warning) {
+    color: #f59e0b !important;
+}
+
+:deep(.log-content.log-error) {
+    color: #ef4444 !important;
+}
+
 /* 日志样式 */
 .quant .log-item {
     @apply mb-2 flex items-start gap-2;
