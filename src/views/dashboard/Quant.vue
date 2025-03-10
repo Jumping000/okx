@@ -505,6 +505,11 @@ const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
 
+// 监听 showFormulaLists 变化，保存到本地存储
+watch(showFormulaLists, (newValue) => {
+    localStorage.setItem(STORAGE_KEYS.FORMULA_LIST_VISIBLE, JSON.stringify(newValue))
+})
+
 // WebSocket 连接状态
 const wsStatus = reactive({
     public: false,
@@ -592,7 +597,8 @@ const strategyLogs = ref([]) // 策略日志
 // 本地存储的键名
 const STORAGE_KEYS = {
     PARAMETERS: 'quant_parameters',
-    EXPRESSIONS: 'quant_expressions'
+    EXPRESSIONS: 'quant_expressions',
+    FORMULA_LIST_VISIBLE: 'quant_formula_list_visible'  // 添加新的键名
 }
 
 // 在 script setup 中添加新的状态管理
@@ -671,6 +677,12 @@ const getIndicatorName = (name) => {
 // 从本地存储读取数据
 const loadFromStorage = () => {
     try {
+        // 读取公式列表显示状态
+        const storedFormulaListVisible = localStorage.getItem(STORAGE_KEYS.FORMULA_LIST_VISIBLE)
+        if (storedFormulaListVisible !== null) {
+            showFormulaLists.value = JSON.parse(storedFormulaListVisible)
+        }
+
         const storedParameters = localStorage.getItem(STORAGE_KEYS.PARAMETERS)
         const storedExpressions = localStorage.getItem(STORAGE_KEYS.EXPRESSIONS)
 
