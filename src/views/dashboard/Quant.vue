@@ -316,14 +316,31 @@
                         <div class="flex justify-between items-center p-4 border-b border-dark-300">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略日志</h3>
+                                <a-select
+                                    v-model:value="selectedLogStrategy"
+                                    placeholder="选择策略"
+                                    style="width: 180px"
+                                    size="small"
+                                    @change="handleLogStrategyChange"
+                                >
+                                    <a-select-option value="all">全部策略</a-select-option>
+                                    <a-select-option v-for="strategy in strategyList" :key="strategy.id" :value="strategy.id">
+                                        {{ strategy.name }}
+                                    </a-select-option>
+                                </a-select>
                             </div>
                             <a-button type="link" size="small" @click="handleClearLogs">清空日志</a-button>
                         </div>
                         <div class="p-4 h-[400px] overflow-y-auto">
-                            <template v-if="strategyLogs.length">
-                                <div v-for="(log, index) in strategyLogs" :key="index" class="log-item">
+                            <template v-if="filteredLogs.length">
+                                <div v-for="(log, index) in filteredLogs" :key="index" class="log-item">
                                     <span class="log-time">{{ formatTime(log.time) }}</span>
-                                    <span :class="['log-content', `log-${log.type}`]">{{ log.content }}</span>
+                                    <span v-if="log.strategyId && log.strategyId !== 'system'" class="log-strategy">
+                                        {{ getStrategyNameById(log.strategyId) }}
+                                    </span>
+                                    <span :class="['log-content', `log-${log.type}`, log.strategyId ? `strategy-${log.strategyId}` : '']">
+                                        {{ log.content }}
+                                    </span>
                                 </div>
                             </template>
                             <template v-else>
@@ -593,6 +610,7 @@ const parameterList = ref([]) // 参数列表
 const expressionList = ref([]) // 表达式列表
 const strategyList = ref([]) // 策略列表
 const strategyLogs = ref([]) // 策略日志
+const selectedLogStrategy = ref('all') // 当前选中的日志策略过滤器
 
 // 本地存储的键名
 const STORAGE_KEYS = {
@@ -912,7 +930,7 @@ const handleDeleteStrategy = async (record) => {
 const workerManager = new WorkerManager();
 
 // 等待时间窗口函数
-const waitForTimeWindow = async (strategyName) => {
+const waitForTimeWindow = async (strategyName, strategyId) => {
     const now = new Date()
     const seconds = now.getSeconds()
 
@@ -923,11 +941,7 @@ const waitForTimeWindow = async (strategyName) => {
             70 - seconds // 等待到下一分钟的10秒
 
         // 添加等待日志
-        strategyLogs.value.unshift({
-            time: now,
-            type: 'info',
-            content: `策略 ${strategyName} 等待进入时间窗口（${waitSeconds}秒后启动）`
-        })
+        addStrategyLog(strategyId, 'info', `策略 ${strategyName} 等待进入时间窗口（${waitSeconds}秒后启动）`);
 
         // 等待到下一个时间窗口
         await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000))
@@ -986,7 +1000,7 @@ const handleStrategyAction = async (record) => {
                 await setStrategyLeverage(record.currency, record.leverage, record.positionType)
 
                 // 等待时间窗口
-                await waitForTimeWindow(record.name)
+                await waitForTimeWindow(record.name, record.id)
 
                 // 启动策略时创建新的 Worker
                 await workerManager.start(record.id, '/workers/worker-entry.js')
@@ -1039,11 +1053,7 @@ const handleStrategyAction = async (record) => {
                 workerManager.postMessage(record.id, workerData)
 
                 // 添加启动日志
-                strategyLogs.value.unshift({
-                    time: new Date(),
-                    type: 'success',
-                    content: `策略 ${record.name} 已启动`
-                })
+                addStrategyLog(record.id, 'success', `策略 ${record.name} 已启动`);
             } else {
                 // 停止策略时终止 Worker
                 workerManager.stop(record.id)
@@ -1073,11 +1083,7 @@ const handleStrategyAction = async (record) => {
                 // 删除决策的内存栈的使用
                 handler.endDecisionProcessing(strategy)
                 // 添加停止日志
-                strategyLogs.value.unshift({
-                    time: new Date(),
-                    type: 'warning',
-                    content: `策略 ${record.name} 已停止`
-                })
+                addStrategyLog(record.id, 'warning', `策略 ${record.name} 已停止`);
             }
 
             // 更新策略状态
@@ -1090,11 +1096,7 @@ const handleStrategyAction = async (record) => {
         console.error('策略操作失败:', error)
         message.error('策略操作失败')
         // 添加错误日志
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'error',
-            content: `策略操作失败: ${error.message}`
-        })
+        addSystemLog('error', `策略操作失败: ${error.message}`);
     } finally {
         // 重置加载状态
         const index = strategyList.value.findIndex(item => item.id === record.id)
@@ -1115,43 +1117,23 @@ const handleWorkerMessage = (strategyId, data) => {
             break
 
         case "init_complete":
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'info',
-                content: `策略 ${strategy.name} 初始化完成`
-            })
+            addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 初始化完成`)
             break
 
         case 'history_kline_progress':
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'info',
-                content: `策略 ${strategy.name} 正在获取 ${data.data.timeLevel} K线数据: ${data.data.percentage}% (${data.data.current}/${data.data.total})`
-            })
+            addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 正在获取 ${data.data.timeLevel} K线数据: ${data.data.percentage}% (${data.data.current}/${data.data.total})`)
             break
 
         case 'history_kline_complete':
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'info',
-                content: `策略 ${strategy.name} 获取 ${data.data.timeLevel} 历史K线数据完成: ${data.data.count} 条`
-            })
+            addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 获取 ${data.data.timeLevel} 历史K线数据完成: ${data.data.count} 条`)
             break
 
         case 'all_history_kline_complete':
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'success',
-                content: `策略 ${strategy.name} 所有历史K线数据获取完成`
-            })
+            addStrategyLog(strategyId, 'success', `策略 ${strategy.name} 所有历史K线数据获取完成`)
             break
 
         case 'error':
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'error',
-                content: `策略 ${strategy.name} 发生错误: ${data.error.message}`
-            })
+            addStrategyLog(strategyId, 'error', `策略 ${strategy.name} 发生错误: ${data.error.message}`)
             break
 
         case 'indicators_updated':
@@ -1213,11 +1195,7 @@ const handleSubscribeKlines = async (data) => {
         }
 
         // 记录日志
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'info',
-            content: `策略 ${strategy.name} 开始订阅K线数据: ${timeLevels.join(', ')}`
-        })
+        addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 开始订阅K线数据: ${timeLevels.join(', ')}`)
 
         // 遍历每个时间级别进行订阅
         for (const timeLevel of timeLevels) {
@@ -1255,27 +1233,15 @@ const handleSubscribeKlines = async (data) => {
                     }
                 })
 
-                strategyLogs.value.unshift({
-                    time: new Date(),
-                    type: 'success',
-                    content: `策略 ${strategy.name} 订阅 ${timeLevel} K线数据成功`
-                })
+                addStrategyLog(strategyId, 'success', `策略 ${strategy.name} 订阅 ${timeLevel} K线数据成功`)
             } catch (error) {
                 console.error(`订阅 ${timeLevel} K线数据失败:`, error)
-                strategyLogs.value.unshift({
-                    time: new Date(),
-                    type: 'error',
-                    content: `策略 ${strategy.name} 订阅 ${timeLevel} K线数据失败: ${error.message}`
-                })
+                addStrategyLog(strategyId, 'error', `策略 ${strategy.name} 订阅 ${timeLevel} K线数据失败: ${error.message}`)
             }
         }
     } catch (error) {
         console.error('订阅K线数据失败:', error)
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'error',
-            content: `订阅K线数据失败: ${error.message}`
-        })
+        addStrategyLog(strategyId, 'error', `订阅K线数据失败: ${error.message}`)
     }
 }
 
@@ -1375,11 +1341,7 @@ const loadStrategies = () => {
             localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
 
             // 添加日志记录
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'info',
-                content: '页面刷新，所有策略已重置为停止状态'
-            })
+            addSystemLog('info', '页面刷新，所有策略已重置为停止状态');
         }
     } catch (error) {
         console.error('加载策略列表失败:', error)
@@ -1650,11 +1612,7 @@ const placeMarketOrder = async (instId, positionAction, posSide, marginMode, siz
         // 7. 处理响应
         if (response.code == '0' && response.data[0]?.sCode == '0') {
             // 添加成功日志
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'success',
-                content: `${instId} ${positionAction === 'open' ? '开仓' : '平仓'}${posSide === 'long' ? '多单' : '空单'} ${size}张 成功`
-            })
+            addStrategyLog(instId, 'success', `${instId} ${positionAction === 'open' ? '开仓' : '平仓'}${posSide === 'long' ? '多单' : '空单'} ${size}张 成功`)
 
             return true
         } else {
@@ -1662,11 +1620,7 @@ const placeMarketOrder = async (instId, positionAction, posSide, marginMode, siz
         }
     } catch (error) {
         // 添加错误日志
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'error',
-            content: `下单失败: ${error.message}`
-        })
+        addStrategyLog(instId, 'error', `下单失败: ${error.message}`)
         console.error('下单失败:', error)
         return false
     }
@@ -1718,20 +1672,12 @@ const handleTestFunction = async () => {
             stopLossPrice: stopLossPrice
         })
         // 4. 添加日志
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'info',
-            content: `测试结果: 开仓${orderResult ? '成功' : '失败'}, 持仓均价:${openPrice}, 止损价:${stopLossPrice}, 止损单${stopLossResult ? '成功' : '失败'}`
-        })
+        addStrategyLog('SUI-USDT-SWAP', 'info', `测试结果: 开仓${orderResult ? '成功' : '失败'}, 持仓均价:${openPrice}, 止损价:${stopLossPrice}, 止损单${stopLossResult ? '成功' : '失败'}`)
     } catch (error) {
         console.error('测试功能执行失败:', error)
         message.error('测试功能执行失败')
         // 添加错误日志
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'error',
-            content: `测试功能执行失败: ${error.message}`
-        })
+        addSystemLog('error', `测试功能执行失败: ${error.message}`)
     } finally {
         testLoading.value = false
     }
@@ -1795,22 +1741,14 @@ const placeStopLossOrder = async (params) => {
         // 7. 处理响应
         if (response.code === '0' && response.data[0]?.sCode === '0') {
             // 添加成功日志
-            strategyLogs.value.unshift({
-                time: new Date(),
-                type: 'success',
-                content: `${instId} ${posSide === 'long' ? '多单' : '空单'} 设置止损价 ${stopLossPrice} 成功`
-            })
+            addStrategyLog(instId, 'success', `${instId} ${posSide === 'long' ? '多单' : '空单'} 设置止损价 ${stopLossPrice} 成功`)
             return response
         } else {
             return false
         }
     } catch (error) {
         // 添加错误日志
-        strategyLogs.value.unshift({
-            time: new Date(),
-            type: 'error',
-            content: `下止损单失败: ${error.message}`
-        })
+        addStrategyLog(instId, 'error', `下止损单失败: ${error.message}`)
         console.error('下止损单失败:', error)
         return false
     }
@@ -2106,7 +2044,13 @@ const formatConditions = (conditions) => {
 }
 // 创建策略表达式处理器实例，使用 currencyStore
 const strategyLogger = (logData) => {
-  strategyLogs.value.unshift(logData);
+  // 确保日志数据包含策略ID
+  if (logData.strategyId) {
+    strategyLogs.value.unshift(logData);
+  } else {
+    // 如果没有策略ID，则作为系统日志添加
+    addSystemLog(logData.type || 'info', logData.content);
+  }
 };
 const handler = new StrategyExpressionHandler(wsStore, currencyStore, postOrderAlgo, strategyLogger);
 
@@ -2153,6 +2097,49 @@ const handleStorageEditorSave = () => {
     loadFromStorage()
     loadStrategies()
 }
+
+// 过滤后的日志列表
+const filteredLogs = computed(() => {
+    if (selectedLogStrategy.value === 'all') {
+        return strategyLogs.value;
+    } else {
+        return strategyLogs.value.filter(log => 
+            log.strategyId === selectedLogStrategy.value || 
+            (log.content && log.content.includes(getStrategyNameById(selectedLogStrategy.value)))
+        );
+    }
+});
+
+// 根据策略ID获取策略名称
+const getStrategyNameById = (strategyId) => {
+    const strategy = strategyList.value.find(s => s.id === strategyId);
+    return strategy ? strategy.name : '未知策略';
+};
+
+// 处理日志策略过滤器变化
+const handleLogStrategyChange = (value) => {
+    selectedLogStrategy.value = value;
+};
+
+// 添加日志的辅助函数
+const addStrategyLog = (strategyId, type, content) => {
+    strategyLogs.value.unshift({
+        time: new Date(),
+        type,
+        content,
+        strategyId
+    });
+};
+
+// 添加系统日志
+const addSystemLog = (type, content) => {
+    strategyLogs.value.unshift({
+        time: new Date(),
+        type,
+        content,
+        strategyId: 'system'
+    });
+};
 </script>
 
 <style lang="scss" scoped>
@@ -2234,6 +2221,10 @@ const handleStorageEditorSave = () => {
 
     .log-time {
         @apply text-xs dark:text-dark-200 text-gray-500 whitespace-nowrap;
+    }
+
+    .log-strategy {
+        @apply text-xs font-medium px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-dark-300 text-gray-700 dark:text-dark-100 whitespace-nowrap;
     }
 
     .log-content {
