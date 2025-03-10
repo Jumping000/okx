@@ -126,7 +126,7 @@ class StrategyExpressionHandler {
   }
   //处理决策
   async handleDecisionResult(strategy, strategyCalculationResults) {
-    // console.log(strategy,strategyCalculationResults);
+
     // 
     // return; 
 
@@ -172,8 +172,8 @@ class StrategyExpressionHandler {
           }
           break;
         case "4":
-          // 四策略 当三个连续结果都为true时 进行处理 或者是平仓的时候 进行处理
-          if (allTrue == true || strategyConditionsItem.positionAction == "close") {
+          // 四策略 当三个连续结果都为true时 进行处理 或者是平仓的时候 进行处理 || strategyConditionsItem.positionAction == "close"
+          if (allTrue == true ) {
             await this.fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem);
           }
           break;
@@ -242,7 +242,6 @@ class StrategyExpressionHandler {
   }
   // 处理四策略
   async fourStrategyProcessing(strategyCalculationResults, strategyConditionsItem) {
-
     // 策略
     const strategyInformation = strategyCalculationResults.strategy;
     // 仓位

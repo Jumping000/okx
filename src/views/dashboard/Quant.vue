@@ -1084,7 +1084,9 @@ const handleStrategyAction = async (record) => {
                     placeMarketOrder(strategy.currency, 'close', 'short', 'cross', strategy.quantity)
                 }
                 // 删除决策的内存栈的使用
-                handler.endDecisionProcessing(strategy)
+                setTimeout(() => {
+                    handler.endDecisionProcessing(strategy)
+                }, 1000)
                 // 添加停止日志
                 addStrategyLog(record.id, 'warning', `已停止`);
             }

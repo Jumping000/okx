@@ -165,52 +165,7 @@ class StrategyWorker extends self.BaseWorker {
       const timeLevels = await Promise.all(timeLevelPromises);
       // 合并去重所有时间级别
       this.klineTimeLevels = [...new Set(timeLevels.flat())];
-      // console.log(this.klineTimeLevels);
-      // this.klineTimeLevels=[];
-      // switch (this.strategy.strategyMode) {
-      //   case "1":
-      //     this.klineTimeLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy1Conditions
-      //     );
-      //     break;
-      //   case "2":
-      //     // 处理多空策略条件
-      //     const longLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy2LongConditions
-      //     );
-      //     const shortLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy2ShortConditions
-      //     );
-      //     this.klineTimeLevels = [...new Set([...longLevels, ...shortLevels])];
-      //     break;
-      //   case "4":
-      //     // strategy4CloseLongConditions
-      //     const closeLongLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy4CloseLongConditions
-      //     );
-      //     // strategy4CloseShortConditions
-      //     const closeShortLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy4CloseShortConditions
-      //     );
-      //     // strategy4OpenShortConditions
-      //     const openShortLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy4OpenShortConditions
-      //     );
-      //     // strategy4OpenLongConditions
-      //     const openLongLevels = await this.handleKlineTimeLevel(
-      //       this.strategy.strategy4OpenLongConditions
-      //     );
-      //     this.klineTimeLevels = [
-      //       ...new Set([
-      //         ...closeLongLevels,
-      //         ...closeShortLevels,
-      //         ...openShortLevels,
-      //         ...openLongLevels,
-      //       ]),
-      //     ];
-      //     break;
-      // }
-      // console.log(this.klineTimeLevels);
+
 
       // 初始化数据存储
       this.initializeDataStructures();
@@ -306,71 +261,6 @@ class StrategyWorker extends self.BaseWorker {
             console.error(condition.name, error);
           });
       });
-      // switch (this.strategy.strategyMode) {
-      //   case "1":
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy1Conditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy1Conditions", result);
-      //     });
-      //     // console.log("strategy1Conditions", strategy1Conditions);
-
-      //     break;
-      //   case "2":
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy2LongConditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy2LongConditions", result);
-      //     });
-      //     // console.log("strategy2LongConditions", strategy2LongConditions);
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy2ShortConditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy2ShortConditions", result);
-      //     });
-      //     // console.log("strategy2ShortConditions", strategy2ShortConditions);
-      //     break;
-      //   case "4":
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy4CloseLongConditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy4CloseLongConditions", result);
-      //     });
-      //     // console.log("strategy4CloseLongConditions", strategy4CloseLongConditions);
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy4CloseShortConditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy4CloseShortConditions", result);
-      //     });
-      //     // console.log("strategy4CloseShortConditions", strategy4CloseShortConditions);
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy4OpenShortConditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy4OpenShortConditions", result);
-      //     });
-      //     // console.log("strategy4OpenShortConditions", strategy4OpenShortConditions);
-      //     this.calculateExpression(
-      //       this.strategyExpression,
-      //       this.strategy.strategy4OpenLongConditions,
-      //       tempKlines
-      //     ).then((result) => {
-      //       console.log("strategy4OpenLongConditions", result);
-      //     });
-      //     // console.log("strategy4OpenLongConditions", strategy4OpenLongConditions);
-      //     break;
-      // }
     } catch (error) {
       this.handleError(error, "K线数据处理失败");
     }
@@ -482,11 +372,19 @@ class StrategyWorker extends self.BaseWorker {
       formatText.push(klineTimeLevel);
     });
     let strategyExpression = this.classificationOfStrategyValues(formatText);
-    this.strategyExpression = Object.assign(
-      {},
-      this.strategyExpression,
-      strategyExpression
-    );
+    const merged = Object.fromEntries(
+      [...Object.entries(this.strategyExpression), ...Object.entries(strategyExpression)].reduce((acc, [key, value]) => {
+          const existingIndex = acc.findIndex(([k]) => k === key);
+          if (existingIndex !== -1) {
+              acc[existingIndex][1] = acc[existingIndex][1].concat(value);
+          } else {
+              acc.push([key, value]);
+          }
+          return acc;
+      }, [])
+  );
+  
+    this.strategyExpression = merged;
     klineTimeLevels = [...new Set(klineTimeLevels)];
     return klineTimeLevels;
   }
