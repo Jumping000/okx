@@ -245,6 +245,11 @@
                                                 @click="handleStrategyAction(record)">
                                                 {{ record.status === 'running' ? '停止' : '启动' }}
                                             </a-button>
+                                            <a-button class="edit-btn" size="small" 
+                                                :disabled="record.status === 'running'"
+                                                @click="handleEditStrategy(record)">
+                                                修改
+                                            </a-button>
                                             <a-button danger size="small" :disabled="record.loading"
                                                 @click="handleDeleteStrategy(record)">
                                                 删除
@@ -455,6 +460,8 @@
 
         <!-- 新增策略弹窗 -->
         <strategy-dialog v-model:visible="strategyDialogVisible" :loading="dialogLoading"
+            :type="editStrategyData ? 'edit' : 'add'"
+            :edit-data="editStrategyData"
             @submit="handleStrategySubmit" />
 
         <!-- 本地存储编辑器 -->
@@ -747,14 +754,27 @@ const strategyColumns = [
         title: '策略名称',
         dataIndex: 'name',
         key: 'name',
-        width: '25%',
+        width: '20%',
         customCell: () => ({
             style: {
                 cursor: 'pointer'
             }
         })
     },
-    { title: '策略说明', dataIndex: 'description', key: 'description', width: '35%' },
+    {
+        title: '币种',
+        dataIndex: 'currency',
+        key: 'currency',
+        width: '15%',
+        customRender: ({ text }) => text.split('-')[0]
+    },
+    {
+        title: '模式类型',
+        dataIndex: 'strategyMode',
+        key: 'strategyMode',
+        width: '15%',
+        customRender: ({ text }) => getStrategyModeText(text)
+    },
     {
         title: '状态',
         dataIndex: 'status',
@@ -770,7 +790,7 @@ const strategyColumns = [
     {
         title: '操作',
         key: 'action',
-        width: '20%',
+        width: '30%',
         align: 'center'
     }
 ]
@@ -804,14 +824,40 @@ const handleFormulaSubmit = ({ type, data }) => {
     }
 }
 
+// 编辑相关状态
+const editStrategyData = ref(null)
+
+// 处理编辑策略
+const handleEditStrategy = (record) => {
+    editStrategyData.value = { ...record }
+    strategyDialogVisible.value = true
+}
+
+// 修改原有的 handleStrategySubmit 方法
 const handleStrategySubmit = async (formData) => {
-    // 设置状态 stopped
-    formData.status = 'stopped'
     dialogLoading.value = true
     try {
-        strategyList.value.push(formData)
+        if (editStrategyData.value) {
+            // 编辑模式
+            const index = strategyList.value.findIndex(item => item.id === editStrategyData.value.id)
+            if (index !== -1) {
+                strategyList.value[index] = {
+                    ...strategyList.value[index],
+                    ...formData,
+                    id: editStrategyData.value.id // 保持原有ID
+                }
+                message.success('修改成功')
+            }
+        } else {
+            // 新增模式
+            formData.status = 'stopped'
+            strategyList.value.push(formData)
+            message.success('保存成功')
+        }
+        // 更新本地存储
+        localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
         strategyDialogVisible.value = false
-        message.success('保存成功')
+        editStrategyData.value = null
     } catch (error) {
         console.error('保存失败:', error)
         message.error('保存失败')
@@ -2345,6 +2391,7 @@ const handleStorageEditorSave = () => {
 .strategy-tooltip {
     border-radius: 8px;
     overflow: hidden;
+    max-width: 600px;
 
     .tooltip-header {
         padding: 12px 16px;
@@ -2370,6 +2417,35 @@ const handleStorageEditorSave = () => {
 
         &:last-child {
             border-bottom: none;
+
+            .tooltip-content {
+                max-height: 300px;
+                overflow-y: auto;
+                padding-right: 8px;
+
+                /* 自定义滚动条样式 */
+                &::-webkit-scrollbar {
+                    width: 6px;
+                }
+
+                &::-webkit-scrollbar-track {
+                    background: var(--bg-color);
+                    border-radius: 3px;
+                }
+
+                &::-webkit-scrollbar-thumb {
+                    background: var(--border-color);
+                    border-radius: 3px;
+
+                    &:hover {
+                        background: var(--text-secondary);
+                    }
+                }
+
+                /* Firefox 滚动条样式 */
+                scrollbar-width: thin;
+                scrollbar-color: var(--border-color) var(--bg-color);
+            }
         }
 
         .section-title {
@@ -2642,6 +2718,25 @@ const handleStorageEditorSave = () => {
         background-color: var(--primary-color);
         width: 1px;
         height: 100%;
+    }
+}
+
+/* 修改按钮样式 */
+.edit-btn {
+    background-color: var(--bg-hover) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+
+    &:not(:disabled):hover {
+        background-color: var(--bg-color) !important;
+        border-color: var(--primary-color) !important;
+        color: var(--primary-color) !important;
+    }
+
+    &:disabled {
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-secondary) !important;
     }
 }
 </style>

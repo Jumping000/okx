@@ -1,5 +1,5 @@
 <template>
-    <CustomDialog :model-value="visible" title="新增策略" :width="1200" :close-on-click-mask="false"
+    <CustomDialog :model-value="visible" :title="type === 'edit' ? '修改策略' : '新增策略'" :width="1200" :close-on-click-mask="false"
         @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
         <div class="strategy-dialog">
             <div class="dialog-content">
@@ -60,7 +60,7 @@
                 </div>
 
                 <!-- 右侧：策略编辑区 -->
-                <div class="right-panel">
+                <div class="right-panel" v-if="type !== 'edit'">
                     <div class="section-header">
                         <span class="title">策略编辑</span>
                     </div>
@@ -211,6 +211,14 @@ const props = defineProps({
     loading: {
         type: Boolean,
         default: false
+    },
+    type: {
+        type: String,
+        default: 'add' // 'add' 或 'edit'
+    },
+    editData: {
+        type: Object,
+        default: null
     }
 })
 
@@ -360,9 +368,18 @@ const addStrategy4CloseShortCondition = () => {
     })
 }
 
+// 监听编辑数据变化
+watch(() => props.editData, (newVal) => {
+    if (newVal) {
+        // 编辑模式下，使用传入的数据初始化表单
+        form.value = { ...newVal }
+    }
+}, { immediate: true })
+
 // 取消处理
 const handleCancel = () => {
     emit('update:visible', false)
+    // 重置表单数据
     form.value = {
         name: '',
         description: '',
