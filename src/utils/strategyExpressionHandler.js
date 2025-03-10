@@ -126,6 +126,7 @@ class StrategyExpressionHandler {
   }
   //处理决策
   async handleDecisionResult(strategy, strategyCalculationResults) {
+    // console.log(strategy,strategyCalculationResults);
     // 
     // return; 
 
@@ -201,8 +202,8 @@ class StrategyExpressionHandler {
     if (oppositePosition) {
       this.logWithStrategy(strategyInformation, 'info',
         `触发切换仓位 平仓: 关闭${oppositePosition.posSide === 'long' ? '多' : '空'}仓`);
-      // 平仓
-      await this.closingPositionAndPlacingOrder(strategyInformation, posSide,oppositePosition)
+      // 平反方向仓
+      await this.closingPositionAndPlacingOrder(strategyInformation, posSide == "long" ? "short" : "long",oppositePosition)
     }
     if (currentPosition == null) {
       // 没有仓位 开仓不存在${strategyConditionsItem.posSide}仓位 进行开仓 
@@ -235,8 +236,6 @@ class StrategyExpressionHandler {
       await this.openWarehouseAndPlaceOrder(strategyInformation, strategyConditionsItem.posSide)
     } else {
       // 有仓位 开仓存在${strategyConditionsItem.posSide}仓位 进行平仓
-      // 
-
       await this.thresholdCalculation(strategyInformation, strategyConditionsItem.posSide, strategyCalculationResults.tempKlines, currentPosition)
     }
 
