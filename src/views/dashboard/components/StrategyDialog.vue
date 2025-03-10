@@ -1,5 +1,5 @@
 <template>
-    <CustomDialog :model-value="visible" title="新增策略2" :width="1200" :close-on-click-mask="false"
+    <CustomDialog :model-value="visible" title="新增策略" :width="1200" :close-on-click-mask="false"
         @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
         <div class="strategy-dialog">
             <div class="dialog-content">
@@ -30,6 +30,9 @@
                                     :filter-option="filterOption"
                                     search-placeholder="搜索币种"
                                 />
+                            </a-form-item>
+                            <a-form-item label="结果阈值次数" required>
+                                <a-input-number v-model:value="form.thresholdCount" :min="1" style="width: 100%" />
                             </a-form-item>
                             <div class="form-row">
                                 <a-form-item label="委托数量(张)" required>
@@ -246,6 +249,7 @@ const form = ref({
     leverage: 1,
     stopLoss: 0.05,
     threshold: 0.05,
+    thresholdCount: 5,
     strategyMode: '2',
     // 1策略模式数据
     strategy1Conditions: [],
@@ -367,6 +371,7 @@ const handleCancel = () => {
         leverage: 1,
         stopLoss: 0.05,
         threshold: 0.05,
+        thresholdCount: 5,
         strategyMode: '2',
         strategy1Conditions: [],
         strategy2LongConditions: [],

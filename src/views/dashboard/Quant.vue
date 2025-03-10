@@ -161,6 +161,10 @@
                                                                 <span class="value">{{ (record.threshold *
                                                                     100).toFixed(2) }}%</span>
                                                             </div>
+                                                            <div class="tooltip-item">
+                                                                <span class="label">阈值次数：</span>
+                                                                <span class="value">{{ record.thresholdCount }}</span>
+                                                            </div>
                                                         </div>
                                                     </div>
 
@@ -450,7 +454,7 @@
             @submit="handleFormulaSubmit" />
 
         <!-- 新增策略弹窗 -->
-        <strategy-dialog2 v-model:visible="strategy2DialogVisible" :loading="dialogLoading"
+        <strategy-dialog v-model:visible="strategyDialogVisible" :loading="dialogLoading"
             @submit="handleStrategySubmit" />
 
         <!-- 本地存储编辑器 -->
@@ -468,7 +472,7 @@ import {
     FileTextOutlined
 } from '@ant-design/icons-vue'
 import FormulaDialog from './components/FormulaDialog.vue'
-import StrategyDialog2 from './components/StrategyDialog2.vue'
+import StrategyDialog from './components/StrategyDialog.vue'
 import LocalStorageEditor from './components/LocalStorageEditor.vue'
 import dayjs from 'dayjs'
 import WorkerManager from '@/worker/WorkerManager'
@@ -490,7 +494,7 @@ const currencyStore = useCurrencyStore()
 const loading = ref(false)
 const dialogLoading = ref(false)
 const formulaDialogVisible = ref(false)
-const strategy2DialogVisible = ref(false)
+const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
 
@@ -778,7 +782,7 @@ const showAddDialog = (type) => {
 }
 
 const showAddStrategy2Dialog = () => {
-    strategy2DialogVisible.value = true
+    strategyDialogVisible.value = true
 }
 
 const handleFormulaSubmit = ({ type, data }) => {
@@ -806,7 +810,7 @@ const handleStrategySubmit = async (formData) => {
     dialogLoading.value = true
     try {
         strategyList.value.push(formData)
-        strategy2DialogVisible.value = false
+        strategyDialogVisible.value = false
         message.success('保存成功')
     } catch (error) {
         console.error('保存失败:', error)
@@ -835,7 +839,7 @@ const handleDelete = async (record, type) => {
 }
 
 const handleDeleteStrategy = async (record) => {
-    try {
+    try { 
         strategyList.value = strategyList.value.filter(item => item.id !== record.id)
         // 更新本地存储
         localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
