@@ -322,6 +322,7 @@
                                     style="width: 180px"
                                     size="small"
                                     @change="handleLogStrategyChange"
+                                    class="strategy-select"
                                 >
                                     <a-select-option value="all">全部策略</a-select-option>
                                     <a-select-option v-for="strategy in strategyList" :key="strategy.id" :value="strategy.id">
@@ -941,7 +942,7 @@ const waitForTimeWindow = async (strategyName, strategyId) => {
             70 - seconds // 等待到下一分钟的10秒
 
         // 添加等待日志
-        addStrategyLog(strategyId, 'info', `策略 ${strategyName} 等待进入时间窗口（${waitSeconds}秒后启动）`);
+        addStrategyLog(strategyId, 'info', `等待进入时间窗口（${waitSeconds}秒后启动）`);
 
         // 等待到下一个时间窗口
         await new Promise(resolve => setTimeout(resolve, waitSeconds * 1000))
@@ -1053,7 +1054,7 @@ const handleStrategyAction = async (record) => {
                 workerManager.postMessage(record.id, workerData)
 
                 // 添加启动日志
-                addStrategyLog(record.id, 'success', `策略 ${record.name} 已启动`);
+                addStrategyLog(record.id, 'success', `已启动`);
             } else {
                 // 停止策略时终止 Worker
                 workerManager.stop(record.id)
@@ -1083,7 +1084,7 @@ const handleStrategyAction = async (record) => {
                 // 删除决策的内存栈的使用
                 handler.endDecisionProcessing(strategy)
                 // 添加停止日志
-                addStrategyLog(record.id, 'warning', `策略 ${record.name} 已停止`);
+                addStrategyLog(record.id, 'warning', `已停止`);
             }
 
             // 更新策略状态
@@ -1117,23 +1118,23 @@ const handleWorkerMessage = (strategyId, data) => {
             break
 
         case "init_complete":
-            addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 初始化完成`)
+            addStrategyLog(strategyId, 'info', `初始化完成`)
             break
 
         case 'history_kline_progress':
-            addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 正在获取 ${data.data.timeLevel} K线数据: ${data.data.percentage}% (${data.data.current}/${data.data.total})`)
+            addStrategyLog(strategyId, 'info', `正在获取 ${data.data.timeLevel} K线数据: ${data.data.percentage}% (${data.data.current}/${data.data.total})`)
             break
 
         case 'history_kline_complete':
-            addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 获取 ${data.data.timeLevel} 历史K线数据完成: ${data.data.count} 条`)
+            addStrategyLog(strategyId, 'info', `获取 ${data.data.timeLevel} 历史K线数据完成: ${data.data.count} 条`)
             break
 
         case 'all_history_kline_complete':
-            addStrategyLog(strategyId, 'success', `策略 ${strategy.name} 所有历史K线数据获取完成`)
+            addStrategyLog(strategyId, 'success', `所有历史K线数据获取完成`)
             break
 
         case 'error':
-            addStrategyLog(strategyId, 'error', `策略 ${strategy.name} 发生错误: ${data.error.message}`)
+            addStrategyLog(strategyId, 'error', `发生错误: ${data.error.message}`)
             break
 
         case 'indicators_updated':
@@ -1195,7 +1196,7 @@ const handleSubscribeKlines = async (data) => {
         }
 
         // 记录日志
-        addStrategyLog(strategyId, 'info', `策略 ${strategy.name} 开始订阅K线数据: ${timeLevels.join(', ')}`)
+        addStrategyLog(strategyId, 'info', `开始订阅K线数据: ${timeLevels.join(', ')}`)
 
         // 遍历每个时间级别进行订阅
         for (const timeLevel of timeLevels) {
@@ -1233,10 +1234,10 @@ const handleSubscribeKlines = async (data) => {
                     }
                 })
 
-                addStrategyLog(strategyId, 'success', `策略 ${strategy.name} 订阅 ${timeLevel} K线数据成功`)
+                addStrategyLog(strategyId, 'success', `订阅 ${timeLevel} K线数据成功`)
             } catch (error) {
                 console.error(`订阅 ${timeLevel} K线数据失败:`, error)
-                addStrategyLog(strategyId, 'error', `策略 ${strategy.name} 订阅 ${timeLevel} K线数据失败: ${error.message}`)
+                addStrategyLog(strategyId, 'error', `订阅 ${timeLevel} K线数据失败: ${error.message}`)
             }
         }
     } catch (error) {
@@ -1612,7 +1613,7 @@ const placeMarketOrder = async (instId, positionAction, posSide, marginMode, siz
         // 7. 处理响应
         if (response.code == '0' && response.data[0]?.sCode == '0') {
             // 添加成功日志
-            addStrategyLog(instId, 'success', `${instId} ${positionAction === 'open' ? '开仓' : '平仓'}${posSide === 'long' ? '多单' : '空单'} ${size}张 成功`)
+            addStrategyLog(instId, 'success', `${positionAction === 'open' ? '开仓' : '平仓'}${posSide === 'long' ? '多单' : '空单'} ${size}张 成功`)
 
             return true
         } else {
@@ -1741,7 +1742,7 @@ const placeStopLossOrder = async (params) => {
         // 7. 处理响应
         if (response.code === '0' && response.data[0]?.sCode === '0') {
             // 添加成功日志
-            addStrategyLog(instId, 'success', `${instId} ${posSide === 'long' ? '多单' : '空单'} 设置止损价 ${stopLossPrice} 成功`)
+            addStrategyLog(instId, 'success', `${posSide === 'long' ? '多单' : '空单'} 设置止损价 ${stopLossPrice} 成功`)
             return response
         } else {
             return false
@@ -2121,8 +2122,32 @@ const handleLogStrategyChange = (value) => {
     selectedLogStrategy.value = value;
 };
 
+// 根据币种ID查找策略ID
+const findStrategyIdByCurrency = (currencyId) => {
+    // 查找使用该币种的运行中策略
+    const runningStrategy = strategyList.value.find(s => 
+        s.status === 'running' && s.currency === currencyId
+    );
+    
+    // 如果找到运行中的策略，返回其ID
+    if (runningStrategy) {
+        return runningStrategy.id;
+    }
+    
+    // 如果没有运行中的策略，查找任何使用该币种的策略
+    const anyStrategy = strategyList.value.find(s => s.currency === currencyId);
+    return anyStrategy ? anyStrategy.id : 'system';
+};
+
 // 添加日志的辅助函数
-const addStrategyLog = (strategyId, type, content) => {
+const addStrategyLog = (strategyIdOrCurrencyID, type, content) => {
+    let strategyId = strategyIdOrCurrencyID;
+    
+    // 检查是否是币种ID（通常包含-USDT-SWAP后缀）
+    if (typeof strategyIdOrCurrencyID === 'string' && strategyIdOrCurrencyID.includes('-')) {
+        strategyId = findStrategyIdByCurrency(strategyIdOrCurrencyID);
+    }
+    
     strategyLogs.value.unshift({
         time: new Date(),
         type,
@@ -2216,7 +2241,7 @@ const addSystemLog = (type, content) => {
 }
 
 /* 日志样式 */
-.log-item {
+.quant .log-item {
     @apply mb-2 flex items-start gap-2;
 
     .log-time {
@@ -2224,27 +2249,28 @@ const addSystemLog = (type, content) => {
     }
 
     .log-strategy {
-        @apply text-xs font-medium px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-dark-300 text-gray-700 dark:text-dark-100 whitespace-nowrap;
+        @apply text-xs px-1.5 py-0.5 rounded-md bg-gray-50 dark:bg-dark-400 text-gray-600 dark:text-dark-100 whitespace-nowrap;
     }
 
     .log-content {
         @apply text-sm break-all;
+        color: var(--text-color) !important;
+    }
 
-        &.log-info {
-            @apply dark:text-dark-100 text-gray-700;
-        }
+    .log-content.log-info {
+        color: var(--text-color) !important;
+    }
 
-        &.log-success {
-            @apply text-primary;
-        }
+    .log-content.log-success {
+        @apply text-primary;
+    }
 
-        &.log-warning {
-            @apply text-yellow-500;
-        }
+    .log-content.log-warning {
+        @apply text-yellow-500;
+    }
 
-        &.log-error {
-            @apply text-red-500;
-        }
+    .log-content.log-error {
+        @apply text-red-500;
     }
 }
 
@@ -2740,6 +2766,35 @@ const addSystemLog = (type, content) => {
         background-color: var(--bg-color) !important;
         border-color: var(--border-color) !important;
         color: var(--text-secondary) !important;
+    }
+}
+
+/* 策略选择框样式 */
+:deep(.strategy-select) {
+    .ant-select-selector {
+        background-color: var(--bg-color) !important;
+        border-color: var(--border-color) !important;
+    }
+    
+    .ant-select-selection-item {
+        color: var(--text-color) !important;
+    }
+    
+    .ant-select-arrow {
+        color: var(--text-secondary) !important;
+    }
+    
+    .ant-select-dropdown {
+        background-color: var(--bg-color) !important;
+        
+        .ant-select-item {
+            color: var(--text-color) !important;
+            
+            &.ant-select-item-option-selected,
+            &.ant-select-item-option-active {
+                background-color: var(--border-color) !important;
+            }
+        }
     }
 }
 </style>
