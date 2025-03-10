@@ -1027,11 +1027,14 @@ const handleStrategyAction = async (record) => {
                             positionType: record.positionType, // 策略持仓类型
                             stopLoss: record.stopLoss, // 策略止损
                             threshold: record.threshold, // 策略阈值
+                            //阈值结果次数
+                            thresholdCount: record.thresholdCount,
                             strategyMode: record.strategyMode, // 策略模式
                             priceDecimalPlaces: priceDecimalPlaces, // 价格精度
                         },
                     }
                 }
+                console.log('发送给 Worker 的数据：', workerData);
                 switch (record.strategyMode) {
                     case '1':
                         workerData.payload.strategy.strategy1Conditions = formatConditions(record.strategy1Conditions)
