@@ -6,6 +6,10 @@
             <div class="page-header flex items-center justify-between px-4 py-3">
                 <div class="flex items-center gap-4">
                     <h2 class="text-dark-100">量化</h2>
+                    <!-- 添加断开连接提示 -->
+                    <a-tag v-if="hasDisconnected" color="warning" class="ml-2">
+                        网络曾断开，数据可能不准确
+                    </a-tag>
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-dark-200 text-sm">公式列表</span>
@@ -104,6 +108,13 @@
                         <div class="flex justify-between items-center p-4 border-b border-dark-300">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略列表</h3>
+                                <!-- 添加断开连接提示 -->
+                                <a-tooltip v-if="hasDisconnected" title="网络曾断开，策略数据可能不准确，建议刷新页面">
+                                    <a-tag color="warning" class="ml-2">
+                                        <warning-outlined />
+                                        数据可能不准确
+                                    </a-tag>
+                                </a-tooltip>
                             </div>
                             <div class="flex items-center gap-2">
                                 <a-button type="primary" size="small" @click="showStorageEditor">
@@ -494,7 +505,8 @@ import { message, Modal } from 'ant-design-vue'
 import {
     // PlusOutlined,
     LineChartOutlined,
-    FileTextOutlined
+    FileTextOutlined,
+    WarningOutlined
 } from '@ant-design/icons-vue'
 import FormulaDialog from './components/FormulaDialog.vue'
 import StrategyDialog from './components/StrategyDialog.vue'
@@ -535,6 +547,10 @@ const wsStatus = reactive({
     business: false,
     allConnected: false
 })
+
+// 添加计算属性：是否曾经断开连接
+const hasDisconnected = computed(() => wsStore.hasDisconnected)
+// 每隔一秒钟输出一次 hasDisconnected 的值
 
 // 监听 WebSocket 连接状态
 const watchWebSocketStatus = () => {
@@ -580,6 +596,12 @@ const handleDisconnection = () => {
 
 // 处理重新连接
 const handleReconnection = () => {
+    // 检查是否曾经断开连接
+    if (wsStore.hasDisconnected) {
+        // 显示断开连接提示
+        message.warning('检测到网络曾经断开，部分数据可能不准确，建议刷新页面')
+    }
+    
     // 从本地获取之前运行的策略
     const savedStrategies = JSON.parse(localStorage.getItem('runningStrategies'))
     if (!savedStrategies?.length) return
@@ -994,6 +1016,11 @@ const handleStrategyAction = async (record) => {
             const newStatus = record.status === 'running' ? 'stopped' : 'running'
 
             if (newStatus === 'running') {
+            //  hasDisconnected
+            if (hasDisconnected.value) {
+                message.warning('检测到网络曾经断开，部分数据可能不准确，请刷新页面')
+                return;
+            }
                 // 设置加载状态
                 strategyList.value[index].loading = true
 

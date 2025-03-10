@@ -112,6 +112,8 @@ export const useWebSocketStore = defineStore("websocket", {
       [WebSocketType.PRIVATE]: WebSocketState.CLOSED,
       [WebSocketType.BUSINESS]: WebSocketState.CLOSED,
     },
+    // 是否曾经断开连接
+    hasDisconnected: false,
     // 存储订阅信息
     subscriptions: {
       [WebSocketType.PUBLIC]: new Map(),
@@ -242,6 +244,11 @@ export const useWebSocketStore = defineStore("websocket", {
       ws.onStateChange((state) => {
         this.connectionStates[type] = state;
         const isConnected = state === WebSocketState.OPEN;
+        
+        // 如果连接断开或发生错误，设置断开连接标志
+        if (state === WebSocketState.CLOSED || state === WebSocketState.ERROR) {
+          this.hasDisconnected = true;
+        }
 
         // 更新 overview store 中的连接状态
         switch (type) {
@@ -317,6 +324,8 @@ export const useWebSocketStore = defineStore("websocket", {
         ws.disconnect();
         delete this.connections[type];
         this.connectionStates[type] = WebSocketState.CLOSED;
+        // 设置断开连接标志
+        this.hasDisconnected = true;
       }
     },
 
