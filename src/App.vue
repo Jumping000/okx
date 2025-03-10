@@ -7,7 +7,7 @@
 <script setup>
 import { onMounted, onUnmounted } from 'vue';
 import { useWebSocketStore } from '@/store/websocket';
-import { WebSocketType } from '@/utils/websocket';
+import { WebSocketType } from '@/utils/websocketUtils';
 
 const wsStore = useWebSocketStore();
 

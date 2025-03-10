@@ -4,7 +4,7 @@ import { useWebSocketStore } from "@/store/websocket";
 import { useCurrencyStore } from "@/store/currency";
 import { useOverviewStore } from "@/store/overview";
 import { useUserStore } from "@/store/modules/user";
-import { WebSocketType, InstrumentType } from "@/utils/websocket";
+import { WebSocketType, InstrumentType } from "@/utils/websocketUtils";
 import { message } from "ant-design-vue";
 import authRoutes from './routes/auth'
 

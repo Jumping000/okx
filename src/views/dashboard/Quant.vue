@@ -504,7 +504,7 @@ import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
 import { setLeverage, postOrderAlgo, postCancelAlgos } from '@/api/module/Basics'
-import { WebSocketType, WebSocketState } from '@/utils/websocket'
+import { WebSocketType, WebSocketState } from '@/utils/websocketUtils'
 import StrategyExpressionHandler from '@/utils/strategyExpressionHandler'
 // 定义组件选项
 defineOptions({

@@ -8,7 +8,7 @@ import WebSocketClient, {
   MarketOperationType,
   AccountChannelType,
   InstrumentType,
-} from "@/utils/websocket";
+} from "@/utils/websocketUtils";
 
 // WebSocket 配置
 const WS_CONFIG = {
