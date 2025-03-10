@@ -1,9 +1,8 @@
 import axios from 'axios'
 import { useUserStore } from '@/store/modules/user'
-
 // 创建axios实例
 const service = axios.create({
-  baseURL: 'http://okx.server.hhjqygl.cn',
+  baseURL: process.env.VUE_APP_API_URL,
   timeout: 60000
 })
 
