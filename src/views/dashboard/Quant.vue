@@ -1807,6 +1807,7 @@ const addSystemLog = (type, content) => {
 </script>
 
 <style lang="scss" scoped>
+/* 基础样式 */
 .quant {
     display: flex;
     flex-direction: column;
@@ -1969,62 +1970,6 @@ const addSystemLog = (type, content) => {
     border: 1px solid transparent;
 }
 
-/* 时间选项卡样式 */
-:deep(.monitor-tabs),
-:deep(.stats-tabs) {
-    .ant-radio-group {
-        display: flex;
-        background: var(--bg-hover);
-        border: none;
-        border-radius: 4px;
-        padding: 2px;
-    }
-
-    .ant-radio-button-wrapper {
-        height: 26px;
-        line-height: 26px;
-        min-width: 60px;
-        padding: 0 12px;
-        background: transparent;
-        border: none !important;
-        color: var(--text-color);
-        transition: all 0.3s ease;
-        text-align: center;
-
-        &::before {
-            display: none;
-        }
-
-        &:hover {
-            color: var(--primary-color);
-            background: var(--bg-color);
-        }
-
-        &:first-child {
-            border-radius: 3px;
-        }
-
-        &:last-child {
-            border-radius: 3px;
-        }
-    }
-
-    .ant-radio-button-wrapper-checked {
-        background: var(--primary-color) !important;
-        color: #fff !important;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-
-        &:hover {
-            color: #fff !important;
-            opacity: 0.95;
-        }
-    }
-
-    .ant-radio-button-wrapper:not(:first-child)::before {
-        display: none;
-    }
-}
-
 /* 表单样式 */
 :deep(.ant-form) {
     .ant-form-item-label>label {
@@ -2069,11 +2014,6 @@ const addSystemLog = (type, content) => {
             color: #fff;
         }
     }
-}
-
-/* 移除交易类型选项卡样式 */
-:deep(.trade-type-tabs) {
-    display: none;
 }
 
 /* 策略提示框样式 */
@@ -2172,7 +2112,7 @@ const addSystemLog = (type, content) => {
     }
 }
 
-// 修改 ant-tooltip 的样式
+/* Tooltip 样式 */
 :deep(.ant-tooltip-inner) {
     background-color: var(--bg-color);
     padding: 0;
@@ -2180,33 +2120,6 @@ const addSystemLog = (type, content) => {
 
 :deep(.ant-tooltip-arrow-content) {
     background-color: var(--bg-color);
-}
-
-/* 在 style 部分添加以下样式 */
-.indicator-group {
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 12px;
-}
-
-.indicator-group .grid>div {
-    background-color: var(--bg-hover);
-    transition: all 0.3s ease;
-}
-
-.indicator-group .grid>div:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-/* 数值颜色 */
-.text-positive {
-    color: var(--success-color);
-}
-
-.text-negative {
-    color: var(--danger-color);
 }
 
 /* Select 组件样式 */
@@ -2247,28 +2160,7 @@ const addSystemLog = (type, content) => {
     }
 }
 
-/* 滚动条样式 */
-.indicator-group {
-    max-height: 600px;
-    overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-color) transparent;
-
-    &::-webkit-scrollbar {
-        width: 6px;
-    }
-
-    &::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    &::-webkit-scrollbar-thumb {
-        background-color: var(--border-color);
-        border-radius: 3px;
-    }
-}
-
-/* 在 style 部分添加时间周期选项卡样式 */
+/* 时间周期选项卡样式 */
 .time-level-tabs {
     margin-bottom: 16px;
     display: flex;
@@ -2314,12 +2206,7 @@ const addSystemLog = (type, content) => {
     }
 }
 
-.indicators-container {
-    max-height: 500px;
-    overflow-y: auto;
-    padding-right: 8px;
-}
-
+/* 指标卡片样式 */
 .indicator-card {
     transition: all 0.3s ease;
 }
@@ -2359,7 +2246,7 @@ const addSystemLog = (type, content) => {
     }
 }
 
-/* 在 style 部分添加选项卡样式 */
+/* 统计类型选项卡样式 */
 :deep(.stat-type-tabs) {
     .ant-radio-group {
         display: flex;
