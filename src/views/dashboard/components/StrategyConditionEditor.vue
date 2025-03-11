@@ -21,10 +21,11 @@
                             placeholder="比较类型" 
                             style="width: 120px"
                             :options="compareTypes"
+                            @change="handleCompareTypeChange(index)"
                             :popup-class-name="'strategy-select-dropdown'"
                             :get-popup-container="(triggerNode) => triggerNode.parentNode"
                         />
-                        <a-input-number v-model:value="condition.value" placeholder="比较值" style="width: 120px" />
+                        <a-input-number :disabled="condition.compareType === 'is_null'" v-model:value="condition.value" placeholder="比较值" style="width: 120px" />
                         <div class="condition-bracket" :class="{ active: condition.rightBracket }"
                             @click="handleBracketClick(index, 'right')">)</div>
                         <template v-if="index < conditions.length - 1">
@@ -75,7 +76,8 @@ const compareTypes = [
     { value: '<', label: '小于' },
     { value: '<=', label: '小于等于' },
     { value: '==', label: '等于' },
-    { value: '!=', label: '不等于' }
+    { value: '!=', label: '不等于' },
+    { value: 'is_null', label: '空' },
 ]
 
 // 关系选项
@@ -129,6 +131,13 @@ watch(() => props.expressionOptions, (newOptions) => {
 const removeCondition = (index) => {
     const newConditions = [...props.conditions]
     newConditions.splice(index, 1)
+    emit('update:conditions', newConditions)
+}
+// handleCompareTypeChange 处理比较类型变化
+const handleCompareTypeChange = (index) => {
+    // 清空输入值的值
+    const newConditions = [...props.conditions]
+    newConditions[index].value = null
     emit('update:conditions', newConditions)
 }
 </script>

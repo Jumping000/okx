@@ -2066,7 +2066,7 @@ const formatConditions = (conditions) => {
         // 构建基础表达式：表达式 比较符 数值
         const leftBracket = condition.leftBracket ? '(' : ''
         const rightBracket = condition.rightBracket ? ')' : ''
-        const expr = `${leftBracket}${condition.expression} ${condition.compareType} ${condition.value}${rightBracket}`
+        const expr = `${leftBracket}${condition.expression} ${condition.compareType === 'is_null' ? '' : condition.compareType} ${condition.value === null ? ' ' : condition.value}${rightBracket}`
         // 如果不是最后一个条件，添加关系词（并且/或者）
         return index < conditions.length - 1
             ? `${expr} ${condition.relation === 'and' ? 'and' : 'or'}`

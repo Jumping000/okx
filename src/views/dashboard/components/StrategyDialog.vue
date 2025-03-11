@@ -60,7 +60,7 @@
                 </div>
 
                 <!-- 右侧：策略编辑区 -->
-                <div class="right-panel" v-if="type !== 'edit'">
+                <div class="right-panel">
                     <div class="section-header">
                         <span class="title">策略编辑</span>
                     </div>
@@ -439,7 +439,7 @@ const handleSubmit = () => {
         // 验证条件完整性
         const validateConditionSet = (conditions) => {
             for (const condition of conditions) {
-                if (!condition.expression || !condition.compareType || condition.value === null) {
+                if (!condition.expression ||  (condition.compareType === 'is_null' && condition.value !== null)|| (condition.compareType !== 'is_null' && condition.value === null)) {
                     return false
                 }
             }
