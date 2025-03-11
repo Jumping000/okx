@@ -126,7 +126,6 @@ class StrategyExpressionHandler {
   }
   //处理决策
   async handleDecisionResult(strategy, strategyCalculationResults) {
-
     // 
     // return; 
 
