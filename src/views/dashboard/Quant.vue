@@ -188,7 +188,7 @@
                                                                     <span class="label">触发条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy1Conditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                             </template>
 
@@ -198,13 +198,13 @@
                                                                     <span class="label">多仓条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy2LongConditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">空仓条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy2ShortConditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                             </template>
 
@@ -214,25 +214,25 @@
                                                                     <span class="label">开多条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4OpenLongConditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开空条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4OpenShortConditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平多条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4CloseLongConditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平空条件：</span>
                                                                     <span class="value">{{
                                                                         formatConditions(record.strategy4CloseShortConditions)
-                                                                        }}</span>
+                                                                    }}</span>
                                                                 </div>
                                                             </template>
                                                         </div>
@@ -256,7 +256,7 @@
                                                 @click="handleStrategyAction(record)">
                                                 {{ record.status === 'running' ? '停止' : '启动' }}
                                             </a-button>
-                                            <a-button class="edit-btn" size="small" 
+                                            <a-button class="edit-btn" size="small"
                                                 :disabled="record.status === 'running'"
                                                 @click="handleEditStrategy(record)">
                                                 修改
@@ -327,16 +327,11 @@
                         <div class="flex justify-between items-center p-4 border-b border-dark-300">
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">策略日志</h3>
-                                <a-select
-                                    v-model:value="selectedLogStrategy"
-                                    placeholder="选择策略"
-                                    style="width: 180px"
-                                    size="small"
-                                    @change="handleLogStrategyChange"
-                                    class="strategy-select"
-                                >
+                                <a-select v-model:value="selectedLogStrategy" placeholder="选择策略" style="width: 180px"
+                                    size="small" @change="handleLogStrategyChange" class="strategy-select">
                                     <a-select-option value="all">全部策略</a-select-option>
-                                    <a-select-option v-for="strategy in strategyList" :key="strategy.id" :value="strategy.id">
+                                    <a-select-option v-for="strategy in strategyList" :key="strategy.id"
+                                        :value="strategy.id">
                                         {{ strategy.name }}
                                     </a-select-option>
                                 </a-select>
@@ -350,7 +345,8 @@
                                     <span v-if="log.strategyId && log.strategyId !== 'system'" class="log-strategy">
                                         {{ getStrategyNameById(log.strategyId) }}
                                     </span>
-                                    <span :class="['log-content', `log-${log.type}`, log.strategyId ? `strategy-${log.strategyId}` : '']">
+                                    <span
+                                        :class="['log-content', `log-${log.type}`, log.strategyId ? `strategy-${log.strategyId}` : '']">
                                         {{ log.content }}
                                     </span>
                                 </div>
@@ -419,7 +415,7 @@
                                         <!-- 订单状态 -->
                                         <template v-else-if="column.dataIndex === 'state'">
                                             <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text)
-                                                }}</a-tag>
+                                            }}</a-tag>
                                         </template>
 
                                         <!-- 数量 -->
@@ -489,9 +485,7 @@
 
         <!-- 新增策略弹窗 -->
         <strategy-dialog v-model:visible="strategyDialogVisible" :loading="dialogLoading"
-            :type="editStrategyData ? 'edit' : 'add'"
-            :edit-data="editStrategyData"
-            @submit="handleStrategySubmit" />
+            :type="editStrategyData ? 'edit' : 'add'" :edit-data="editStrategyData" @submit="handleStrategySubmit" />
 
         <!-- 本地存储编辑器 -->
         <local-storage-editor v-model="storageEditorVisible" @save="handleStorageEditorSave" />
@@ -601,7 +595,7 @@ const handleReconnection = () => {
         // 显示断开连接提示
         message.warning('检测到网络曾经断开，部分数据可能不准确，建议刷新页面')
     }
-    
+
     // 从本地获取之前运行的策略
     const savedStrategies = JSON.parse(localStorage.getItem('runningStrategies'))
     if (!savedStrategies?.length) return
@@ -938,7 +932,7 @@ const handleDelete = async (record, type) => {
 }
 
 const handleDeleteStrategy = async (record) => {
-    try { 
+    try {
         strategyList.value = strategyList.value.filter(item => item.id !== record.id)
         // 更新本地存储
         localStorage.setItem('quant_strategies', JSON.stringify(strategyList.value))
@@ -1016,11 +1010,11 @@ const handleStrategyAction = async (record) => {
             const newStatus = record.status === 'running' ? 'stopped' : 'running'
 
             if (newStatus === 'running') {
-            //  hasDisconnected
-            if (hasDisconnected.value) {
-                message.warning('检测到网络曾经断开，部分数据可能不准确，请刷新页面')
-                return;
-            }
+                //  hasDisconnected
+                if (hasDisconnected.value) {
+                    message.warning('检测到网络曾经断开，部分数据可能不准确，请刷新页面')
+                    return;
+                }
                 // 设置加载状态
                 strategyList.value[index].loading = true
 
@@ -2076,13 +2070,13 @@ const formatConditions = (conditions) => {
 }
 // 创建策略表达式处理器实例，使用 currencyStore
 const strategyLogger = (logData) => {
-  // 确保日志数据包含策略ID
-  if (logData.strategyId) {
-    strategyLogs.value.unshift(logData);
-  } else {
-    // 如果没有策略ID，则作为系统日志添加
-    addSystemLog(logData.type || 'info', logData.content);
-  }
+    // 确保日志数据包含策略ID
+    if (logData.strategyId) {
+        strategyLogs.value.unshift(logData);
+    } else {
+        // 如果没有策略ID，则作为系统日志添加
+        addSystemLog(logData.type || 'info', logData.content);
+    }
 };
 const handler = new StrategyExpressionHandler(wsStore, currencyStore, postOrderAlgo, strategyLogger);
 
@@ -2091,7 +2085,7 @@ const handler = new StrategyExpressionHandler(wsStore, currencyStore, postOrderA
  * @param {Object} strategy - 策略对象
  * @param {Object} data - 数据对象
  */
-const expressionResultProcessing =async (strategy, data) => {
+const expressionResultProcessing = async (strategy, data) => {
     try {
 
         // 获取当前策略币种的完整信息
@@ -2135,8 +2129,8 @@ const filteredLogs = computed(() => {
     if (selectedLogStrategy.value === 'all') {
         return strategyLogs.value;
     } else {
-        return strategyLogs.value.filter(log => 
-            log.strategyId === selectedLogStrategy.value || 
+        return strategyLogs.value.filter(log =>
+            log.strategyId === selectedLogStrategy.value ||
             (log.content && log.content.includes(getStrategyNameById(selectedLogStrategy.value)))
         );
     }
@@ -2156,15 +2150,15 @@ const handleLogStrategyChange = (value) => {
 // 根据币种ID查找策略ID
 const findStrategyIdByCurrency = (currencyId) => {
     // 查找使用该币种的运行中策略
-    const runningStrategy = strategyList.value.find(s => 
+    const runningStrategy = strategyList.value.find(s =>
         s.status === 'running' && s.currency === currencyId
     );
-    
+
     // 如果找到运行中的策略，返回其ID
     if (runningStrategy) {
         return runningStrategy.id;
     }
-    
+
     // 如果没有运行中的策略，查找任何使用该币种的策略
     const anyStrategy = strategyList.value.find(s => s.currency === currencyId);
     return anyStrategy ? anyStrategy.id : 'system';
@@ -2173,12 +2167,12 @@ const findStrategyIdByCurrency = (currencyId) => {
 // 添加日志的辅助函数
 const addStrategyLog = (strategyIdOrCurrencyID, type, content) => {
     let strategyId = strategyIdOrCurrencyID;
-    
+
     // 检查是否是币种ID（通常包含-USDT-SWAP后缀）
     if (typeof strategyIdOrCurrencyID === 'string' && strategyIdOrCurrencyID.includes('-')) {
         strategyId = findStrategyIdByCurrency(strategyIdOrCurrencyID);
     }
-    
+
     strategyLogs.value.unshift({
         time: new Date(),
         type,
@@ -2827,21 +2821,21 @@ const addSystemLog = (type, content) => {
         background-color: var(--bg-color) !important;
         border-color: var(--border-color) !important;
     }
-    
+
     .ant-select-selection-item {
         color: var(--text-color) !important;
     }
-    
+
     .ant-select-arrow {
         color: var(--text-secondary) !important;
     }
-    
+
     .ant-select-dropdown {
         background-color: var(--bg-color) !important;
-        
+
         .ant-select-item {
             color: var(--text-color) !important;
-            
+
             &.ant-select-item-option-selected,
             &.ant-select-item-option-active {
                 background-color: var(--border-color) !important;
