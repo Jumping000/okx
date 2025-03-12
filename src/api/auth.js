@@ -69,4 +69,11 @@ export function syncStrategy(data) {
     data
   })
 }
-
+// /api/user/strategy 新增修改策略列表
+export function addAndEditStrategy(data) {
+  return request({
+    url: '/api/user/strategy',
+    method: 'post',
+    data
+  })
+}

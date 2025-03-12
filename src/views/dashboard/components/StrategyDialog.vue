@@ -1,6 +1,6 @@
 <template>
-    <CustomDialog :model-value="visible" :title="type === 'edit' ? '修改策略' : '新增策略'" :width="1200" :close-on-click-mask="false"
-        @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
+    <CustomDialog :model-value="visible" :title="type === 'edit' ? '修改策略' : '新增策略'" :width="1200"
+        :close-on-click-mask="false" @update:model-value="(val) => emit('update:visible', val)" @close="handleCancel">
         <div class="strategy-dialog">
             <div class="dialog-content">
                 <!-- 左侧：基础信息区 -->
@@ -20,16 +20,10 @@
                                 <a-input value="永续" disabled />
                             </a-form-item>
                             <a-form-item label="币种信息" required>
-                                <a-select v-model:value="form.currency" 
-                                    style="width: 100%" 
-                                    placeholder="请选择交易币种"
-                                    :options="currencyOptions"
-                                    :popup-class-name="'currency-select-dropdown'"
-                                    :get-popup-container="(triggerNode) => triggerNode.parentNode"
-                                    show-search
-                                    :filter-option="filterOption"
-                                    search-placeholder="搜索币种"
-                                />
+                                <a-select v-model:value="form.currency" style="width: 100%" placeholder="请选择交易币种"
+                                    :options="currencyOptions" :popup-class-name="'currency-select-dropdown'"
+                                    :get-popup-container="(triggerNode) => triggerNode.parentNode" show-search
+                                    :filter-option="filterOption" search-placeholder="搜索币种" />
                             </a-form-item>
                             <a-form-item label="结果阈值次数" required>
                                 <a-input-number v-model:value="form.thresholdCount" :min="1" style="width: 100%" />
@@ -37,10 +31,11 @@
                             <div class="form-row">
                                 <a-form-item label="委托数量(张)" required>
                                     <a-input-number v-model:value="form.quantity" :min="1" style="width: 100%" />
-                             
+
                                 </a-form-item>
                                 <a-form-item label="杠杆倍数" required>
-                                    <a-input-number v-model:value="form.leverage" :min="1" :max="100" style="width: 100%" />
+                                    <a-input-number v-model:value="form.leverage" :min="1" :max="100"
+                                        style="width: 100%" />
                                 </a-form-item>
                             </div>
                             <div class="form-row">
@@ -88,10 +83,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy1Conditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy1Conditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                             </template>
 
@@ -105,10 +98,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy2LongConditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy2LongConditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                                 <div class="strategy-section">
                                     <div class="strategy-header">
@@ -118,10 +109,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy2ShortConditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy2ShortConditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                             </template>
 
@@ -135,10 +124,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy4OpenLongConditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy4OpenLongConditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                                 <div class="strategy-section">
                                     <div class="strategy-header">
@@ -148,10 +135,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy4OpenShortConditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy4OpenShortConditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                                 <div class="strategy-section">
                                     <div class="strategy-header">
@@ -161,10 +146,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy4CloseLongConditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy4CloseLongConditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                                 <div class="strategy-section">
                                     <div class="strategy-header">
@@ -174,10 +157,8 @@
                                             添加条件
                                         </a-button>
                                     </div>
-                                    <strategy-condition-editor
-                                        v-model:conditions="form.strategy4CloseShortConditions"
-                                        :expression-options="expressionOptions"
-                                    />
+                                    <strategy-condition-editor v-model:conditions="form.strategy4CloseShortConditions"
+                                        :expression-options="expressionOptions" />
                                 </div>
                             </template>
                         </div>
@@ -199,6 +180,7 @@ import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { useCurrencyStore } from '@/store/currency'
+import { addAndEditStrategy } from '@/api/auth'
 import CustomDialog from '@/components/common/CustomDialog.vue'
 import StrategyConditionEditor from './StrategyConditionEditor.vue'
 
@@ -401,7 +383,7 @@ const handleCancel = () => {
 }
 
 // 提交处理
-const handleSubmit = () => {
+const handleSubmit = async () => {
     // 表单验证
     if (!form.value.name) {
         message.error('请输入策略名称')
@@ -422,16 +404,16 @@ const handleSubmit = () => {
             message.error('请添加策略条件')
             return false
         }
-        if (form.value.strategyMode === '2' && 
+        if (form.value.strategyMode === '2' &&
             (form.value.strategy2LongConditions.length === 0 || form.value.strategy2ShortConditions.length === 0)) {
             message.error('请完善多空策略条件')
             return false
         }
-        if (form.value.strategyMode === '4' && 
-            (form.value.strategy4OpenLongConditions.length === 0 || 
-             form.value.strategy4OpenShortConditions.length === 0 ||
-             form.value.strategy4CloseLongConditions.length === 0 ||
-             form.value.strategy4CloseShortConditions.length === 0)) {
+        if (form.value.strategyMode === '4' &&
+            (form.value.strategy4OpenLongConditions.length === 0 ||
+                form.value.strategy4OpenShortConditions.length === 0 ||
+                form.value.strategy4CloseLongConditions.length === 0 ||
+                form.value.strategy4CloseShortConditions.length === 0)) {
             message.error('请完善所有策略条件')
             return false
         }
@@ -439,7 +421,7 @@ const handleSubmit = () => {
         // 验证条件完整性
         const validateConditionSet = (conditions) => {
             for (const condition of conditions) {
-                if (!condition.expression ||  (condition.compareType === 'is_null' && condition.value !== null)|| (condition.compareType !== 'is_null' && condition.value === null)) {
+                if (!condition.expression || (condition.compareType === 'is_null' && condition.value !== null) || (condition.compareType !== 'is_null' && condition.value === null)) {
                     return false
                 }
             }
@@ -455,14 +437,14 @@ const handleSubmit = () => {
                 }
                 break
             case '2':
-                if (!validateConditionSet(form.value.strategy2LongConditions) || 
+                if (!validateConditionSet(form.value.strategy2LongConditions) ||
                     !validateConditionSet(form.value.strategy2ShortConditions)) {
                     message.error('请完善多空策略条件')
                     return false
                 }
                 break
             case '4':
-                if (!validateConditionSet(form.value.strategy4OpenLongConditions) || 
+                if (!validateConditionSet(form.value.strategy4OpenLongConditions) ||
                     !validateConditionSet(form.value.strategy4OpenShortConditions) ||
                     !validateConditionSet(form.value.strategy4CloseLongConditions) ||
                     !validateConditionSet(form.value.strategy4CloseShortConditions)) {
@@ -478,32 +460,50 @@ const handleSubmit = () => {
         return
     }
 
-    // 生成策略ID
-    const id = `strategy_${Date.now()}`
-
-    // 构造策略数据
-    const strategyData = {
-        id,
-        ...form.value,
-        status: 'stopped',
-        createTime: new Date().toISOString(),
-        positionType: 'cross', // 默认全仓
-        type: 'strategy2' // 标记为策略2类型
-    }
-
-    // 保存到本地存储
     try {
+        // 生成策略ID（如果是新增的话）
+        const strategyId = props.editData ? props.editData.id : `strategy_${Date.now()}`
+        // 生成五位随机数
+        const randomId = Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10)
+        // 构造策略数据
+        const strategyData = {
+            id: strategyId+randomId,
+            ...form.value,
+            status: 'stopped',
+            createTime: new Date().toISOString(),
+            positionType: 'cross', // 默认全仓
+            type: 'strategy2' // 标记为策略2类型
+        }
+
+        await addAndEditStrategy(strategyData)
+
+        // if (response.code === 200) {
+        // 保存到本地存储
         const storedStrategies = localStorage.getItem('quant_strategies') || '[]'
         const strategies = JSON.parse(storedStrategies)
-        strategies.push(strategyData)
+
+        if (props.editData) {
+            // 编辑模式：更新已存在的策略
+            const index = strategies.findIndex(s => s.id === strategyId+randomId)
+            if (index !== -1) {
+                strategies[index] = strategyData
+            }
+        } else {
+            // 新增模式：添加新策略
+            strategies.push(strategyData)
+        }
+
         localStorage.setItem('quant_strategies', JSON.stringify(strategies))
 
         emit('submit', strategyData)
-        message.success('保存成功')
+        message.success(props.editData ? '策略修改成功' : '策略保存成功')
         handleCancel()
+        // } else {
+        //     throw new Error(response.message || '保存失败')
+        // }
     } catch (error) {
         console.error('保存策略失败:', error)
-        message.error('保存失败')
+        message.error(`保存失败: ${error.message}`)
     }
 }
 
@@ -562,7 +562,7 @@ loadExpressions()
                 color: var(--text-color);
                 font-size: 14px;
                 height: 28px;
-                
+
                 &.ant-form-item-required:not(.ant-form-item-required-mark-optional) {
                     &::before {
                         color: var(--error-color);
@@ -599,6 +599,7 @@ loadExpressions()
                 border-color: var(--border-color);
 
                 &:hover {
+
                     .ant-input-number-handler-up-inner,
                     .ant-input-number-handler-down-inner {
                         color: var(--primary-color);
@@ -712,14 +713,14 @@ loadExpressions()
 :deep(.currency-select-dropdown) {
     background-color: var(--bg-color);
     border-color: var(--border-color);
-    
+
     .ant-select-item {
         color: var(--text-color);
-        
+
         &:hover {
             background-color: var(--bg-hover);
         }
-        
+
         &.ant-select-item-option-selected {
             background-color: var(--primary-color);
             color: #fff;
@@ -731,4 +732,4 @@ loadExpressions()
 :deep(.ant-select-dropdown) {
     z-index: 1100 !important;
 }
-</style> 
+</style>

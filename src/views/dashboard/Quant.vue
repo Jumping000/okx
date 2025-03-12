@@ -31,9 +31,9 @@
                                 <h3 class="text-base font-medium text-dark-100">参数列表</h3>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a-button type="primary" size="small" @click="handleCloudSync('parameter')">
+                                <!-- <a-button type="primary" size="small" @click="handleCloudSync('parameter')">
                                     云同步参数
-                                </a-button>
+                                </a-button> -->
                                 <a-button type="primary" size="small" @click="showAddDialog('parameter')">
                                     新建参数
                                 </a-button>
@@ -67,9 +67,9 @@
                                 <h3 class="text-base font-medium text-dark-100">表达式列表</h3>
                             </div>
                             <div class="flex items-center gap-2">
-                                <a-button type="primary" size="small" @click="handleCloudSync('expression')">
+                                <!-- <a-button type="primary" size="small" @click="handleCloudSync('expression')">
                                     云同步表达式
-                                </a-button>
+                                </a-button> -->
                                 <a-button type="primary" size="small" @click="showAddDialog('expression')">
                                     新建表达式
                                 </a-button>
