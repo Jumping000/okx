@@ -41,4 +41,32 @@ export function updateUserInfo(data) {
     method: 'put',
     data
   })
-} 
+}
+
+// 参数同步
+export function syncParameter(data) {
+  return request({
+    url: '/api/user/parameter/cloud-sync',
+    method: 'post',
+    data
+  })
+}
+
+// 表达式同步
+export function syncExpression(data) {
+  return request({
+    url: '/api/user/expression/cloud-sync',
+    method: 'post',
+    data
+  })
+}
+
+// 策略同步
+export function syncStrategy(data) {
+  return request({
+    url: '/api/user/strategy/cloud-sync',
+    method: 'post',
+    data
+  })
+}
+

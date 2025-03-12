@@ -513,6 +513,7 @@ import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
 import { setLeverage, postOrderAlgo, postCancelAlgos } from '@/api/module/Basics'
+import { syncParameter, syncExpression, syncStrategy } from '@/api/auth'
 import { WebSocketType, WebSocketState } from '@/utils/websocketUtils'
 import StrategyExpressionHandler from '@/utils/strategyExpressionHandler'
 // 定义组件选项
@@ -856,12 +857,139 @@ const showAddStrategy2Dialog = () => {
 }
 
 // 云同步方法
-const handleCloudSync = (type) => {
-    // type= 参数parameter 表示参数，type=expression 表示表达式 type=strategy 表示策略
-    message.success(`${type}功能实现中`);
+const handleCloudSync = async (type) => {
+    let title = '';
+    let syncApi;
+    let localData = [];
+    let storageKey = '';
+    
+    switch (type) {
+        case 'parameter':
+            title = '参数';
+            syncApi = syncParameter;
+            localData = parameterList.value;
+            storageKey = STORAGE_KEYS.PARAMETERS;
+            break;
+        case 'expression':
+            title = '表达式';
+            syncApi = syncExpression;
+            localData = expressionList.value;
+            storageKey = STORAGE_KEYS.EXPRESSIONS;
+            break;
+        case 'strategy':
+            title = '策略';
+            syncApi = syncStrategy;
+            localData = strategyList.value;
+            storageKey = 'quant_strategies';
+            break;
+    }
+    
+    Modal.confirm({
+        title: `${title}云同步`,
+        content: '请选择同步方式',
+        okText: '覆盖云端',
+        cancelText: '下拉云端',
+        closable: false,
+        async onOk() {
+            try {
+                
+                // 发送覆盖本地请求
+                const response = await syncApi({
+                    type: 'overwrite',
+                    data: localData
+                });
+                
+                if (response.code === 200) {
+                    // 更新本地数据
+                    if (type === 'parameter') {
+                        parameterList.value = response.data || [];
+                        localStorage.setItem(storageKey, JSON.stringify(parameterList.value));
+                    } else if (type === 'expression') {
+                        expressionList.value = response.data || [];
+                        localStorage.setItem(storageKey, JSON.stringify(expressionList.value));
+                    } else if (type === 'strategy') {
+                        strategyList.value = response.data || [];
+                        localStorage.setItem(storageKey, JSON.stringify(strategyList.value));
+                    }
+                    
+                    message.success(`覆盖${title}成功`);
+                } else {
+                    throw new Error(response.msg || '同步失败');
+                }
+            } catch (error) {
+                console.error(`覆盖${title}失败:`, error);
+                message.error(`覆盖${title}失败: ${error.message}`);
+            }
+        },
+        async onCancel() {
+            try {
+                
+                // 发送下拉云端请求
+                const response = await syncApi({
+                    type: 'download'
+                });
+                
+                if (response.code === 200) {
+                    // 合并数据
+                    if (type === 'parameter') {
+                        // 合并云端和本地数据，以ID为唯一标识
+                        const cloudData = response.data || [];
+                        const mergedData = [...localData];
+                        
+                        cloudData.forEach(cloudItem => {
+                            const localIndex = mergedData.findIndex(item => item.id === cloudItem.id);
+                            if (localIndex === -1) {
+                                // 如果本地没有，则添加
+                                mergedData.push(cloudItem);
+                            }
+                        });
+                        
+                        parameterList.value = mergedData;
+                        localStorage.setItem(storageKey, JSON.stringify(mergedData));
+                    } else if (type === 'expression') {
+                        // 合并云端和本地数据，以ID为唯一标识
+                        const cloudData = response.data || [];
+                        const mergedData = [...localData];
+                        
+                        cloudData.forEach(cloudItem => {
+                            const localIndex = mergedData.findIndex(item => item.id === cloudItem.id);
+                            if (localIndex === -1) {
+                                // 如果本地没有，则添加
+                                mergedData.push(cloudItem);
+                            }
+                        });
+                        
+                        expressionList.value = mergedData;
+                        localStorage.setItem(storageKey, JSON.stringify(mergedData));
+                    } else if (type === 'strategy') {
+                        // 合并云端和本地数据，以ID为唯一标识
+                        const cloudData = response.data || [];
+                        const mergedData = [...localData];
+                        
+                        cloudData.forEach(cloudItem => {
+                            const localIndex = mergedData.findIndex(item => item.id === cloudItem.id);
+                            if (localIndex === -1) {
+                                // 如果本地没有，则添加
+                                mergedData.push(cloudItem);
+                            }
+                        });
+                        
+                        strategyList.value = mergedData;
+                        localStorage.setItem(storageKey, JSON.stringify(mergedData));
+                    }
+                    
+                    message.success(`下拉云端${title}成功`);
+                } else {
+                    throw new Error(response.msg || '同步失败');
+                }
+            } catch (error) {
+                console.error(`下拉云端${title}失败:`, error);
+                message.error(`下拉云端${title}失败: ${error.message}`);
+            }
+            return Promise.resolve();
+        }
+    });
 }
-
-
 
 const handleFormulaSubmit = ({ type, data }) => {
     try {
