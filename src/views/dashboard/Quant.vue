@@ -151,7 +151,7 @@
                                                             <div class="tooltip-item">
                                                                 <span class="label">策略模式：</span>
                                                                 <span class="value">{{
-                        getStrategyModeText(record.strategyMode) }}</span>
+                                                                    getStrategyModeText(record.strategyMode) }}</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">币种：</span>
@@ -168,12 +168,12 @@
                                                             <div class="tooltip-item">
                                                                 <span class="label">止损比例：</span>
                                                                 <span class="value">{{ (record.stopLoss *
-                        100).toFixed(2) }}%</span>
+                                                                    100).toFixed(2) }}%</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">阈值比例：</span>
                                                                 <span class="value">{{ (record.threshold *
-                        100).toFixed(2) }}%</span>
+                                                                    100).toFixed(2) }}%</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">阈值次数：</span>
@@ -190,8 +190,8 @@
                                                                 <div class="tooltip-item">
                                                                     <span class="label">触发条件：</span>
                                                                     <span class="value">{{
-                        formatConditions(record.strategy1Conditions)
-                    }}</span>
+                                                                        formatConditions(record.strategy1Conditions)
+                                                                        }}</span>
                                                                 </div>
                                                             </template>
 
@@ -200,14 +200,14 @@
                                                                 <div class="tooltip-item">
                                                                     <span class="label">多仓条件：</span>
                                                                     <span class="value">{{
-                        formatConditions(record.strategy2LongConditions)
-                    }}</span>
+                                                                        formatConditions(record.strategy2LongConditions)
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">空仓条件：</span>
                                                                     <span class="value">{{
-                            formatConditions(record.strategy2ShortConditions)
-                        }}</span>
+                                                                        formatConditions(record.strategy2ShortConditions)
+                                                                        }}</span>
                                                                 </div>
                                                             </template>
 
@@ -216,26 +216,26 @@
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开多条件：</span>
                                                                     <span class="value">{{
-                        formatConditions(record.strategy4OpenLongConditions)
-                    }}</span>
+                                                                        formatConditions(record.strategy4OpenLongConditions)
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开空条件：</span>
                                                                     <span class="value">{{
-                            formatConditions(record.strategy4OpenShortConditions)
-                        }}</span>
+                                                                        formatConditions(record.strategy4OpenShortConditions)
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平多条件：</span>
                                                                     <span class="value">{{
-                            formatConditions(record.strategy4CloseLongConditions)
-                        }}</span>
+                                                                        formatConditions(record.strategy4CloseLongConditions)
+                                                                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平空条件：</span>
                                                                     <span class="value">{{
-                            formatConditions(record.strategy4CloseShortConditions)
-                        }}</span>
+                                                                        formatConditions(record.strategy4CloseShortConditions)
+                                                                        }}</span>
                                                                 </div>
                                                             </template>
                                                         </div>
@@ -394,11 +394,11 @@
                                         <!-- 订单方向 -->
                                         <template v-if="column.dataIndex === 'side'">
                                             <a-tag :color="text === 'buy' ?
-                        (record.posSide === 'long' ? 'success' : 'error') :
-                        (record.posSide === 'long' ? 'error' : 'success')">
+                                                (record.posSide === 'long' ? 'success' : 'error') :
+                                                (record.posSide === 'long' ? 'error' : 'success')">
                                                 {{ text === 'buy' ?
-                        (record.posSide === 'long' ? '开多' : '平空') :
-                        (record.posSide === 'long' ? '平多' : '开空')
+                                                    (record.posSide === 'long' ? '开多' : '平空') :
+                                                    (record.posSide === 'long' ? '平多' : '开空')
                                                 }}
                                             </a-tag>
                                         </template>
@@ -418,7 +418,7 @@
                                         <!-- 订单状态 -->
                                         <template v-else-if="column.dataIndex === 'state'">
                                             <a-tag :color="getOrderStateColor(text)">{{ getOrderStateText(text)
-                                            }}</a-tag>
+                                                }}</a-tag>
                                         </template>
 
                                         <!-- 数量 -->
@@ -499,6 +499,7 @@
 import { ref, onMounted, onUnmounted, watch, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
+import { useOverviewStore } from '@/store/overview'
 import {
     // PlusOutlined,
     LineChartOutlined,
@@ -516,6 +517,7 @@ import { setLeverage, postOrderAlgo, postCancelAlgos } from '@/api/module/Basics
 import { syncParameter, syncExpression, syncStrategy } from '@/api/auth'
 import { WebSocketType, WebSocketState } from '@/utils/websocketUtils'
 import StrategyExpressionHandler from '@/utils/strategyExpressionHandler'
+import { storeToRefs } from 'pinia'
 // 定义组件选项
 defineOptions({
     name: 'Quant'
@@ -524,6 +526,8 @@ defineOptions({
 // Store
 const wsStore = useWebSocketStore()
 const currencyStore = useCurrencyStore()
+const overviewStore = useOverviewStore()
+const { isVip } = storeToRefs(overviewStore)
 
 // 状态管理
 const loading = ref(false)
@@ -532,6 +536,7 @@ const formulaDialogVisible = ref(false)
 const strategyDialogVisible = ref(false)
 const dialogType = ref('parameter') // parameter 或 expression
 const showFormulaLists = ref(true) // 控制公式列表显示/隐藏
+const userInfo = ref({ isVip: false }) // 用户信息
 
 // 监听 showFormulaLists 变化，保存到本地存储
 watch(showFormulaLists, (newValue) => {
@@ -862,7 +867,11 @@ const handleCloudSync = async (type) => {
     let syncApi;
     let localData = [];
     let storageKey = '';
-    
+    // 判断是否是vip 如果是vip 则可以同步
+    if (!userInfo.value.isVip) {
+        message.error('您不是VIP用户，无法进行云同步');
+        return;
+    }
     switch (type) {
         case 'parameter':
             title = '参数';
@@ -883,7 +892,7 @@ const handleCloudSync = async (type) => {
             storageKey = 'quant_strategies';
             break;
     }
-    
+
     Modal.confirm({
         title: `${title}云同步`,
         content: '请选择同步方式',
@@ -892,13 +901,13 @@ const handleCloudSync = async (type) => {
         closable: false,
         async onOk() {
             try {
-                
+
                 // 发送覆盖本地请求
                 const response = await syncApi({
                     type: 'overwrite',
                     data: localData
                 });
-                
+
                 if (response.code === 200) {
                     // 更新本地数据
                     if (type === 'parameter') {
@@ -911,7 +920,7 @@ const handleCloudSync = async (type) => {
                         strategyList.value = response.data || [];
                         localStorage.setItem(storageKey, JSON.stringify(strategyList.value));
                     }
-                    
+
                     message.success(`覆盖${title}成功`);
                 } else {
                     throw new Error(response.msg || '同步失败');
@@ -923,19 +932,19 @@ const handleCloudSync = async (type) => {
         },
         async onCancel() {
             try {
-                
+
                 // 发送下拉云端请求
                 const response = await syncApi({
                     type: 'download'
                 });
-                
+
                 if (response.code === 200) {
                     // 合并数据
                     if (type === 'parameter') {
                         // 合并云端和本地数据，以ID为唯一标识
                         const cloudData = response.data || [];
                         const mergedData = [...localData];
-                        
+
                         cloudData.forEach(cloudItem => {
                             const localIndex = mergedData.findIndex(item => item.id === cloudItem.id);
                             if (localIndex === -1) {
@@ -943,14 +952,14 @@ const handleCloudSync = async (type) => {
                                 mergedData.push(cloudItem);
                             }
                         });
-                        
+
                         parameterList.value = mergedData;
                         localStorage.setItem(storageKey, JSON.stringify(mergedData));
                     } else if (type === 'expression') {
                         // 合并云端和本地数据，以ID为唯一标识
                         const cloudData = response.data || [];
                         const mergedData = [...localData];
-                        
+
                         cloudData.forEach(cloudItem => {
                             const localIndex = mergedData.findIndex(item => item.id === cloudItem.id);
                             if (localIndex === -1) {
@@ -958,14 +967,14 @@ const handleCloudSync = async (type) => {
                                 mergedData.push(cloudItem);
                             }
                         });
-                        
+
                         expressionList.value = mergedData;
                         localStorage.setItem(storageKey, JSON.stringify(mergedData));
                     } else if (type === 'strategy') {
                         // 合并云端和本地数据，以ID为唯一标识
                         const cloudData = response.data || [];
                         const mergedData = [...localData];
-                        
+
                         cloudData.forEach(cloudItem => {
                             const localIndex = mergedData.findIndex(item => item.id === cloudItem.id);
                             if (localIndex === -1) {
@@ -973,11 +982,11 @@ const handleCloudSync = async (type) => {
                                 mergedData.push(cloudItem);
                             }
                         });
-                        
+
                         strategyList.value = mergedData;
                         localStorage.setItem(storageKey, JSON.stringify(mergedData));
                     }
-                    
+
                     message.success(`下拉云端${title}成功`);
                 } else {
                     throw new Error(response.msg || '同步失败');
@@ -1947,6 +1956,12 @@ const addSystemLog = (type, content) => {
         strategyId: 'system'
     });
 };
+
+// 监听 isVip 变化
+watch(isVip, (newVal) => {
+    userInfo.value.isVip = newVal;
+    console.log(userInfo.value.isVip, "userInfo.value.isVip");
+}, { immediate: true });
 </script>
 
 <style lang="scss" scoped>
