@@ -158,6 +158,7 @@ router.beforeEach(async (to, from, next) => {
             !currencyStore.currencies.SWAP.length
           ) {
             await currencyStore.fetchCurrencies();
+            await overviewStore.getAccountConfigApi();
           }
 
           // WebSocket登录逻辑...

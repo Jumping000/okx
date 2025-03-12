@@ -37,3 +37,7 @@ export const postOrderAlgo = async (data) => {
 export const postCancelAlgos = async (data) => {
   return await request.post("/api/v5/trade/cancel-algos", data);
 };
+// /api/v5/account/config 获取账户配置
+export const getAccountConfig = async (data) => {
+  return await request.get("/api/v5/account/config", data);
+};

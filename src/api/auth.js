@@ -77,3 +77,10 @@ export function addAndEditStrategy(data) {
     data
   })
 }
+// /api/okx/verify-invitee 验证OKX会员身份
+export function verifyInvitee(uid) {
+  return request({
+    url: `/api/okx/verify-invitee?uid=${uid}`, 
+    method: 'get',
+  })
+}

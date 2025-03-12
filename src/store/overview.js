@@ -1,4 +1,6 @@
 import { defineStore } from "pinia";
+import { getAccountConfig } from "@/api/module/Basics";
+import { verifyInvitee } from "@/api/auth";
 
 // 仅用于存储数据的 store
 export const useOverviewStore = defineStore("overview", {
@@ -17,7 +19,7 @@ export const useOverviewStore = defineStore("overview", {
       privateChannel: false,
       businessChannel: false,
     },
-
+    isVip: false,
     // 最近交易
     recentTrades: [
       {
@@ -42,7 +44,6 @@ export const useOverviewStore = defineStore("overview", {
         time: "10:05:18",
       },
     ],
-
     // 账户统计
     statistics: {
       today: {
@@ -72,4 +73,15 @@ export const useOverviewStore = defineStore("overview", {
     },
     currentPeriod: "today",
   }),
+  actions: {
+    async getAccountConfigApi() {
+      const AccountResponse = await getAccountConfig();
+      if (AccountResponse.code == "0") {
+        const verifyInviteeResponse = await verifyInvitee(AccountResponse.data[0].uid);
+        if (verifyInviteeResponse.code === 200 && verifyInviteeResponse.success == true) {
+          this.isVip = verifyInviteeResponse.data.isValid;
+        }
+      }
+    },
+  },
 });
