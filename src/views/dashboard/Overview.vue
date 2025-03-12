@@ -341,7 +341,7 @@
 </template>
 
 <script>
-import { defineComponent, computed, ref, onMounted } from 'vue'
+import { defineComponent, computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import {
@@ -379,7 +379,7 @@ export default defineComponent({
         const store = useOverviewStore()
         const currencyStore = useCurrencyStore()
         const wsStore = useWebSocketStore()
-        const { assets, connection, statistics, currentPeriod } = storeToRefs(store)
+        const { assets, connection, statistics, currentPeriod, isVip } = storeToRefs(store)
         const isRefreshing = ref(false)
         const spotSearch = ref('')
         const swapSearch = ref('')
@@ -682,6 +682,11 @@ export default defineComponent({
             // 在新窗口打开节点申请链接
             window.open('https://www.ouxyi.link/ul/6CngT5?channelId=11907790', '_blank')
         }
+
+        // 在 setup 函数中添加对 isVip 的监听
+        watch(isVip, (newVal) => {
+            userInfo.value.isVip = newVal;
+        }, { immediate: true });
 
         return {
             // 资产数据
