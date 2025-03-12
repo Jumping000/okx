@@ -146,13 +146,14 @@
                                 </div>
                             </template>
                             <template v-else-if="announcements.length">
-                                <div v-for="item in announcements" :key="item.id" 
+                                <div v-for="item in announcements" :key="item.id"
                                     class="announcement-item p-3 rounded-lg border border-dark-300 hover:bg-dark-300 transition-colors cursor-pointer"
                                     @click="readAnnouncement(item)">
                                     <div class="flex items-start gap-3">
                                         <div class="flex-1 min-w-0">
                                             <div class="flex items-center gap-2">
-                                                <h4 class="text-sm font-medium text-dark-100 truncate">{{ item.title }}</h4>
+                                                <h4 class="text-sm font-medium text-dark-100 truncate">{{ item.title }}
+                                                </h4>
                                                 <!-- <span v-if="item.createdBy" class="text-dark-200">（{{ item.createdBy.name }}）</span> -->
                                                 <a-tag :color="getAnnouncementTypeColor(item.type)">
                                                     {{ getAnnouncementTypeText(item.type) }}
@@ -160,8 +161,10 @@
                                             </div>
                                             <p class="mt-1 text-sm text-dark-200 line-clamp-2">{{ item.content }}</p>
                                             <div class="mt-2 flex justify-between items-center text-xs text-dark-300">
-                                                <span v-if="item.publishAt">发布时间：{{ formatAnnouncementTime(item.publishAt) }}</span>
-                                                <span v-if="item.expiresAt">过期时间：{{ formatAnnouncementTime(item.expiresAt) }}</span>
+                                                <span v-if="item.publishAt">发布时间：{{
+                            formatAnnouncementTime(item.publishAt) }}</span>
+                                                <span v-if="item.expiresAt">过期时间：{{
+                            formatAnnouncementTime(item.expiresAt) }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -190,7 +193,7 @@
                                 {{ userInfo.isVip ? 'VIP会员' : '普通会员' }}
                             </a-tag>
                         </div>
-                        
+
                         <!-- VIP说明 -->
                         <div class="text-sm text-dark-200">
                             <p class="mb-2">VIP权益说明：</p>
@@ -206,11 +209,7 @@
                         <!-- 节点申请 -->
                         <div class="mt-4">
                             <p class="text-sm text-dark-200 mb-2">成为节点下级用户：</p>
-                            <a-button 
-                                type="primary" 
-                                block 
-                                @click="handleNodeApplication"
-                                :disabled="userInfo.isVip">
+                            <a-button type="primary" block @click="handleNodeApplication" :disabled="userInfo.isVip">
                                 {{ userInfo.isVip ? '已是节点用户' : '申请成为VIP' }}
                             </a-button>
                         </div>
@@ -302,16 +301,9 @@
         </div>
 
         <!-- 首次访问提示弹窗 -->
-        <a-modal
-            v-model:visible="showPrivacyModal"
-            title="隐私安全提示"
-            :closable="false"
-            :maskClosable="false"
-            :keyboard="false"
-            @ok="handlePrivacyConfirm"
-            okText="我知道了"
-            :cancelButtonProps="{ style: { display: 'none' } }"
-        >
+        <a-modal v-model:visible="showPrivacyModal" title="隐私安全提示" :closable="false" :maskClosable="false"
+            :keyboard="false" @ok="handlePrivacyConfirm" okText="我知道了"
+            :cancelButtonProps="{ style: { display: 'none' } }">
             <div class="text-base leading-relaxed">
                 <p class="mb-4">本网站量化及其策略与交易所秘钥均在本地保存，只有在手动开启云备份功能后才会上传到服务器。</p>
                 <p class="text-gray-500 text-sm">我们重视您的数据安全，所有敏感信息都经过加密处理。</p>
@@ -319,13 +311,8 @@
         </a-modal>
 
         <!-- 公告详情弹窗 -->
-        <a-modal
-            v-model:visible="announcementDetailVisible"
-            @ok="closeAnnouncementDetail"
-            :footer="null"
-            class="announcement-detail-modal"
-            :maskClosable="true"
-        >
+        <a-modal v-model:visible="announcementDetailVisible" @ok="closeAnnouncementDetail" :footer="null"
+            class="announcement-detail-modal" :maskClosable="true">
             <template #title>
                 <div class="flex items-center gap-2">
                     <span>{{ selectedAnnouncement?.title }}</span>
@@ -336,10 +323,13 @@
                 </div>
             </template>
             <div class="announcement-detail-content">
-                <div class="publish-info text-dark-200 text-sm mb-4" v-if="selectedAnnouncement?.publishAt||selectedAnnouncement?.expiresAt">
+                <div class="publish-info text-dark-200 text-sm mb-4"
+                    v-if="selectedAnnouncement?.publishAt || selectedAnnouncement?.expiresAt">
                     <div class="flex justify-between items-center mb-2">
-                        <span v-if="selectedAnnouncement?.publishAt">发布时间：{{ formatAnnouncementTime(selectedAnnouncement?.publishAt) }}</span>
-                        <span v-if="selectedAnnouncement?.expiresAt">过期时间：{{ formatAnnouncementTime(selectedAnnouncement?.expiresAt) }}</span>
+                        <span v-if="selectedAnnouncement?.publishAt">发布时间：{{
+                            formatAnnouncementTime(selectedAnnouncement?.publishAt) }}</span>
+                        <span v-if="selectedAnnouncement?.expiresAt">过期时间：{{
+                            formatAnnouncementTime(selectedAnnouncement?.expiresAt) }}</span>
                     </div>
                 </div>
                 <div class="content text-dark-100 text-base leading-relaxed whitespace-pre-wrap">
@@ -630,7 +620,7 @@ export default defineComponent({
                 }
             } catch (error) {
                 console.error('获取公告列表失败:', error)
-                 message.error('获取公告列表失败');
+                message.error('获取公告列表失败');
 
             } finally {
                 announcementLoading.value = false
@@ -690,7 +680,7 @@ export default defineComponent({
         // 添加节点申请处理函数
         const handleNodeApplication = () => {
             // 在新窗口打开节点申请链接
-            window.open('https://your-node-application-url.com', '_blank')
+            window.open('https://www.ouxyi.link/ul/6CngT5?channelId=11907790', '_blank')
         }
 
         return {
@@ -1200,12 +1190,12 @@ export default defineComponent({
                 color: var(--text-color);
                 font-size: 16px;
                 font-weight: 600;
-                
+
                 .ant-tag {
                     margin-left: 8px;
                     font-weight: normal;
                     transition: all 0.3s ease;
-                    
+
                     &:hover {
                         transform: translateY(-1px);
                     }
@@ -1216,14 +1206,14 @@ export default defineComponent({
         .ant-modal-body {
             padding: 24px;
             background: var(--bg-color);
-            
+
             .announcement-detail-content {
                 .publish-info {
                     color: var(--text-tertiary);
                     font-size: 13px;
                     margin-bottom: 16px;
                 }
-                
+
                 .content {
                     color: var(--text-color);
                     font-size: 14px;
@@ -1254,6 +1244,7 @@ export default defineComponent({
         opacity: 0;
         transform: scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: scale(1);

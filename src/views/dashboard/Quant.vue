@@ -30,12 +30,14 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">参数列表</h3>
                             </div>
-                            <a-button type="primary" size="small" @click="showAddDialog('parameter')">
-                                <!-- <template #icon>
-                                    <plus-outlined />
-                                </template> -->
-                                新建参数
-                            </a-button>
+                            <div class="flex items-center gap-2">
+                                <a-button type="primary" size="small" @click="handleCloudSync('parameter')">
+                                    云同步参数
+                                </a-button>
+                                <a-button type="primary" size="small" @click="showAddDialog('parameter')">
+                                    新建参数
+                                </a-button>
+                            </div>
                         </div>
                         <div class="p-4">
                             <a-table :dataSource="parameterList" :columns="parameterColumns" :loading="loading"
@@ -64,12 +66,14 @@
                             <div class="flex items-center gap-2">
                                 <h3 class="text-base font-medium text-dark-100">表达式列表</h3>
                             </div>
-                            <a-button type="primary" size="small" @click="showAddDialog('expression')">
-                                <!-- <template #icon>
-                                    <plus-outlined />
-                                </template> -->
-                                新建表达式
-                            </a-button>
+                            <div class="flex items-center gap-2">
+                                <a-button type="primary" size="small" @click="handleCloudSync('expression')">
+                                    云同步表达式
+                                </a-button>
+                                <a-button type="primary" size="small" @click="showAddDialog('expression')">
+                                    新建表达式
+                                </a-button>
+                            </div>
                         </div>
                         <div class="p-4">
                             <a-table :dataSource="expressionList" :columns="expressionColumns" :loading="loading"
@@ -117,6 +121,9 @@
                                 </a-tooltip>
                             </div>
                             <div class="flex items-center gap-2">
+                                <a-button type="primary" size="small" @click="handleCloudSync('strategy')">
+                                    云同步策略
+                                </a-button>
                                 <a-button type="primary" size="small" @click="showStorageEditor">
                                     本地存储编辑
                                 </a-button>
@@ -144,7 +151,7 @@
                                                             <div class="tooltip-item">
                                                                 <span class="label">策略模式：</span>
                                                                 <span class="value">{{
-                                                                    getStrategyModeText(record.strategyMode) }}</span>
+                        getStrategyModeText(record.strategyMode) }}</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">币种：</span>
@@ -161,12 +168,12 @@
                                                             <div class="tooltip-item">
                                                                 <span class="label">止损比例：</span>
                                                                 <span class="value">{{ (record.stopLoss *
-                                                                    100).toFixed(2) }}%</span>
+                        100).toFixed(2) }}%</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">阈值比例：</span>
                                                                 <span class="value">{{ (record.threshold *
-                                                                    100).toFixed(2) }}%</span>
+                        100).toFixed(2) }}%</span>
                                                             </div>
                                                             <div class="tooltip-item">
                                                                 <span class="label">阈值次数：</span>
@@ -183,8 +190,8 @@
                                                                 <div class="tooltip-item">
                                                                     <span class="label">触发条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy1Conditions)
-                                                                    }}</span>
+                        formatConditions(record.strategy1Conditions)
+                    }}</span>
                                                                 </div>
                                                             </template>
 
@@ -193,14 +200,14 @@
                                                                 <div class="tooltip-item">
                                                                     <span class="label">多仓条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy2LongConditions)
-                                                                    }}</span>
+                        formatConditions(record.strategy2LongConditions)
+                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">空仓条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy2ShortConditions)
-                                                                    }}</span>
+                            formatConditions(record.strategy2ShortConditions)
+                        }}</span>
                                                                 </div>
                                                             </template>
 
@@ -209,26 +216,26 @@
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开多条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy4OpenLongConditions)
-                                                                    }}</span>
+                        formatConditions(record.strategy4OpenLongConditions)
+                    }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">开空条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy4OpenShortConditions)
-                                                                    }}</span>
+                            formatConditions(record.strategy4OpenShortConditions)
+                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平多条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy4CloseLongConditions)
-                                                                    }}</span>
+                            formatConditions(record.strategy4CloseLongConditions)
+                        }}</span>
                                                                 </div>
                                                                 <div class="tooltip-item">
                                                                     <span class="label">平空条件：</span>
                                                                     <span class="value">{{
-                                                                        formatConditions(record.strategy4CloseShortConditions)
-                                                                    }}</span>
+                            formatConditions(record.strategy4CloseShortConditions)
+                        }}</span>
                                                                 </div>
                                                             </template>
                                                         </div>
@@ -387,11 +394,11 @@
                                         <!-- 订单方向 -->
                                         <template v-if="column.dataIndex === 'side'">
                                             <a-tag :color="text === 'buy' ?
-                                                (record.posSide === 'long' ? 'success' : 'error') :
-                                                (record.posSide === 'long' ? 'error' : 'success')">
+                        (record.posSide === 'long' ? 'success' : 'error') :
+                        (record.posSide === 'long' ? 'error' : 'success')">
                                                 {{ text === 'buy' ?
-                                                    (record.posSide === 'long' ? '开多' : '平空') :
-                                                    (record.posSide === 'long' ? '平多' : '开空')
+                        (record.posSide === 'long' ? '开多' : '平空') :
+                        (record.posSide === 'long' ? '平多' : '开空')
                                                 }}
                                             </a-tag>
                                         </template>
@@ -847,6 +854,14 @@ const showAddDialog = (type) => {
 const showAddStrategy2Dialog = () => {
     strategyDialogVisible.value = true
 }
+
+// 云同步方法
+const handleCloudSync = (type) => {
+    // type= 参数parameter 表示参数，type=expression 表示表达式 type=strategy 表示策略
+    message.success(`${type}功能实现中`);
+}
+
+
 
 const handleFormulaSubmit = ({ type, data }) => {
     try {
