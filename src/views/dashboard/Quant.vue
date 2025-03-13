@@ -619,7 +619,7 @@ const handleReconnection = () => {
         // 重启之前运行的策略
         stoppedStrategies.forEach(strategy => {
             if (savedStrategies.some(saved => saved.id === strategy.id)) {
-                handleStrategyAction(strategy)
+                handleStrategyAction(strategy,true)
             }
         })
 
@@ -1162,7 +1162,8 @@ const retrievePositionHistory = async (record, up) => {
     positionHistory[up] = response.data;
     // 如果 stop 则将start 和 stop 的数据 进行对比 通过cTime与posId对比 相同存在则删除
     if (up === 'stop') {
-        let arr = positionHistory.start.filter(item => !positionHistory.stop.some(stopItem => stopItem.cTime === item.cTime && stopItem.posId === item.posId))
+        let arr = positionHistory.stop.filter(item => !positionHistory.start.some(stopItem => stopItem.cTime === item.cTime && stopItem.posId === item.posId))
+
         if (arr.length > 0) {
             let realizedPnl = 0, pnlRatio = 0, openMaxPos = 0;
             //循环arr
@@ -1171,6 +1172,7 @@ const retrievePositionHistory = async (record, up) => {
                 realizedPnl = parseFloat(realizedPnl) + parseFloat(item.realizedPnl)
                 pnlRatio = parseFloat(pnlRatio) + parseFloat(item.pnlRatio)
                 openMaxPos = parseFloat(openMaxPos) + parseFloat(item.openMaxPos)
+                console.log(openMaxPos,item.openMaxPos,JSON.stringify(item));
             });
             // 初始化参数
             let parameter = {
@@ -1214,14 +1216,12 @@ const getOrSetStrategyProfit = async (record, parameter = {}) => {
             totalPositionAmount: parseFloat(strategyProfit[record.id].totalPositionAmount) + totalPositionAmount,
             historyPositionCount: parseFloat(strategyProfit[record.id].historyPositionCount) + historyPositionCount,
         }
-        // strategyProfit[record.id] = parameter
         localStorage.setItem(`strategy_profit`, JSON.stringify(strategyProfit))
     }
     return strategyProfit[record.id]
 }
 // 初始化策略
-const handleStrategyAction = async (record) => {
-
+const handleStrategyAction = async (record,forceStart=false) => {
     try {
         const currentCurrency = currencyStore.getCurrencyByName('SWAP', record.currency)
         if (!currentCurrency) {
@@ -1240,7 +1240,7 @@ const handleStrategyAction = async (record) => {
 
             if (newStatus === 'running') {
                 //  hasDisconnected
-                if (hasDisconnected.value) {
+                if (hasDisconnected.value && !forceStart) {
                     message.warning('检测到网络曾经断开，部分数据可能不准确，请刷新页面')
                     return;
                 }
