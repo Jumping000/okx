@@ -41,3 +41,11 @@ export const postCancelAlgos = async (data) => {
 export const getAccountConfig = async (data) => {
   return await request.get("/api/v5/account/config", data);
 };
+
+// /api/v5/account/positions-history 获取持仓历史
+export const getPositionsHistory = async (data) => {
+  return await request.get("/api/v5/account/positions-history", data);
+};
+
+
+

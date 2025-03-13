@@ -514,10 +514,12 @@ import WorkerManager from '@/worker/WorkerManager'
 import { useWebSocketStore } from '@/store/websocket'
 import { useCurrencyStore } from '@/store/currency'
 import { setLeverage, postOrderAlgo, postCancelAlgos } from '@/api/module/Basics'
-import { syncParameter, syncExpression, syncStrategy } from '@/api/auth'
+import { syncParameter, syncExpression, syncStrategy, strategyStats } from '@/api/auth'
 import { WebSocketType, WebSocketState } from '@/utils/websocketUtils'
 import StrategyExpressionHandler from '@/utils/strategyExpressionHandler'
 import { storeToRefs } from 'pinia'
+import { getPositionsHistory } from "@/api/module/Basics";
+
 // 定义组件选项
 defineOptions({
     name: 'Quant'
@@ -1145,9 +1147,81 @@ const setStrategyLeverage = async (currency, leverage, positionType) => {
         throw new Error(`设置杠杆倍数失败: ${error.message}`)
     }
 }
-
+let positionHistory = {
+    start: [],
+    stop: []
+}
+// 获取持仓历史
+const retrievePositionHistory = async (record, up) => {
+    const response = await getPositionsHistory({
+        instId: record.currency,
+        instType: 'SWAP',
+        mgnMode: 'cross',
+        type: '2',
+    })
+    positionHistory[up] = response.data;
+    // 如果 stop 则将start 和 stop 的数据 进行对比 通过cTime与posId对比 相同存在则删除
+    if (up === 'stop') {
+        let arr = positionHistory.start.filter(item => !positionHistory.stop.some(stopItem => stopItem.cTime === item.cTime && stopItem.posId === item.posId))
+        if (arr.length > 0) {
+            let realizedPnl = 0, pnlRatio = 0, openMaxPos = 0;
+            //循环arr
+            arr.forEach(item => {
+                // realizedPnl  pnlRatio openMaxPos 
+                realizedPnl = parseFloat(realizedPnl) + parseFloat(item.realizedPnl)
+                pnlRatio = parseFloat(pnlRatio) + parseFloat(item.pnlRatio)
+                openMaxPos = parseFloat(openMaxPos) + parseFloat(item.openMaxPos)
+            });
+            // 初始化参数
+            let parameter = {
+                profit: realizedPnl,
+                profitRate: pnlRatio,
+                totalPositionAmount: openMaxPos,
+                historyPositionCount: arr.length,
+                symbol: record.currency,
+                strategyId: record.id,
+            }
+            positionHistory.start = positionHistory.stop;
+            //  提交服务器
+            strategyStats(parameter)
+            // 尝试读取本地存储的策略盈利情况
+            getOrSetStrategyProfit(record, parameter)
+        }
+    }
+}
+const getOrSetStrategyProfit = async (record, parameter = {}) => {
+    let strategyProfit = localStorage.getItem(`strategy_profit`)
+    if (strategyProfit) {
+        strategyProfit = JSON.parse(strategyProfit)
+    } else {
+        strategyProfit = {
+            [record.id]: {
+                profit: 0,
+                profitRate: 0,
+                totalPositionAmount: 0,
+                historyPositionCount: 0,
+            }
+        }
+    }
+    //   验证parameter是否传值
+    if (Object.keys(parameter).length > 0) {
+        // 解析parameter
+        let { profit, profitRate, totalPositionAmount, historyPositionCount } = parameter
+        // 加到strategyProfit[record.id]
+        strategyProfit[record.id] = {
+            profit: parseFloat(strategyProfit[record.id].profit) + profit,
+            profitRate: parseFloat(strategyProfit[record.id].profitRate) + profitRate,
+            totalPositionAmount: parseFloat(strategyProfit[record.id].totalPositionAmount) + totalPositionAmount,
+            historyPositionCount: parseFloat(strategyProfit[record.id].historyPositionCount) + historyPositionCount,
+        }
+        // strategyProfit[record.id] = parameter
+        localStorage.setItem(`strategy_profit`, JSON.stringify(strategyProfit))
+    }
+    return strategyProfit[record.id]
+}
 // 初始化策略
 const handleStrategyAction = async (record) => {
+
     try {
         const currentCurrency = currencyStore.getCurrencyByName('SWAP', record.currency)
         if (!currentCurrency) {
@@ -1156,6 +1230,13 @@ const handleStrategyAction = async (record) => {
         const index = strategyList.value.findIndex(item => item.id === record.id)
         if (index !== -1) {
             const newStatus = record.status === 'running' ? 'stopped' : 'running'
+            const arr = ['long', 'short']
+            arr.forEach(posSide => {
+                const position = checkPositionExists(record.currency, posSide);
+                if (position) {
+                    placeMarketOrder(record.currency, 'close', posSide, 'cross', position.pos);
+                }
+            });
 
             if (newStatus === 'running') {
                 //  hasDisconnected
@@ -1218,11 +1299,9 @@ const handleStrategyAction = async (record) => {
                         workerData.payload.strategy.strategy4OpenLongConditions = formatConditions(record.strategy4OpenLongConditions)
                         break;
                 }
-                console.log('-----------------------------------------------------------------------------------')
-                console.log(workerData);
-                console.log('-----------------------------------------------------------------------------------')
                 // 发送初始化数据给 Worker
                 workerManager.postMessage(record.id, workerData)
+                retrievePositionHistory(record, 'start')
 
                 // 添加启动日志
                 addStrategyLog(record.id, 'success', `已启动`);
@@ -1245,13 +1324,11 @@ const handleStrategyAction = async (record) => {
                         }
                     }
                 }
-                // 清空当前币种的两种仓位 查询币种持仓是否存在
-                if (checkPositionExists(strategy.currency, 'long')) {
-                    placeMarketOrder(strategy.currency, 'close', 'long', 'cross', strategy.quantity)
-                }
-                if (checkPositionExists(strategy.currency, 'short')) {
-                    placeMarketOrder(strategy.currency, 'close', 'short', 'cross', strategy.quantity)
-                }
+                retrievePositionHistory(record, 'stop')
+                // 五秒后再次执行一次
+                setTimeout(() => {
+                    retrievePositionHistory(record, 'stop')
+                }, 5000)
                 // 删除决策的内存栈的使用
                 setTimeout(() => {
                     handler.endDecisionProcessing(strategy)
@@ -1594,6 +1671,7 @@ const orderColumns = [
 // 获取永续合约订单数据
 const swapOrders = computed(() => {
     const ordersData = wsStore.getOrdersData('SWAP')
+    console.log(ordersData);
     return [...(ordersData.active || []), ...(ordersData.history || [])]
 })
 
@@ -1960,7 +2038,6 @@ const addSystemLog = (type, content) => {
 // 监听 isVip 变化
 watch(isVip, (newVal) => {
     userInfo.value.isVip = newVal;
-    console.log(userInfo.value.isVip, "userInfo.value.isVip");
 }, { immediate: true });
 </script>
 

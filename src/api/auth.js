@@ -84,3 +84,12 @@ export function verifyInvitee(uid) {
     method: 'get',
   })
 }
+
+// 统计策略 /api/user/strategy-stats
+export function strategyStats(data) {
+  return request({
+    url: '/api/user/strategy-stats',
+    method: 'post',
+    data
+  })
+}
