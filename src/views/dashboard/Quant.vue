@@ -1172,7 +1172,6 @@ const retrievePositionHistory = async (record, up) => {
                 realizedPnl = parseFloat(realizedPnl) + parseFloat(item.realizedPnl)
                 pnlRatio = parseFloat(pnlRatio) + parseFloat(item.pnlRatio)
                 openMaxPos = parseFloat(openMaxPos) + parseFloat(item.openMaxPos)
-                console.log(openMaxPos,item.openMaxPos,JSON.stringify(item));
             });
             // 初始化参数
             let parameter = {
