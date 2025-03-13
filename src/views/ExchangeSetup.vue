@@ -42,12 +42,14 @@ import { message } from 'ant-design-vue'
 import { storage } from '@/utils/storage'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/store/modules/user'
+import { useOverviewStore } from "@/store/overview";
 
 export default defineComponent({
     name: 'ExchangeSetupPage',
     setup() {
         const router = useRouter()
         const userStore = useUserStore()
+        const overviewStore = useOverviewStore();
         const hasConfig = ref(false)
         const loading = ref(false)
         const formState = reactive({
@@ -57,7 +59,7 @@ export default defineComponent({
         })
 
         // 检查配置状态
-        const checkConfig = () => {
+        const checkConfig =  () => {
             hasConfig.value = storage.hasApiConfig()
             if (hasConfig.value) {
                 const config = storage.getApiConfig()
@@ -65,6 +67,7 @@ export default defineComponent({
                 formState.secretKey = config.secretKey
                 formState.passphrase = config.passphrase
             }
+            
         }
 
         // 保存配置
@@ -76,6 +79,7 @@ export default defineComponent({
                     values.secretKey,
                     values.passphrase
                 )
+                await overviewStore.getAccountConfigApi();
                 message.success('配置保存成功')
                 checkConfig()
                 // 如果配置成功，跳转到主页
