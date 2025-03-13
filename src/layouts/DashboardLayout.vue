@@ -79,6 +79,12 @@
                                     <span>偏好设置</span>
                                 </div>
                             </a-menu-item>
+                            <a-menu-item key="switchApiKey" @click="handleSwitchApiKey">
+                                <div class="menu-item-content">
+                                    <key-outlined />
+                                    <span>切换API Key</span>
+                                </div>
+                            </a-menu-item>
                             <a-menu-item key="logout" @click="handleLogout">
                                 <div class="menu-item-content">
                                     <logout-outlined />
@@ -235,7 +241,8 @@ import {
     BellOutlined,
     CheckOutlined,
     DeleteOutlined,
-    InboxOutlined
+    InboxOutlined,
+    KeyOutlined
 } from '@ant-design/icons-vue'
 import { storage } from '@/utils/storage'
 import { useCurrencyStore } from '@/store/currency'
@@ -279,7 +286,8 @@ export default defineComponent({
         BellOutlined,
         CheckOutlined,
         DeleteOutlined,
-        InboxOutlined
+        InboxOutlined,
+        KeyOutlined
     },
     setup() {
         const router = useRouter()
@@ -330,10 +338,16 @@ export default defineComponent({
 
         const handleLogout = () => {
             // 清除配置并跳转到登录页
-            // storage.clearApiConfig()
-            localStorage.removeItem('token');
+            storage.clearToken();
             userStore.logout()
             message.success('退出登录成功')
+            router.push('/auth/login')
+        }
+
+        const handleSwitchApiKey = () => {
+            // 清除API Key相关的存储对象
+            storage.clearApiConfig();
+            message.success('API Key已清除，请重新配置')
             router.push('/auth/login')
         }
 
@@ -564,6 +578,7 @@ export default defineComponent({
             showMessageDetail,
             closeMessageDetail,
             handleDropdownVisibleChange,
+            handleSwitchApiKey,
         }
     }
 })

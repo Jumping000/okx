@@ -62,12 +62,14 @@ export const storage = {
 
   // 清除 API 配置
   clearApiConfig() {
-    // localStorage.removeItem(STORAGE_KEYS.API_KEY);
-    // localStorage.removeItem(STORAGE_KEYS.API_SECRET);
-    // localStorage.removeItem(STORAGE_KEYS.PASSPHRASE);
-    localStorage.clear();
+    localStorage.removeItem(STORAGE_KEYS.API_KEY);
+    localStorage.removeItem(STORAGE_KEYS.API_SECRET);
+    localStorage.removeItem(STORAGE_KEYS.PASSPHRASE);    
   },
-
+  // 清空token
+  clearToken() {
+    localStorage.removeItem('token');
+  },
   // 检查是否已配置
   hasApiConfig() {
     return !!(

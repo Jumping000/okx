@@ -69,7 +69,7 @@ request.interceptors.response.use(
       // 处理特定错误码
       switch (res.code) {
         case "50001": // 示例：token 过期
-          storage.clearApiConfig();
+          storage.clearToken();
           window.location.href = "/";
           break;
         default:
