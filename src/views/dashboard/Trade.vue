@@ -33,7 +33,7 @@
         <div class="trade-scroll-container">
             <div class="trade-content grid grid-cols-12 gap-4 p-4">
                 <!-- 左侧主区域：K线和交易区 -->
-                <div class="col-span-9 grid grid-cols-7 gap-4">
+                <div class="col-span-9 grid grid-cols-8 gap-4">
                     <!-- K线和行情区域 -->
                     <div class="col-span-4 space-y-4">
                         <!-- K线图区域 -->
@@ -50,15 +50,15 @@
                                     </div>
                                     <div class="flex items-center gap-2 ml-2">
                                         <span class="text-2xl font-semibold" :class="{
-                                            'text-primary': Number(marketData.priceChangePercent) >= 0,
-                                            'text-red-500': Number(marketData.priceChangePercent) < 0
-                                        }">
+                        'text-primary': Number(marketData.priceChangePercent) >= 0,
+                        'text-red-500': Number(marketData.priceChangePercent) < 0
+                    }">
                                             ${{ marketData.lastPrice }}
                                         </span>
                                         <span class="text-sm px-2 py-0.5 rounded" :class="{
-                                            'bg-primary/10 text-primary': Number(marketData.priceChangePercent) >= 0,
-                                            'bg-red-500/10 text-red-500': Number(marketData.priceChangePercent) < 0
-                                        }">
+                        'bg-primary/10 text-primary': Number(marketData.priceChangePercent) >= 0,
+                        'bg-red-500/10 text-red-500': Number(marketData.priceChangePercent) < 0
+                    }">
                                             {{ Number(marketData.priceChangePercent) >= 0 ? '+' : '' }}{{ marketData.priceChangePercent }}%
                                         </span>
                                     </div>
@@ -97,9 +97,9 @@
                                 <div>
                                     <div class="text-sm text-dark-200 mb-1">24h涨跌</div>
                                     <div class="text-xl font-medium" :class="{
-                                        'text-red-500': Number(marketData.priceChangePercent) < 0,
-                                        'text-primary': Number(marketData.priceChangePercent) >= 0
-                                    }">
+                        'text-red-500': Number(marketData.priceChangePercent) < 0,
+                        'text-primary': Number(marketData.priceChangePercent) >= 0
+                    }">
                                         {{ marketData.priceChangePercent }}%
                                     </div>
                                 </div>
@@ -115,265 +115,16 @@
                         </div>
                     </div>
 
-                    <!-- 交易操作区 -->
-                    <div class="col-span-3">
-                        <div class="bg-dark-400 rounded-lg border border-dark-300 h-full">
-                            <div class="p-4">
-                                <div class="flex flex-col gap-4">
-                                    <!-- 合约专属设置 -->
-                                    <template v-if="tradeType === 'SWAP'">
-                                        <!-- 保证金模式 -->
-                                        <div class="space-y-2">
-                                            <div class="flex items-center justify-between">
-                                                <div class="text-sm text-dark-200">保证金模式</div>
-                                                <div class="flex-1 ml-4">
-                                                    <a-radio-group v-model:value="marginMode" button-style="solid"
-                                                        class="w-full">
-                                                        <a-radio-button value="cross"
-                                                            class="w-1/2 text-center">全仓</a-radio-button>
-                                                        <a-radio-button value="isolated"
-                                                            class="w-1/2 text-center">逐仓</a-radio-button>
-                                                    </a-radio-group>
-                                                </div>
-                                            </div>
-                                        </div>
+                    <!--  -->
+                    <div class="col-span-4">
 
-                                        <!-- 杠杆倍数选择器 -->
-                                        <div class="space-y-2">
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-sm text-dark-200">杠杆倍数</span>
-                                                <template v-if="marginMode === 'isolated'">
-                                                    <!-- 逐仓模式：买卖方向可以设置不同杠杆 -->
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-xs text-dark-200">买入</span>
-                                                        <a-select v-model:value="longLeverage" style="width: 80px"
-                                                            class="leverage-select" :options="leverageOptions" />
-                                                        <span class="text-xs text-dark-200">卖出</span>
-                                                        <a-select v-model:value="shortLeverage" style="width: 80px"
-                                                            class="leverage-select" :options="leverageOptions" />
-                                                    </div>
-                                                </template>
-                                                <template v-else>
-                                                    <!-- 全仓模式：统一杠杆 -->
-                                                    <a-select v-model:value="leverage" style="width: 120px"
-                                                        class="leverage-select" :options="leverageOptions" />
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </template>
-
-                                    <!-- 交易类型选择 -->
-                                    <div class="space-y-2">
-                                        <div class="flex items-center justify-between">
-                                            <div class="text-sm text-dark-200">交易类型</div>
-                                            <div class="flex-1 ml-4">
-                                                <a-radio-group v-model:value="orderType" button-style="solid"
-                                                    class="w-full">
-                                                    <a-radio-button value="limit"
-                                                        class="w-1/3 text-center">限价</a-radio-button>
-                                                    <a-radio-button value="market"
-                                                        class="w-1/3 text-center">市价</a-radio-button>
-                                                    <a-radio-button value="stopLimit"
-                                                        class="w-1/3 text-center">止盈止损</a-radio-button>
-                                                </a-radio-group>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- 止盈止损类型选择 -->
-                                    <template v-if="orderType === 'stopLimit'">
-                                        <div class="space-y-2">
-                                            <div class="flex items-center justify-between">
-                                                <div class="text-sm text-dark-200">触发方式</div>
-                                                <div class="flex-1 ml-4">
-                                                    <a-radio-group v-model:value="stopType" button-style="solid"
-                                                        class="w-full">
-                                                        <a-radio-button value="single"
-                                                            class="w-1/2 text-center">单向止盈止损</a-radio-button>
-                                                        <a-radio-button value="double"
-                                                            class="w-1/2 text-center">双向止盈止损</a-radio-button>
-                                                    </a-radio-group>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- 触发方式选择 -->
-                                        <div class="space-y-2">
-                                            <div class="flex items-center justify-between">
-                                                <div class="text-sm text-dark-200">触发类型</div>
-                                                <div class="flex-1 ml-4">
-                                                    <a-radio-group v-model:value="triggerType" button-style="solid"
-                                                        class="w-full">
-                                                        <a-radio-button value="mark"
-                                                            class="w-1/3 text-center text-xs">标记价格</a-radio-button>
-                                                        <a-radio-button value="new"
-                                                            class="w-1/3 text-center text-xs">最新价格</a-radio-button>
-                                                        <a-radio-button value="index"
-                                                            class="w-1/3 text-center text-xs">指数价格</a-radio-button>
-                                                    </a-radio-group>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <!-- 止盈止损价格输入 -->
-                                        <template v-if="stopType === 'single'">
-                                            <div>
-                                                <div class="flex justify-between items-center mb-1">
-                                                    <span class="text-sm text-dark-200">触发价格</span>
-                                                    <span class="text-sm text-dark-200">USDT</span>
-                                                </div>
-                                                <a-input-number v-model:value="triggerPrice" class="w-full trade-input"
-                                                    :min="0" placeholder="请输入触发价格" />
-                                                <div class="mt-1">
-                                                    <span class="text-xs text-dark-200">触发后以市价委托</span>
-                                                </div>
-                                            </div>
-                                        </template>
-
-                                        <template v-else>
-                                            <!-- 双向止盈止损价格输入 -->
-                                            <div>
-                                                <div class="flex justify-between items-center mb-1">
-                                                    <span class="text-sm text-dark-200">止盈触发价格</span>
-                                                    <span class="text-sm text-dark-200">USDT</span>
-                                                </div>
-                                                <a-input-number v-model:value="takeProfitPrice"
-                                                    class="w-full trade-input" :min="0" placeholder="请输入止盈触发价格" />
-                                                <div class="mt-1">
-                                                    <span class="text-xs text-dark-200">触发后以市价委托</span>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div class="flex justify-between items-center mb-1">
-                                                    <span class="text-sm text-dark-200">止损触发价格</span>
-                                                    <span class="text-sm text-dark-200">USDT</span>
-                                                </div>
-                                                <a-input-number v-model:value="stopLossPrice" class="w-full trade-input"
-                                                    :min="0" placeholder="请输入止损触发价格" />
-                                                <div class="mt-1">
-                                                    <span class="text-xs text-dark-200">触发后以市价委托</span>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </template>
-
-                                    <!-- 价格和数量输入 -->
-                                    <div class="space-y-3">
-                                        <!-- 限价单价格输入 -->
-                                        <template v-if="orderType === 'limit'">
-                                            <div>
-                                                <div class="flex justify-between items-center mb-1">
-                                                    <span class="text-sm text-dark-200">价格</span>
-                                                    <span class="text-sm text-dark-200">USDT</span>
-                                                </div>
-                                                <a-input-number v-model:value="price" class="w-full trade-input"
-                                                    :min="0" placeholder="请输入价格" />
-                                            </div>
-                                        </template>
-
-                                        <!-- 数量输入 -->
-                                        <div>
-                                            <div class="flex justify-between items-center mb-1">
-                                                <span class="text-sm text-dark-200">数量</span>
-                                                <span
-                                                    class="text-sm text-dark-200">{{ tradeType === 'SWAP' ? '张' : selectedCurrency?.split('-')[0] }}</span>
-                                            </div>
-                                            <a-input-number v-model:value="amount" class="w-full trade-input" :min="0"
-                                                placeholder="请输入数量" />
-                                        </div>
-
-                                        <!-- 可开数量显示
-                                        <div class="flex justify-between items-center text-sm">
-                                            <span class="text-dark-200">可开数量</span>
-                                            <div class="flex items-center gap-2">
-                                                <span class="text-dark-100">14.6</span>
-                                                <span class="text-dark-200">张</span>
-                                            </div>
-                                        </div> -->
-                                    </div>
-
-                                    <!-- 交易按钮 -->
-                                    <div class="space-y-4">
-                                        <!-- 现货交易按钮 -->
-                                        <template v-if="tradeType === 'SPOT'">
-                                            <div class="grid grid-cols-2 gap-4">
-                                                <a-button type="primary" class="h-10"
-                                                    style="background-color: #00b96b; border-color: #00b96b;"
-                                                    @click="SubmitTrade('SPOT', 'buy', '')" :loading="loading"
-                                                    :disabled="orderType === 'stopLimit' || loading">
-                                                    {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
-                                                </a-button>
-                                                <a-button type="primary" danger class="h-10"
-                                                    style="background-color: #ff4d4f; border-color: #ff4d4f;"
-                                                    @click="SubmitTrade('SPOT', 'sell', '')" :loading="loading"
-                                                    :disabled="orderType === 'stopLimit' || loading">
-                                                    {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
-                                                </a-button>
-                                            </div>
-                                        </template>
-
-                                        <!-- 合约交易按钮 -->
-                                        <template v-else>
-                                            <!-- 交易方向选择 -->
-                                            <div class="space-y-4">
-                                                <div class="grid grid-cols-1 gap-2">
-                                                    <!-- 开仓/平仓选择 -->
-                                                    <a-radio-group v-model:value="positionType" button-style="solid"
-                                                        class="w-full" :disabled="orderType === 'stopLimit'">
-                                                        <a-radio-button value="open"
-                                                            class="w-1/2 text-center">开仓</a-radio-button>
-                                                        <a-radio-button value="close"
-                                                            class="w-1/2 text-center">平仓</a-radio-button>
-                                                    </a-radio-group>
-                                                    <!-- 多空方向选择 -->
-                                                    <!-- <a-radio-group v-model:value="direction" button-style="solid"
-                                                        class="w-full" :disabled="orderType === 'stopLimit'">
-                                                        <a-radio-button value="long" class="w-1/2 text-center">
-                                                            <span
-                                                                :class="{ 'text-primary': direction === 'long' }">多</span>
-                                                        </a-radio-button>
-                                                        <a-radio-button value="short" class="w-1/2 text-center">
-                                                            <span
-                                                                :class="{ 'text-red-500': direction === 'short' }">空</span>
-                                                        </a-radio-button>
-                                                    </a-radio-group> -->
-                                                </div>
-
-                                                <!-- 交易按钮 -->
-                                                <!-- <a-button type="primary" class="w-full h-10" :style="{
-                                                    backgroundColor: direction === 'long' ? '#00b96b' : '#ff4d4f',
-                                                    borderColor: direction === 'long' ? '#00b96b' : '#ff4d4f'
-                                                }" @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', direction)"
-                                                    :disabled="orderType === 'stopLimit'">
-                                                    {{ positionType === 'open' ? '开' : '平' }}{{ direction === 'long' ? '多' : '空' }}
-                                                </a-button> -->
-                                                <div class="grid grid-cols-2 gap-4">
-                                                    <a-button type="primary" class="h-10"
-                                                        style="background-color: #00b96b; border-color: #00b96b;"
-                                                        @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'long')"
-                                                        :loading="loading" :disabled="loading">
-                                                        {{ positionType === 'open' ? '开' : '平' }}多
-                                                    </a-button>
-                                                    <a-button type="primary" danger class="h-10"
-                                                        style="background-color: #ff4d4f; border-color: #ff4d4f;"
-                                                        @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'short')"
-                                                        :loading="loading" :disabled="loading">
-                                                        {{ positionType === 'open' ? '开' : '平' }}空
-                                                    </a-button>
-                                                </div>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                     </div>
                 </div>
 
                 <!-- 右侧资产和订单区 -->
                 <div class="col-span-3 space-y-4">
-                    <!-- 资产信息 -->
-                    <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <!-- 交易操作区 -->
+                    <!-- <div class="bg-dark-400 rounded-lg border border-dark-300">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-dark-300">
                             <h3 class="text-base font-medium text-dark-100">账户资产</h3>
                             <a-button type="link" size="small" class="text-dark-200 hover:text-primary">
@@ -400,10 +151,241 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
+                    <div class="bg-dark-400 rounded-lg border border-dark-300 ">
+                        <div class="p-4">
+                            <div class="flex flex-col gap-4">
+                                <!-- 合约专属设置 -->
+                                <template v-if="tradeType === 'SWAP'">
+                                    <!-- 保证金模式 -->
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm text-dark-200">模式</div>
+                                            <div class="flex-1 ml-4">
+                                                <a-radio-group v-model:value="marginMode" button-style="solid"
+                                                    class="w-full">
+                                                    <a-radio-button value="cross"
+                                                        class="w-1/2 text-center">全仓</a-radio-button>
+                                                    <a-radio-button value="isolated"
+                                                        class="w-1/2 text-center">逐仓</a-radio-button>
+                                                </a-radio-group>
+                                            </div>
+                                        </div>
+                                    </div>
 
+                                    <!-- 杠杆倍数选择器 -->
+                                    <div class="space-y-2">
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm text-dark-200">杠杆</span>
+                                            <template v-if="marginMode === 'isolated'">
+                                                <!-- 逐仓模式：买卖方向可以设置不同杠杆 -->
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs text-dark-200">买入</span>
+                                                    <a-select v-model:value="longLeverage" style="width: 80px"
+                                                        class="leverage-select" :options="leverageOptions" />
+                                                    <span class="text-xs text-dark-200">卖出</span>
+                                                    <a-select v-model:value="shortLeverage" style="width: 80px"
+                                                        class="leverage-select" :options="leverageOptions" />
+                                                </div>
+                                            </template>
+                                            <template v-else>
+                                                <!-- 全仓模式：统一杠杆 -->
+                                                <a-select v-model:value="leverage" style="width: 120px"
+                                                    class="leverage-select" :options="leverageOptions" />
+                                            </template>
+                                        </div>
+                                    </div>
+                                </template>
+
+                                <!-- 交易类型选择 -->
+                                <div class="space-y-2">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-sm text-dark-200">类型</div>
+                                        <div class="flex-1 ml-4">
+                                            <a-radio-group v-model:value="orderType" button-style="solid"
+                                                class="w-full">
+                                                <a-radio-button value="limit"
+                                                    class="w-1/3 text-center">限价</a-radio-button>
+                                                <a-radio-button value="market"
+                                                    class="w-1/3 text-center">市价</a-radio-button>
+                                                <a-radio-button value="stopLimit"
+                                                    class="w-1/3 text-center">止盈止损</a-radio-button>
+                                            </a-radio-group>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 止盈止损类型选择 -->
+                                <template v-if="orderType === 'stopLimit'">
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm text-dark-200">触发方式</div>
+                                            <div class="flex-1 ml-4">
+                                                <a-radio-group v-model:value="stopType" button-style="solid"
+                                                    class="w-full">
+                                                    <a-radio-button value="single"
+                                                        class="w-1/2 text-center">单向止盈止损</a-radio-button>
+                                                    <a-radio-button value="double"
+                                                        class="w-1/2 text-center">双向止盈止损</a-radio-button>
+                                                </a-radio-group>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 触发方式选择 -->
+                                    <div class="space-y-2">
+                                        <div class="flex items-center justify-between">
+                                            <div class="text-sm text-dark-200">触发类型</div>
+                                            <div class="flex-1 ml-4">
+                                                <a-radio-group v-model:value="triggerType" button-style="solid"
+                                                    class="w-full">
+                                                    <a-radio-button value="mark"
+                                                        class="w-1/3 text-center text-xs">标记价格</a-radio-button>
+                                                    <a-radio-button value="new"
+                                                        class="w-1/3 text-center text-xs">最新价格</a-radio-button>
+                                                    <a-radio-button value="index"
+                                                        class="w-1/3 text-center text-xs">指数价格</a-radio-button>
+                                                </a-radio-group>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 止盈止损价格输入 -->
+                                    <template v-if="stopType === 'single'">
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-sm text-dark-200">触发价格</span>
+                                                <span class="text-sm text-dark-200">USDT</span>
+                                            </div>
+                                            <a-input-number v-model:value="triggerPrice" class="w-full trade-input"
+                                                :min="0" placeholder="请输入触发价格" />
+                                            <div class="mt-1">
+                                                <span class="text-xs text-dark-200">触发后以市价委托</span>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <template v-else>
+                                        <!-- 双向止盈止损价格输入 -->
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-sm text-dark-200">止盈触发价格</span>
+                                                <span class="text-sm text-dark-200">USDT</span>
+                                            </div>
+                                            <a-input-number v-model:value="takeProfitPrice" class="w-full trade-input"
+                                                :min="0" placeholder="请输入止盈触发价格" />
+                                            <div class="mt-1">
+                                                <span class="text-xs text-dark-200">触发后以市价委托</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-sm text-dark-200">止损触发价格</span>
+                                                <span class="text-sm text-dark-200">USDT</span>
+                                            </div>
+                                            <a-input-number v-model:value="stopLossPrice" class="w-full trade-input"
+                                                :min="0" placeholder="请输入止损触发价格" />
+                                            <div class="mt-1">
+                                                <span class="text-xs text-dark-200">触发后以市价委托</span>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+
+                                <!-- 价格和数量输入 -->
+                                <div class="space-y-3">
+                                    <!-- 限价单价格输入 -->
+                                    <template v-if="orderType === 'limit'">
+                                        <div>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <span class="text-sm text-dark-200">价格</span>
+                                                <span class="text-sm text-dark-200">USDT</span>
+                                            </div>
+                                            <a-input-number v-model:value="price" class="w-full trade-input" :min="0"
+                                                placeholder="请输入价格" />
+                                        </div>
+                                    </template>
+
+                                    <!-- 数量输入 -->
+                                    <div>
+                                        <div class="flex justify-between items-center mb-1">
+                                            <span class="text-sm text-dark-200">数量</span>
+                                            <span
+                                                class="text-sm text-dark-200">{{ tradeType === 'SWAP' ? '张' : selectedCurrency?.split('-')[0] }}</span>
+                                        </div>
+                                        <a-input-number v-model:value="amount" class="w-full trade-input" :min="0"
+                                            placeholder="请输入数量" />
+                                    </div>
+
+                                    <!-- 可开数量显示-->
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="text-dark-200">可用余额</span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="text-dark-100">{{ overviewStore.assets.available }}</span>
+                                            <span class="text-dark-200">USDT</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 交易按钮 -->
+                                <div class="space-y-4">
+                                    <!-- 现货交易按钮 -->
+                                    <template v-if="tradeType === 'SPOT'">
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <a-button type="primary" class="h-10"
+                                                style="background-color: #00b96b; border-color: #00b96b;"
+                                                @click="SubmitTrade('SPOT', 'buy', '')" :loading="loading"
+                                                :disabled="orderType === 'stopLimit' || loading">
+                                                {{ orderType === 'stopLimit' ? '止盈' : '买入' }}
+                                            </a-button>
+                                            <a-button type="primary" danger class="h-10"
+                                                style="background-color: #ff4d4f; border-color: #ff4d4f;"
+                                                @click="SubmitTrade('SPOT', 'sell', '')" :loading="loading"
+                                                :disabled="orderType === 'stopLimit' || loading">
+                                                {{ orderType === 'stopLimit' ? '止损' : '卖出' }}
+                                            </a-button>
+                                        </div>
+                                    </template>
+
+                                    <!-- 合约交易按钮 -->
+                                    <template v-else>
+                                        <!-- 交易方向选择 -->
+                                        <div class="space-y-4">
+                                            <div class="grid grid-cols-1 gap-2">
+                                                <!-- 开仓/平仓选择 -->
+                                                <a-radio-group v-model:value="positionType" button-style="solid"
+                                                    class="w-full" :disabled="orderType === 'stopLimit'">
+                                                    <a-radio-button value="open"
+                                                        class="w-1/2 text-center">开仓</a-radio-button>
+                                                    <a-radio-button value="close"
+                                                        class="w-1/2 text-center">平仓</a-radio-button>
+                                                </a-radio-group>
+                                                <!-- 多空方向选择 -->
+                                            </div>
+
+                                            <!-- 交易按钮 -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <a-button type="primary" class="h-10"
+                                                    style="background-color: #00b96b; border-color: #00b96b;"
+                                                    @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'long')"
+                                                    :loading="loading" :disabled="loading">
+                                                    {{ positionType === 'open' ? '开' : '平' }}多
+                                                </a-button>
+                                                <a-button type="primary" danger class="h-10"
+                                                    style="background-color: #ff4d4f; border-color: #ff4d4f;"
+                                                    @click="SubmitTrade('SWAP', positionType === 'open' ? 'buy' : 'sell', 'short')"
+                                                    :loading="loading" :disabled="loading">
+                                                    {{ positionType === 'open' ? '开' : '平' }}空
+                                                </a-button>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- 持仓信息 -->
-                    <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <div v-if="tradeType === 'SWAP'" class="bg-dark-400 rounded-lg border border-dark-300">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-dark-300">
                             <h3 class="text-base font-medium text-dark-100">当前持仓</h3>
                         </div>
@@ -415,7 +397,8 @@
                                         <div class="flex items-center gap-3">
                                             <div class="flex flex-col">
                                                 <div class="flex items-center gap-2">
-                                                    <span class="font-medium dark:text-dark-100 text-gray-700">{{ position.instId.replace('-USDT-SWAP', '') }}</span>
+                                                    <span
+                                                        class="font-medium dark:text-dark-100 text-gray-700">{{ position.instId.replace('-USDT-SWAP', '') }}</span>
                                                     <a-tag :color="position.posSide === 'long' ? 'success' : 'error'"
                                                         class="m-0 text-xs px-1.5 py-0">
                                                         {{ position.posSide === 'long' ? '多' : '空' }}
@@ -448,7 +431,7 @@
                     </div>
 
                     <!-- 当前资产 -->
-                    <div class="bg-dark-400 rounded-lg border border-dark-300">
+                    <div v-if="tradeType === 'SPOT'" class="bg-dark-400 rounded-lg border border-dark-300">
                         <div class="flex items-center justify-between px-4 py-3 border-b border-dark-300">
                             <h3 class="text-base font-medium text-dark-100">当前资产</h3>
                         </div>
@@ -467,7 +450,7 @@
                                             <span
                                                 class="text-sm font-medium text-dark-100">{{ formatNumber(asset.eq, 6) }}</span>
                                             <span class="text-xs text-dark-200 mt-0.5">≈ ${{ formatNumber(asset.eqUsd,
-                                                2) }}</span>
+                        2) }}</span>
                                         </div>
                                     </div>
                                 </div>
